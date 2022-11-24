@@ -197,7 +197,7 @@ void HistogramBuilder::tryAdd(It begin, It end, StatisticData *localstats)
   double max = -std::numeric_limits<double>::max();
 
   for (It i = begin; i != end; ++i) {
-    register double value = *i;
+    double value = *i;
 
     // The test for std::isfinite is not needed if *i is an integral type.
     if (XXX_DISABLE_NAN_CHECK || std::numeric_limits<typename std::iterator_traits<It>::value_type>::is_integer || std::isfinite(value)) {
