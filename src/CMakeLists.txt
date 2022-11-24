@@ -1,17 +1,17 @@
 cmake_minimum_required(VERSION 3.5)
 
-include(impl/CMakeLists.txt)
+include(src/impl/CMakeLists.txt)
 
 set(HEADER_FILES ${HEADER_FILES}
-    api.h
-    declspec.h
-    exception.h
-    iocontext.h
-    safewriter.h
+    src/api.h
+    src/declspec.h
+    src/exception.h
+    src/iocontext.h
+    src/safewriter.h
 )
 
 set(SOURCE_FILES ${SOURCE_FILES}
-    api.cpp
-    exception.cpp
-    iocontext.cpp
+    src/api.cpp
+    src/exception.cpp
+    src/iocontext.cpp
 )
