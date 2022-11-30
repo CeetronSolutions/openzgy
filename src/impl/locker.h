@@ -20,7 +20,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <string>
-#include "../declspec.h"
+#include "declspec.h"
 
 namespace InternalZGY {
 #if 0

@@ -67,7 +67,7 @@ using the regular read and write methods of the OS or to a cloud back-end.
 #include <functional>
 #include <mutex>
 
-#include "../declspec.h"
+#include "declspec.h"
 
 namespace OpenZGY {
   class IOContext;

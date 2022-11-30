@@ -78,7 +78,7 @@
 
 #pragma once
 
-#include "../declspec.h"
+#include "declspec.h"
 #include "../exception.h"
 #include "file.h"
 #include "enum.h"

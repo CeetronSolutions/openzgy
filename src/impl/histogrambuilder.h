@@ -15,7 +15,7 @@
 //Adapted from: Zgy/UtilityLib/HistogramBuilder
 #pragma once
 
-#include "../declspec.h"
+#include "declspec.h"
 #include "statisticdata.h" // needed due to data members.
 #include "histogramdata.h" // needed due to data members.
 

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #pragma once
-#include "../declspec.h"
+#include "declspec.h"
 #include <cstdint>
 #include <cstddef>
 

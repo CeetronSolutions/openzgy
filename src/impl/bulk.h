@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "../declspec.h"
+#include "declspec.h"
 #include "enum.h"
 #include "file.h" // Only for the ReadRequest::data_t typedef
 

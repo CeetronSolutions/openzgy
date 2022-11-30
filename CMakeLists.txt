@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 
 project(openzgy)
 
-add_definitions(-DOPENZGY_DLL -DHAVE_ZFP)
+add_definitions(-DOPENZGY_STATIC -DHAVE_ZFP)
 
 if (MSVC)
     # Disable some annoying warnings (relative to warning level 3)
@@ -17,6 +17,7 @@ add_library(${PROJECT_NAME} STATIC ${HEADER_FILES} ${SOURCE_FILES} )
 target_include_directories(${PROJECT_NAME}
   PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/zfp/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../declspec.h"
+#include "declspec.h"
 
 #include <functional>
 #include <string>

@@ -15,7 +15,7 @@
 //Adapted from: Zgy/UtilityLib/StatisticData
 #pragma once
 
-#include "../declspec.h"
+#include "declspec.h"
 
 #include <cstdint>
 #include <math.h>

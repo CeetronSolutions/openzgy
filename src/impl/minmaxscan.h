@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "../declspec.h"
+#include "declspec.h"
 #include <cstddef>
 
 namespace InternalZGY {

@@ -15,7 +15,7 @@
 //Adapted from: Zgy/ArrayBasic/ArrayTile
 #pragma once
 
-#include "../declspec.h"
+#include "declspec.h"
 #include "enum.h"
 
 #include <cstdint>
