@@ -25,6 +25,7 @@
 #include <sstream>
 #include <mutex>
 #include <algorithm>
+#include <random>
 
 using OpenZGY::IOContext;
 namespace InternalZGY {
@@ -290,7 +291,9 @@ FileADT::_allocate(std::int64_t size)
       // usinh 1,000 or so threads.
       if ((std::int64_t)cache.size() > highwater && highwater > lowwater) {
         //std::cerr << "FileADT::_allocate() is evicting entries." << std::endl;
-        std::random_shuffle(cache.begin(), cache.end());
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::shuffle(cache.begin(), cache.end(), g);
         cache.resize(lowwater);
         hint = 0;
       }
