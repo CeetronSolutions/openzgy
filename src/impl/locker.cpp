@@ -17,7 +17,7 @@
 
 #include "sdinterface.h"
 #include "environment.h"
-#include "../exception.h"
+#include "exception.h"
 
 #include <algorithm>
 #include <atomic>

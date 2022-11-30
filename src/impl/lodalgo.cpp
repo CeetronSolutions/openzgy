@@ -21,7 +21,7 @@
 #include "fancy_timers.h"
 #include "environment.h"
 #include "mtguard.h"
-#include "../exception.h"
+#include "exception.h"
 
 #include <memory.h>
 #include <math.h>

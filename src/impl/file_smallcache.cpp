@@ -17,7 +17,7 @@
  * \brief IFileADT wrapper adding a naive caching of the ZGY header area.
  */
 #include "file_smallcache.h"
-#include "../exception.h"
+#include "exception.h"
 #include <string.h>
 
 namespace InternalZGY {

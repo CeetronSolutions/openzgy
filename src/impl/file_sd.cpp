@@ -25,7 +25,7 @@
 #include "file_parallelizer.h"
 #include "fancy_timers.h"
 #include "mtguard.h"
-#include "../exception.h"
+#include "exception.h"
 #include "../iocontext.h"
 #include "environment.h"
 #include "sdinterface.h"

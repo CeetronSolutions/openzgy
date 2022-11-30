@@ -23,7 +23,7 @@
 #include "arrayops.h"
 #include "meta.h"
 #include "bulk.h"
-#include "../exception.h"
+#include "exception.h"
 
 #include <memory>
 #include <cstdint>

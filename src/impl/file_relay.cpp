@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "file_parallelizer.h"
-#include "../exception.h"
+#include "exception.h"
 
 namespace InternalZGY {
 #if 0

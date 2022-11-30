@@ -14,7 +14,7 @@
 
 #include "file_parallelizer.h"
 #include "mtguard.h"
-#include "../exception.h"
+#include "exception.h"
 #include <omp.h>
 #include <string.h>
 #include <iostream>

@@ -107,7 +107,7 @@
 #include "histogrambuilder.h"
 #include "statisticdata.h"
 #include "histogramdata.h"
-#include "../exception.h"
+#include "exception.h"
 
 #include <algorithm>
 #include <limits>

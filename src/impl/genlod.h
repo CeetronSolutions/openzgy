@@ -20,7 +20,7 @@
 #include "histogrambuilder.h"
 #include "statisticdata.h"
 #include "databuffer.h"
-#include "../exception.h"
+#include "exception.h"
 
 #include <memory>
 #include <cstdint>

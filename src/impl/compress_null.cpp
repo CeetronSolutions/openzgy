@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "compression.h"
-#include "../exception.h"
+#include "exception.h"
 
 /**
  * \file compress_null.cpp

@@ -14,7 +14,7 @@
 
 #include "databuffer.h"
 #include "roundandclip.h"
-#include "../exception.h"
+#include "exception.h"
 #include "environment.h"
 #include "fancy_timers.h"
 #include "minmaxscan.h"

@@ -17,7 +17,7 @@
 #include "compression.h"
 #include "fancy_timers.h"
 #include "environment.h"
-#include "../exception.h"
+#include "exception.h"
 
 #include <zfp.h>
 

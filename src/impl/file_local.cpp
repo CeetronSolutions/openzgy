@@ -15,7 +15,7 @@
 #ifndef _WIN32 // Entire file is linux only
 
 #include "file.h"
-#include "../exception.h"
+#include "exception.h"
 #include "timer.h"
 #include "fancy_timers.h"
 #include "environment.h"

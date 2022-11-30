@@ -18,7 +18,7 @@
 #define _CRT_SECURE_NO_WARNINGS 1
 
 #include "file.h"
-#include "../exception.h"
+#include "exception.h"
 #include "fancy_timers.h"
 #include "environment.h"
 #include "file_parallelizer.h"

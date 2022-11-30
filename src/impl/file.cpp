@@ -15,7 +15,7 @@
 #include "file.h"
 #include "environment.h"
 #include "fancy_timers.h"
-#include "../exception.h"
+#include "exception.h"
 
 #include <vector>
 #include <string>

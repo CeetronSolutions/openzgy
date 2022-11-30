@@ -16,7 +16,7 @@
 #include "perflogger.h"
 #include "timer.h"
 #include "environment.h"
-#include "../exception.h"
+#include "exception.h"
 #include <string.h>
 #include <iostream>
 #include <fstream>

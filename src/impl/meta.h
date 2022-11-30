@@ -79,7 +79,7 @@
 #pragma once
 
 #include "declspec.h"
-#include "../exception.h"
+#include "exception.h"
 #include "file.h"
 #include "enum.h"
 #include "lookuptable.h"

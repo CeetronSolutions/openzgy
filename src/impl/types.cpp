@@ -14,7 +14,7 @@
 
 #include "types.h"
 #include "enum.h"
-#include "../exception.h"
+#include "exception.h"
 #include <cstdint>
 #include <limits>
 

@@ -22,7 +22,7 @@
 #include "logger.h"
 #include "file_smallcache.h"
 #include "environment.h"
-#include "../exception.h"
+#include "exception.h"
 
 #include <iostream>
 #include <algorithm>
