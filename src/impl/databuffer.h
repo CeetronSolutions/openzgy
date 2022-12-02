@@ -263,14 +263,14 @@ public:
   std::array<std::int64_t,3> stride3d() const override;
   const ndsize_t& safesize() const {return _size;}
   const ndsize_t& safestride() const {return _stride;}
-  std::shared_ptr<DataBuffer> clone() const;
+  std::shared_ptr<DataBuffer> clone() const override;
   std::shared_ptr<DataBuffer> scaleToFloat(const std::array<double,2>&) override;
   std::shared_ptr<DataBuffer> scaleToStorage(const std::array<double,2>&, RawDataType) override;
   std::shared_ptr<DataBuffer> slice1(int dim, std::int64_t start, std::int64_t size) const override;
 
   void copyFrom(const DataBuffer* src,
                 const std::int64_t *srcorig,const std::int64_t *dstorig,
-                const std::int64_t *cpyorig,const std::int64_t *cpysize);
+                const std::int64_t *cpyorig,const std::int64_t *cpysize) override;
 
   static void copySubset(const ndsize_t& srcorig, const self_type& src,
                          const ndsize_t& dstorig,       self_type& dst,

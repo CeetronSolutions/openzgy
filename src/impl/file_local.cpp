@@ -89,7 +89,7 @@ public:
   virtual void xx_read(void *data, std::int64_t offset, std::int64_t size, UsageHint usagehint=UsageHint::Unknown) override;
   virtual void xx_readv(const ReadList& requests, bool parallel_ok=false, bool immutable_ok=false, bool transient_ok=false, UsageHint usagehint=UsageHint::Unknown) override;
   virtual void xx_write(const void* data, std::int64_t offset, std::int64_t size, UsageHint usagehint=UsageHint::Unknown) override;
-  virtual std::int64_t _real_eof() const;
+  virtual std::int64_t _real_eof() const override;
 private:
   int _fd;
   mutable std::mutex _mutex;
