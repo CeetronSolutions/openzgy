@@ -1087,7 +1087,7 @@ public:
   virtual const std::vector<std::int64_t>& alphaoffsets() const override { return _cached_alphaoffsets; }
   virtual const std::vector<std::int64_t>& brickoffsets() const override { return _cached_brickoffsets; }
   virtual void setstats(std::int64_t scnt, double ssum, double sssq,
-                        double smin, double smax)
+                        double smin, double smax) override
   {
     _pod._scnt = scnt;
     _pod._ssum = ssum;
@@ -1412,7 +1412,7 @@ public:
   virtual podbytes_t podbytes() const override;
   virtual void read(const std::shared_ptr<IFileADT>& file, std::int64_t offset, std::int64_t size) override;
   virtual void byteswap() override;
-  virtual void dump(std::ostream& out, const std::string& prefix = "");
+  virtual void dump(std::ostream& out, const std::string& prefix = "") override;
 public:
   virtual std::uint64_t lookupLinearIndex(std::int64_t index) const override;
   virtual std::vector<std::uint64_t>& lup() override { return _lookup; }

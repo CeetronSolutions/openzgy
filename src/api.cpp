@@ -444,7 +444,7 @@ public:
   }
 
   virtual const corners_t
-  indexcorners() const
+  indexcorners() const override
   {
     return _meta->ih().ocp_index();
   }
