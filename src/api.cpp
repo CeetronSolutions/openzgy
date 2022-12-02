@@ -438,7 +438,7 @@ public:
   }
 
   virtual const corners_t
-  corners() const
+  corners() const override
   {
     return _meta->ih().ocp_world();
   }
@@ -450,7 +450,7 @@ public:
   }
 
   virtual const corners_t
-  annotcorners() const
+  annotcorners() const override
   {
     return _meta->ih().ocp_annot();
   }
@@ -1009,7 +1009,7 @@ public:
    *       a different question. Possibly this is for removing any
    *       read locks.
    */
-  void close()
+  void close() override
   {
     if (_accessor) {
       _accessor.reset();
@@ -1690,7 +1690,7 @@ public:
   void finalize(const std::vector<DecimationType>& decimation_in,
                 const std::function<bool(std::int64_t,std::int64_t)>& progress,
                 FinalizeAction action = FinalizeAction::BuildDefault,
-                bool force = false)
+                bool force = false) override
   {
     std::vector<DecimationType> decimation(decimation_in);
 #if 1
@@ -1873,7 +1873,7 @@ public:
    * so applications can deal with it. ZGY-Public will not be allowed
    * to open incomplete files. Version is set >3 to prevent this.
    */
-  void close_incomplete()
+  void close_incomplete() override
   {
     if (_fd) {
       // Delete instead of keep if the derived information is stale.
@@ -1905,7 +1905,7 @@ public:
    * but that will catch and swallow any exception. Relying on the
    * destructor to close the file is strongly discouraged.
    */
-  void close()
+  void close() override
   {
     // TODO-@@@: If the file has never been written to and the error
     // flag is set then discard everyhing and do NOT write any data.
