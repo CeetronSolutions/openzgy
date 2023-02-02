@@ -1,8 +1,12 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.15)
 
 project(openzgy)
 
 add_definitions(-DOPENZGY_STATIC -DHAVE_ZFP)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 if (MSVC)
     # Disable some annoying warnings (relative to warning level 3)
@@ -26,7 +30,8 @@ target_include_directories(${PROJECT_NAME}
   PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/zfp/include
   ${CMAKE_CURRENT_SOURCE_DIR}/include/openzgy
-  ${CMAKE_CURRENT_SOURCE_DIR}/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/zgyaccess
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/openzgy
 )
 
 add_subdirectory(zfp)

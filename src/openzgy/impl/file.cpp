@@ -266,13 +266,13 @@ FileADT::_allocate(std::int64_t size)
     // And be careful about the corner case where the cache is empty.
     std::vector<std::shared_ptr<void>>::const_iterator it, start = cache.begin() + hint;
     for (it = start; it != cache.end(); ++it) {
-      if (it->unique()) {
+      if (it->use_count() == 1) {
         hint = it - cache.begin() + 1;
         return *it;
       }
     }
     for (it = cache.begin(); it != start; ++it) {
-      if (it->unique()) {
+      if (it->use_count() == 1) {
         hint = it - cache.begin() + 1;
         return *it;
       }

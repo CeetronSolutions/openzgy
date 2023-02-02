@@ -913,7 +913,7 @@ public:
       auto databuffer = std::make_shared<InternalZGY::DataBufferNd<float,3>>(fakeshared, size);
       _accessor->readToExistingBuffer(databuffer, start, lod, true);
       databuffer.reset();
-      if (!fakeshared.unique())
+      if (fakeshared.use_count() != 1)
         throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
     }
   }
@@ -932,7 +932,7 @@ public:
       auto databuffer = std::make_shared<InternalZGY::DataBufferNd<std::int16_t,3>>(fakeshared, size);
       _accessor->readToExistingBuffer(databuffer, start, lod, false);
       databuffer.reset();
-      if (!fakeshared.unique())
+      if (fakeshared.use_count() != 1)
         throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
     }
   }
@@ -951,7 +951,7 @@ public:
       auto databuffer = std::make_shared<InternalZGY::DataBufferNd<std::int8_t,3>>(fakeshared, size);
       _accessor->readToExistingBuffer(databuffer, start, lod, false);
       databuffer.reset();
-      if (!fakeshared.unique())
+      if (fakeshared.use_count() != 1)
         throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
     }
   }
@@ -1270,7 +1270,7 @@ public:
     auto databuffer = std::make_shared<InternalZGY::DataBufferNd<float,3>>(fakeshared, size);
     _accessor_rw->readToExistingBuffer(databuffer, start, /*lod*/0, true);
     databuffer.reset();
-    if (!fakeshared.unique())
+    if (fakeshared.use_count() != 1)
       throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
   }
 
@@ -1284,7 +1284,7 @@ public:
     auto databuffer = std::make_shared<InternalZGY::DataBufferNd<std::int16_t,3>>(fakeshared, size);
     _accessor_rw->readToExistingBuffer(databuffer, start, /*lod*/0, false);
     databuffer.reset();
-    if (!fakeshared.unique())
+    if (fakeshared.use_count() != 1)
       throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
   }
 
@@ -1298,7 +1298,7 @@ public:
     auto databuffer = std::make_shared<InternalZGY::DataBufferNd<std::int8_t,3>>(fakeshared, size);
     _accessor_rw->readToExistingBuffer(databuffer, start, /*lod*/0, false);
     databuffer.reset();
-    if (!fakeshared.unique())
+    if (fakeshared.use_count() != 1)
       throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
   }
 
@@ -1368,7 +1368,7 @@ public:
     _accessor_rw->writeRegion(buffer, start, 0, false, _compressor);
     this->_dirty = true;
     buffer.reset();
-    if (!fakeshared.unique()) // Actually a fatal error.
+    if (fakeshared.use_count() != 1) // Actually a fatal error.
       throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
   }
 
@@ -1386,7 +1386,7 @@ public:
     _accessor_rw->writeRegion(buffer, start, 0, true, _compressor);
     this->_dirty = true;
     buffer.reset();
-    if (!fakeshared.unique()) // Actually a fatal error.
+    if (fakeshared.use_count() != 1) // Actually a fatal error.
       throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
   }
 
@@ -1404,7 +1404,7 @@ public:
     _accessor_rw->writeRegion(buffer, start, 0, true, _compressor);
     this->_dirty = true;
     buffer.reset();
-    if (!fakeshared.unique()) // Actually a fatal error.
+    if (fakeshared.use_count() != 1) // Actually a fatal error.
       throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
   }
 
