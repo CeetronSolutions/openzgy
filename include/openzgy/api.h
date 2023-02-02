@@ -747,7 +747,7 @@ public:
     , _zinc(0)
     , _annotstart{0,0}
     , _annotinc{0,0}
-    , _corners{(0,0),(0,0),(0,0),(0,0)}
+    , _corners{0,0}
     , _have_size(false)
     , _have_bricksize(false)
     , _have_datatype(false)
