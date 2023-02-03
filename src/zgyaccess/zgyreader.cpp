@@ -149,8 +149,8 @@ std::string ZGYReader::cornerToString(std::array<double, 2> corner)
     std::string retval;
     
     retval = "(" + std::to_string(corner[0]) + ", ";
-    //retval += std::to_string(corner[1]);
-    //retval += ")";
+    retval += std::to_string(corner[1]);
+    retval += ")";
 
     return retval;
 }
