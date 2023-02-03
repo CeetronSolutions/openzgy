@@ -12,7 +12,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-parameter -Wno-reorder -Wno-parentheses -Wno-switch -Werror"  )
 
   if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-delete-abstract-non-virtual-dtor -Wno-undefined-var-template -Wno-invalid-source-encoding -Wno-enum-compare -Wno-call-to-pure-virtual-from-ctor-dtor -Wno-unused-variable -Wno-unused-private-field -Wno-unused-lambda-capture -Wno-delete-non-abstract-non-virtual-dtor -Wno-braced-scalar-init -Wno-tautological-constant-out-of-range-compare")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-delete-abstract-non-virtual-dtor -Wno-undefined-var-template -Wno-invalid-source-encoding -Wno-enum-compare -Wno-call-to-pure-virtual-from-ctor-dtor -Wno-unused-variable -Wno-unused-private-field -Wno-unused-lambda-capture -Wno-delete-non-abstract-non-virtual-dtor -Wno-braced-scalar-init -Wno-tautological-constant-out-of-range-compare -Wmissing-braces")
   endif()
 endif()
 
@@ -42,6 +42,7 @@ target_include_directories(${PROJECT_NAME}
   ${CMAKE_CURRENT_SOURCE_DIR}/src/openzgy
 )
 
+set(BUILD_TESTING "OFF")
 add_subdirectory(zfp)
 
 target_link_libraries(${PROJECT_NAME} zfp)

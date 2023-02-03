@@ -113,6 +113,8 @@ namespace {
     }
 #endif
 
+#ifndef USE_SSE2_INSTRUCTIONS
+
     inline bool isNotNaN(const float val)
     {
         // Assume that sizeof(int) == sizeof(float) and that we are IEEE arithmetic
@@ -132,6 +134,7 @@ namespace {
         // and then check that the integer reinterpretation of the float is not equal to an all one exponent (conveniently this is the same value). If that is the case, we are not inf / NaN
         return ((punnedVal & 0x7FFFFFFF) <= 0x7F800000);
     }
+#endif
 
     inline void stridedMinMaxSafe(const float* const values, const size_t size, const size_t stride, float& minValue, float& maxValue)
     {
