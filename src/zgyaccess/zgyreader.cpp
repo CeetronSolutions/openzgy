@@ -116,24 +116,28 @@ std::vector<std::pair<std::string, std::string>> ZGYReader::MetaData()
     retValues.push_back(std::make_pair("Inline increment", std::to_string(annotinc[0])));
     retValues.push_back(std::make_pair("Crossline increment", std::to_string(annotinc[1])));
 
+    const auto& annotsize = m_reader->size();
+    retValues.push_back(std::make_pair("Inline size", std::to_string(annotsize[0])));
+    retValues.push_back(std::make_pair("Crossline size", std::to_string(annotsize[1])));
+
     tmp = "";
     for (auto& c : m_reader->corners())
     {
-        tmp = tmp + cornerToString(c) + " ";
+        tmp += cornerToString(c) + " ";
     }
     retValues.push_back(std::make_pair("World coord. corners", tmp));
 
     tmp = "";
     for (auto& c : m_reader->indexcorners())
     {
-        tmp = tmp + cornerToString(c) + " ";
+        tmp += cornerToString(c) + " ";
     }
     retValues.push_back(std::make_pair("Brick index corners", tmp));
 
     tmp = "";
     for (auto& c : m_reader->annotcorners())
     {
-        tmp = tmp + cornerToString(c) + " ";
+        tmp += cornerToString(c) + " ";
     }
     retValues.push_back(std::make_pair("Inline/crossline corners", tmp));
 
@@ -143,9 +147,10 @@ std::vector<std::pair<std::string, std::string>> ZGYReader::MetaData()
 std::string ZGYReader::cornerToString(std::array<double, 2> corner)
 {
     std::string retval;
-
-    retval += "(" + std::to_string(corner[0]) + ", ";
-    retval += std::to_string(corner[1]) + ")";
+    
+    retval = "(" + std::to_string(corner[0]) + ", ";
+    //retval += std::to_string(corner[1]);
+    //retval += ")";
 
     return retval;
 }
@@ -161,28 +166,28 @@ std::string ZGYReader::sizeToString(std::array<std::int64_t, 3> size)
     return retval;
 }
 
-std::array<int, 3> ZGYReader::Origin()
+std::array<int, 2> ZGYReader::Origin()
 {
-    if (m_reader == nullptr) return { 0, 0, 0 };
+    if (m_reader == nullptr) return { 0, 0 };
 
     const auto& annotstart = m_reader->annotstart();
-
-    return { int(annotstart[0]), int(annotstart[1]), int(annotstart[2]) };
+    return { int(annotstart[0]), int(annotstart[1]) };
 }
 
-std::array<int, 3> ZGYReader::Size()
+std::array<int, 2> ZGYReader::Size()
 {
-    if (m_reader == nullptr) return { 0, 0, 0 };
+    if (m_reader == nullptr) return { 0, 0 };
+
     const auto& annotsize = m_reader->size();
-    return { int(annotsize[0]), int(annotsize[1]), int(annotsize[2]) };
+    return { int(annotsize[0]), int(annotsize[1]) };
 }
 
-std::array<int, 3> ZGYReader::Step()
+std::array<int, 2> ZGYReader::Step()
 {
-    if (m_reader == nullptr) return { 0, 0, 0 };
+    if (m_reader == nullptr) return { 0, 0 };
 
     const auto& annotinc = m_reader->annotinc();
-    return { int(annotinc[0]), int(annotinc[1]), int(annotinc[2]) };
+    return { int(annotinc[0]), int(annotinc[1]) };
 }
 
 

@@ -25,9 +25,9 @@ namespace ZGYAccess
 
         std::vector<std::pair<std::string, std::string>> MetaData();
 
-        std::array<int, 3> Origin();
-        std::array<int, 3> Size();
-        std::array<int, 3> Step();
+        std::array<int, 2> Origin();
+        std::array<int, 2> Size();
+        std::array<int, 2> Step();
 
         //std::array<double, 3> WorldOrigin();
 
