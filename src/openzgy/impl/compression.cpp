@@ -117,7 +117,7 @@ CompressFactoryImpl::registerDecompressor(const std::string& name, const decompr
     decomp_reg_t& reg = _getDecompressRegistry();
     decomp_reg_t old(reg);
     reg.clear();
-    for (const auto e : old)
+    for (const auto& e : old)
       if (e.first != name)
         reg.push_back(e);
   }
