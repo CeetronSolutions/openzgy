@@ -190,7 +190,35 @@ std::array<int, 2> ZGYReader::Step()
     return { int(annotinc[0]), int(annotinc[1]) };
 }
 
+std::vector<std::pair<double, double>> ZGYReader::WorldCorners() const
+{
+    if (m_reader == nullptr) return { std::make_pair(0.0, 0.0),  };
 
+    std::vector<std::pair<double, double>> retval;
+
+    auto& corners = m_reader->corners();
+
+    for (auto& c : corners)
+    {
+        retval.push_back(std::make_pair(c[0], c[1]));
+    }
+
+    return retval;
+}
+
+std::pair<double, double> ZGYReader::ZRange() const
+{
+    if (m_reader == nullptr) return { 0, 0 };
+
+    double zmin = m_reader->zstart();
+    double zmax = zmin;
+
+    const auto bricksize = m_reader->bricksize()[2];
+    const auto brickcount = m_reader->brickcount()[0][2];
+    zmax += m_reader->zinc() * bricksize * brickcount;
+    
+    return std::make_pair(zmin, zmax);
+}
 
 
 

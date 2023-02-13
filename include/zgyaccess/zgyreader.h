@@ -29,7 +29,8 @@ namespace ZGYAccess
         std::array<int, 2> Size();
         std::array<int, 2> Step();
 
-        //std::array<double, 3> WorldOrigin();
+        std::vector<std::pair<double, double>> WorldCorners() const;
+        std::pair<double, double> ZRange() const;
 
 
     private:
