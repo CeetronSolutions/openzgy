@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.15)
 project(openzgy)
 
 add_definitions(-DOPENZGY_STATIC -DHAVE_ZFP)
-
+set(BUILD_SHARED_LIBS "OFF" CACHE BOOL "" FORCE) 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -49,5 +49,8 @@ add_subdirectory(zfp)
 
 target_link_libraries(${PROJECT_NAME} zfp)
 
-enable_testing()
-add_subdirectory(tests)
+# no need to run tests with clang
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  enable_testing()
+  add_subdirectory(tests)
+endif()

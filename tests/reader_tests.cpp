@@ -15,6 +15,15 @@
 //--------------------------------------------------------------------------------------------------
 TEST(reader_tests, testOpenFile)
 {
+    ZGYAccess::ZGYReader reader;
 
-    ASSERT_TRUE(true);
+    ASSERT_TRUE(reader.Open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+
+    auto metadata = reader.MetaData();
+
+    ASSERT_EQ(metadata.size(), 21);
+
+
+    reader.Close();
+
 }

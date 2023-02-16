@@ -8,13 +8,11 @@ FetchContent_Declare(
   GIT_TAG        release-1.11.0
 )
 
-# set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
 set(BUILD_GTEST ON CACHE BOOL "" FORCE)
 set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE )
-add_definitions(-DOPENZGY_STATIC)
 
 FetchContent_MakeAvailable(googletest)
 
@@ -46,5 +44,6 @@ if (MSVC)
   set(CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
 endif()
 
-target_link_libraries(openzgy-tests PRIVATE -static openzgy gtest gtest_main)
+target_link_libraries(openzgy-tests PUBLIC openzgy gtest gtest_main )
+
 add_test(NAME openzgy-tests COMMAND openzgy-tests)
