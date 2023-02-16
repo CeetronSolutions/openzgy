@@ -8,9 +8,9 @@
 namespace ZGYAccess
 {
 
-SeismicSliceData::SeismicSliceData()
-    : m_nTraces(0)
-    , m_nSamplesInDepth(0)
+SeismicSliceData::SeismicSliceData(int width, int height)
+    : m_width(width)
+    , m_depth(height)
 {
 
 }

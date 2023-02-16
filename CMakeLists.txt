@@ -48,3 +48,6 @@ set(BUILD_TESTING "OFF" CACHE BOOL "No testing enabled" FORCE)
 add_subdirectory(zfp)
 
 target_link_libraries(${PROJECT_NAME} zfp)
+
+enable_testing()
+add_subdirectory(tests)

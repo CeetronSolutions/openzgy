@@ -1,4 +1,5 @@
 
+#pragma once
 
 #include <vector>
 
@@ -12,6 +13,7 @@ class SeismicSliceData
 
 public:
     SeismicSliceData(int width, int depth);
+    ~SeismicSliceData();
 
     void addSubSliceData(int fromX, int fromY, int fromWidth, const std::vector<float> values, int toX, int toY);
 
