@@ -27,3 +27,13 @@ TEST(reader_tests, testOpenFile)
     reader.Close();
 
 }
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+TEST(reader_tests, testFailOpenFile)
+{
+    ZGYAccess::ZGYReader reader;
+
+    ASSERT_FALSE(reader.Open(std::string(TEST_DATA_DIR) + "does_not_exist.zgy"));
+}

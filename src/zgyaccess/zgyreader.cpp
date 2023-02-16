@@ -220,6 +220,18 @@ std::pair<double, double> ZGYReader::ZRange() const
     return std::make_pair(zmin, zmax);
 }
 
+std::shared_ptr<SeismicSliceData> ZGYReader::seismicSlice(std::array<double, 3> worldStart, std::array<double, 3> worldStop)
+{
+    std::shared_ptr<SeismicSliceData> retval = std::make_shared<SeismicSliceData>(0,0);
+
+    if (m_reader == nullptr) return retval;
+    
+
+
+    return retval;
+}
+
+
 
 
 }
