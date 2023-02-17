@@ -15,9 +15,10 @@
 //Adapted from: Zgy/UtilityLib/HistogramBuilder
 #pragma once
 
-#include "declspec.h"
+#include "../declspec.h"
 #include "statisticdata.h" // needed due to data members.
 #include "histogramdata.h" // needed due to data members.
+#include "roundandclip.h" // IsFiniteT
 
 #include <cmath> // needed for std::isfinite
 
@@ -199,8 +200,7 @@ void HistogramBuilder::tryAdd(It begin, It end, StatisticData *localstats)
   for (It i = begin; i != end; ++i) {
     double value = *i;
 
-    // The test for std::isfinite is not needed if *i is an integral type.
-    if (XXX_DISABLE_NAN_CHECK || std::numeric_limits<typename std::iterator_traits<It>::value_type>::is_integer || std::isfinite(value)) {
+    if (XXX_DISABLE_NAN_CHECK || IsFiniteT(*i)) {
 
       int n = RoundD2I(combo_offset + combo_scale * value);
       if (n >= 0 && n < gethisto().getsize())

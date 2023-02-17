@@ -14,7 +14,7 @@
 
 #include "databuffer.h"
 #include "roundandclip.h"
-#include "exception.h"
+#include "../exception.h"
 #include "environment.h"
 #include "fancy_timers.h"
 #include "minmaxscan.h"
@@ -70,6 +70,10 @@ namespace {
     SummaryPrintingTimerEx allsame;
     SummaryPrintingTimerEx fill;
     SummaryPrintingTimerEx range;
+    SummaryPrintingTimerEx range_cpu;
+    SummaryPrintingTimerEx range_pad;
+    SummaryPrintingTimerEx range_dis;
+    SummaryPrintingTimerEx range_sse;
     SummaryPrintingTimerEx clone;
     SummaryPrintingTimerEx scaletof;
     SummaryPrintingTimerEx scaletos;
@@ -83,6 +87,10 @@ namespace {
       , allsame   ("DBNd.allsame")
       , fill      ("DBNd.fill")
       , range     ("DBNd.range")
+      , range_cpu ("DBNd.range[cpu]") // CPU only, e.g. for integral samples.
+      , range_pad ("DBNd.range[pad]") // CPU only because of edge bricks.
+      , range_dis ("DBNd.range[dis]") // MinMaxScan caller but sse disabled.
+      , range_sse ("DBNd.range[sse]") // MinMaxScan called and will use sse2.
       , clone     ("DBNd.clone")
       , scaletof  ("DBNd.scaletof")
       , scaletos  ("DBNd.scaletos")
@@ -107,6 +115,10 @@ namespace {
         scaletos.print();
         scaletof.print();
         clone.print();
+        range_sse.print();
+        range_dis.print();
+        range_pad.print();
+        range_cpu.print();
         range.print();
         fill.print();
         allsame.print();
@@ -121,6 +133,10 @@ namespace {
         scaletos.reset();
         scaletof.reset();
         clone.reset();
+        range_sse.reset();
+        range_dis.reset();
+        range_pad.reset();
+        range_cpu.reset();
         range.reset();
         fill.reset();
         allsame.reset();
@@ -762,6 +778,7 @@ DataBufferNd<T,NDim>::fill(double value)
       memset(_data.get(), static_cast<int>(val), allocsize() * sizeof(T));
     else
       std::fill(_data.get(), _data.get() + allocsize(), val);
+    AdHocTimers::instance().fill.addBytesWritten(allocsize() * sizeof(T));
   }
 }
 
@@ -823,7 +840,10 @@ DataBufferNd<T,NDim>::range(const std::int64_t *used_in) const
     // Buffer is always c-contiguous. Treat as 1d.
     const T * const ptr = data();
     const std::int64_t totalsize = allocsize();
-    if (std::is_same<T, float>::value) {
+    if (std::is_same<T, float>::value && MinMaxScan::use_sse2()) {
+        SimpleTimerEx tt_sse(MinMaxScan::has_sse2() ?
+                             AdHocTimers::instance().range_sse :
+                             AdHocTimers::instance().range_dis);
         auto float_ptr = reinterpret_cast<const float * const>(data());
         float fMin, fMax;
         MinMaxScan::scanArray(float_ptr, allocsize(), 1, fMin, fMax);
@@ -832,6 +852,7 @@ DataBufferNd<T,NDim>::range(const std::int64_t *used_in) const
         max = (T)fMax;
     }
     else {
+        SimpleTimerEx tt_cpu(AdHocTimers::instance().range_cpu);
         //#pragma omp parallel for reduction(min: min) reduction(max: max) if(totalsize >= 1*1024*1024)
         for (std::int64_t ii = 0; ii < totalsize; ++ii) {
             const T value = ptr[ii];
@@ -842,6 +863,7 @@ DataBufferNd<T,NDim>::range(const std::int64_t *used_in) const
     }
   }
   else {
+    SimpleTimerEx tt_pad(AdHocTimers::instance().range_pad);
     std::array<std::int64_t,NDim> loop{0};
     while (loop[0] < used[0]) {
       const T* ptr = data();
@@ -1110,14 +1132,12 @@ DataBufferNd<T,NDim>::s_scaleFromFloat(const DataBuffer* in,
     dst_type::value_type *dst_ptr = dst->data();
     const typename src_type::value_type *src_ptr = src->data();
     const std::int64_t totalsize = src->allocsize();
-    // TODO-Performance: There is a risk of the OpemMP overhead being larger
-    // then the speedup gained by multiple threads. I ran tests only in one
-    // environment. It seemed safe by a wide margin if there was at least one
-    // standard-sized brick (256 KB to 1 MB) being processed. I am still
-    // worrying, because technically there is no upper limit to how much
-    // overhead OpenMP might add. While doing serial processing has a fixed
-    // and not that dramatic cost.
-#pragma omp parallel for if(totalsize >=256*1024)
+    // When called from a large program such as Petrel running on a big
+    // (many cores) machine and not having the caller be on the main thread
+    // this leads to a perfect storm where the OpenMP overhead can go
+    // completely overboard. Not on main thread is technically illegal.
+    // Better to forego multi threading this algorithm.
+    //#pragma omp parallel for if(totalsize >=256*1024)
     for (std::int64_t ii=0; ii<totalsize; ++ii) {
       dst_ptr[ii] = RoundAndClip<dst_type::value_type>(src_ptr[ii] * a + b, defaultstorage);
     }

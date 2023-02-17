@@ -15,7 +15,7 @@
 #ifndef _WIN32 // Entire file is linux only
 
 #include "file.h"
-#include "exception.h"
+#include "../exception.h"
 #include "timer.h"
 #include "fancy_timers.h"
 #include "environment.h"
@@ -51,6 +51,25 @@ namespace InternalZGY {
  */
 
 /**
+ * For debugging, ensure all local disk buffers are written to disk
+ * before closing. This makes timing results more reproducible. N/A
+ * for cloud I/O.
+ *
+ * ZgyTool on Linux currently does its own sync (of the entire system).
+ * In that situation it is better to enable fsync here, and disregard
+ * the sync reported by the tool. Because that will now report only the
+ * time needed to sync unrelated buffers.
+ *
+ * If the sync time is suspiciously slow then this suggests that fsync
+ * is called or implied somewhere else.
+ */
+static int enable_fsync()
+{
+  static int enable = Environment::getNumericEnv("OPENZGY_ENABLE_FSYNC", 0);
+  return enable;
+}
+
+/**
  * Thread safety when used for reading:
  * Designed to be thread safe as no internal data structures should change
  * after the file has been opened. Any lazy-evaluated information needs
@@ -78,18 +97,18 @@ public:
   virtual ~LocalFileLinux();
   static std::shared_ptr<IFileADT> xx_make_instance(const std::string& filename, OpenMode mode, const OpenZGY::IOContext *iocontext);
   // Methods from IFileBase
-  virtual void deleteFile(const std::string& name, bool missing_ok) const override;
-  virtual std::string altUrl(const std::string& name) const override;
-  virtual std::string idToken() const override;
+  void deleteFile(const std::string& name, bool missing_ok) const override;
+  std::string altUrl(const std::string& name) const override;
+  std::string idToken() const override;
   // Methods from IFileADT:
-  virtual void xx_close() override;
-  virtual std::int64_t xx_eof() const override;
-  virtual std::vector<std::int64_t> xx_segments(bool complete) const override;
-  virtual bool xx_iscloud() const override;
-  virtual void xx_read(void *data, std::int64_t offset, std::int64_t size, UsageHint usagehint=UsageHint::Unknown) override;
-  virtual void xx_readv(const ReadList& requests, bool parallel_ok=false, bool immutable_ok=false, bool transient_ok=false, UsageHint usagehint=UsageHint::Unknown) override;
-  virtual void xx_write(const void* data, std::int64_t offset, std::int64_t size, UsageHint usagehint=UsageHint::Unknown) override;
-  virtual std::int64_t _real_eof() const override;
+  void xx_close() override;
+  std::int64_t xx_eof() const override;
+  std::vector<std::int64_t> xx_segments(bool complete) const override;
+  bool xx_iscloud() const override;
+  void xx_read(void *data, std::int64_t offset, std::int64_t size, UsageHint usagehint=UsageHint::Unknown) override;
+  void xx_readv(const ReadList& requests, bool parallel_ok=false, bool immutable_ok=false, bool transient_ok=false, UsageHint usagehint=UsageHint::Unknown) override;
+  void xx_write(const void* data, std::int64_t offset, std::int64_t size, UsageHint usagehint=UsageHint::Unknown) override;
+  std::int64_t _real_eof() const override;
 private:
   int _fd;
   mutable std::mutex _mutex;
@@ -213,6 +232,10 @@ LocalFileLinux::xx_close()
   case OpenMode::ReadOnly:
   case OpenMode::ReadWrite:
   case OpenMode::Truncate:
+    if (mode != OpenMode::ReadOnly && enable_fsync() > 0) {
+      SimpleTimerEx mm(*_synctimer);
+      (void)fsync(_fd); // errors are not fatal.
+    }
     if (::close(_fd) < 0)
       throw OpenZGY::Errors::ZgyIoError(_name, errno);
     _fd = -2;
@@ -221,6 +244,7 @@ LocalFileLinux::xx_close()
 
   _fd = -2;
   _name = std::string();
+  _synctimer.reset();
   _rtimer.reset();
   _wtimer.reset();
   _mtimer.reset();

@@ -18,6 +18,8 @@
 #include <cstdint>
 #include <cmath>
 #include <limits>
+#include <type_traits>
+#include <memory.h>
 
 /**
  * \file roundandclip.h
@@ -33,6 +35,36 @@
  * a macro which gets undefined if \<cmath\> happens to be included elsewhere.
  * For similar reasons use std::isfinite unless it turns out to be proveably
  * slower than the alternatives.
+ *
+ * Update: It has been proven. In particular with msvc, the methods in the
+ * standard library are *s*l*o*w. Hand coding some functions using bit-fiddling
+ * is ugly but useful. I have run a single test case where the standard
+ * functions had 1.4 times slowdown in g++. And more that 3 times slowdown
+ * in msvc / visual studio.
+ *
+ * Risks:
+ * - Algorithm correctness. (Verify with unit tests).
+ *
+ * - Correctness for odd types, e.g. const volatile long double. (Add tests).
+ *
+ * - SNaN handling or other subtle rules might differ. (We shouldn't care).
+ *
+ * - This kind of micro-optimizing is problematic because the effect is very
+ *   compiler dependent. What is faster today might end up slower in a newer
+ *   compiler. Even reorganizing the calling function (which is obviously
+ *   calling these tests in a tight loop) might help the optimizer do a better
+ *   job.
+ *
+ * - The detailed performance measurements were done just for isfinite(float),
+ *   and only in one specific tight loop where the test was inlined.
+ *   Applying the fix also to double and also to isnan might not be a good idea.
+ *
+ * - Would isnan() work better as just (x!=x) ? Would that be safe?
+ *
+ * - Looking at the library as a whole, the time spend in this particular
+ *   function might not be that noticeable. So the change might not have been
+ *   worth the effort. Especially with some of the callers already switched
+ *   to sse2 code.
  */
 
 namespace InternalZGY {
@@ -41,49 +73,121 @@ namespace InternalZGY {
 #endif
 
 /**
- * IsFiniteT uses template magic to avoid having to test integral types.
+ * IsFiniteT() and IsNanT() use template magic to avoid having to test integral
+ * types. They also avoid std::isfinite() and std::isnan() because those are
+ * inefficient in g++ (use sse2 where regular instructions would be faster)
+ * and criminally inefficient in msvc (use a function call, even in the non
+ * standard _isfinite() and friends).
+ *
+ * iec559/ieee754 float can be interpreted as integral sign/value. Mask out the
+ * sign bit. If what remains is exactly 0x7F800000 (for floats) then the number
+ * is infinite. Anything larger is a NaN. No need to distinguish between
+ * positive and negative infinity, nor between quiet and signalling NaN.
+ * So the sign bit is not needed. The difference between Inf and NaN checks
+ * is just a less vs. less-or-equal test.
+ *
+ * Implementation note about the cast inside the non-specialized templates.
+ * With g++ this is not needed because the compiler sees that isfinite
+ * and isnan will never be called with an integer, so it doesn't matter
+ * that there are no overloads for integral types. On windows, the compiler
+ * reports an error. The cast to long double removes the error.
+ * To avoid an unnecessary cast, explicit specialization for float and
+ * double should be made even if they just forward to the std:: version.
+ *
+ * Caveat: Even though isnan *can* be implemented very similar to isfinite,
+ * it might not need to be. Testing (x!=x) or std::isnan() might be better.
  */
-template <typename T> inline bool IsFiniteT(T /*value*/)
+template <typename T> inline bool IsFiniteT(T value)
 {
-  return true;
+  if (!std::numeric_limits<T>::is_specialized ||
+      std::numeric_limits<T>::is_integer) {
+    return true;
+  }
+  /*
+  else if (std::is_same<T, float>::value || std::is_same<T, const float>::value) {
+    return std::isfinite(static_cast<float>(value));
+  }
+  else if (std::is_same<T, double>::value || std::is_same<T, const double>::value) {
+    return std::isfinite(static_cast<double>(value));
+  }*/
+  else {
+    return std::isfinite(static_cast<long double>(value));
+  }
 }
 
 template <> inline bool IsFiniteT<float>(float value)
 {
+#if 1 // Measured to be faster.
+  if (std::numeric_limits<float>::is_iec559) {
+    std::uint32_t punnedVal;
+    memcpy(&punnedVal, &value, sizeof(std::uint32_t));
+    return ((punnedVal & 0x7FFFFFFF) < 0x7F800000);
+  }
+  else {
+    return std::isfinite(value);
+  }
+#else
   return std::isfinite(value);
+#endif
 }
 
 template <> inline bool IsFiniteT<double>(double value)
 {
+#if 0 // Not sure yet whether this is faster.
+  if (std::numeric_limits<double>::is_iec559) {
+    std::uint64_t punnedVal;
+    memcpy(&punnedVal, &value, sizeof(std::uint64_t));
+    return ((punnedVal & 0x7FFFFFFFFFFFFFFF) < 0x7FF0000000000000);
+  }
+  else {
+    return std::isfinite(value);
+  }
+#else
   return std::isfinite(value);
+#endif
 }
 
-template <> inline bool IsFiniteT<long double>(long double value)
+template <typename T> inline bool IsNanT(T value)
 {
-  return std::isfinite(static_cast<double>(value));
-}
-
-/**
- * IsNanT uses template magic to avoid having to test integral types.
- */
-template <typename T> inline bool IsNanT(T /*value*/)
-{
-  return false;
+  if (!std::numeric_limits<T>::is_specialized ||
+      std::numeric_limits<T>::is_integer) {
+    return false;
+  }
+  else {
+    return std::isnan(static_cast<long double>(value));
+  }
 }
 
 template <> inline bool IsNanT<float>(float value)
 {
+#if 0 // Only slightly faster on Windows, maybe.
+  if (std::numeric_limits<float>::is_iec559) {
+    std::uint32_t punnedVal;
+    memcpy(&punnedVal, &value, sizeof(std::uint32_t));
+    return ((punnedVal & 0x7FFFFFFF) > 0x7F800000);
+  }
+  else {
+    return std::isnan(value);
+  }
+#else
   return std::isnan(value);
+#endif
 }
 
 template <> inline bool IsNanT<double>(double value)
 {
+#if 0 // Not sure yet whether this is faster.
+  if (std::numeric_limits<double>::is_iec559) {
+    std::uint64_t punnedVal;
+    memcpy(&punnedVal, &value, sizeof(std::uint64_t));
+    return ((punnedVal & 0x7FFFFFFFFFFFFFFF) > 0x7FF0000000000000);
+  }
+  else {
+    return std::isnan(value);
+  }
+#else
   return std::isnan(value);
-}
-
-template <> inline bool IsNanT<long double>(long double value)
-{
-  return std::isnan(static_cast<double>(value));
+#endif
 }
 
 /**

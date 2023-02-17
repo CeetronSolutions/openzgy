@@ -14,13 +14,14 @@
 
 #pragma once
 
-#include "declspec.h"
+#include "../declspec.h"
 
 #include <exception>
 #include <atomic>
 #include <functional>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace InternalZGY {
 #if 0
@@ -59,6 +60,7 @@ private:
   std::string        _debug_name;
   int                _debug_requested;
   bool               _debug_reported;
+  std::vector<int>   _debug_threads_used;
   // cannot be inside class on Windows.
   //static thread_local int _debug_nesting;
 

@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "declspec.h"
+#include "../declspec.h"
 #include "enum.h"
 #include "types.h"
 

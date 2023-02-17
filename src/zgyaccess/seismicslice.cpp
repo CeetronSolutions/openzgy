@@ -1,7 +1,9 @@
 
 
 #include "zgyreader.h"
-#include "openzgy.h"
+
+#include "exception.h"
+#include "api.h"
 
 #include "seismicslice.h"
 

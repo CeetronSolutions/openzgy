@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "lookuptable.h"
-#include "exception.h"
+#include "../exception.h"
 #include "enum.h"
 
 #include <sstream>

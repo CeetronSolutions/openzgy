@@ -123,7 +123,7 @@
 #include "sdinterface.h"
 #include "environment.h"
 #include "locker.h"
-#include "exception.h"
+#include "../exception.h"
 
 #ifdef HAVE_SD // Most of the file
 
@@ -218,22 +218,22 @@ public:
     relay().open(disposition, args);
   }
 
-  virtual std::string getConsistencyID() const override
+  std::string getConsistencyID() const override
   {
     return relay().getConsistencyID();
   }
 
-  virtual std::string getSerializedContext() const override
+  std::string getSerializedContext() const override
   {
     return relay().getSerializedContext();
   }
 
-  virtual bool getReadonlyMode() const override
+  bool getReadonlyMode() const override
   {
     return relay().getReadonlyMode();
   }
 
-  virtual void setReadonlyMode(bool readonly) override
+  void setReadonlyMode(bool readonly) override
   {
     LogEntryAndExit lee(tracker_, logger_, "setRoMode:  ");
     tracker_->runWithReadLock(-1, [this,readonly]()
@@ -242,14 +242,14 @@ public:
     });
   }
 
-  virtual void setExponentialRetryBackoffPolicy(
+  void setExponentialRetryBackoffPolicy(
        const seismicdrive::ExponentialRetryBackoffPolicy *policy,
        const seismicdrive::HttpConnectionLink link) override
   {
     return relay().setExponentialRetryBackoffPolicy(policy, link);
   }
 
-  virtual long long getSize() const override
+  long long getSize() const override
   {
     LogEntryAndExit lee(tracker_, logger_, "getSize:    ");
     return tracker_->runWithReadLockT<long long>(-1, [this]()
@@ -292,7 +292,7 @@ public:
     });
   }
 
-  virtual void deleteBlock(const std::string &blockName) override
+  void deleteBlock(const std::string &blockName) override
   {
     LogEntryAndExit lee(tracker_, logger_, "deleteBlock:");
     tracker_->throwPendingException();

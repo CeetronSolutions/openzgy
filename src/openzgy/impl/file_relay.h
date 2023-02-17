@@ -48,15 +48,15 @@ protected:
 public:
   explicit FileRelayBase(std::shared_ptr<IFileBase> relay);
   virtual ~FileRelayBase();
-  virtual void deleteFile(const std::string& name, bool missing_ok) const override
+  void deleteFile(const std::string& name, bool missing_ok) const override
   {
     _relay->deleteFile(name, missing_ok);
   }
-  virtual std::string  altUrl(const std::string& name) const override
+  std::string  altUrl(const std::string& name) const override
   {
     return _relay->altUrl(name);
   }
-  virtual std::string  idToken() const override
+  std::string  idToken() const override
   {
     return _relay->idToken();
   }
@@ -85,26 +85,26 @@ protected:
 public:
   explicit FileRelay(std::shared_ptr<IFileADT> relay);
   virtual ~FileRelay();
-  virtual void         xx_read(void *data, std::int64_t offset, std::int64_t size, UsageHint hint) override {
+  void         xx_read(void *data, std::int64_t offset, std::int64_t size, UsageHint hint) override {
     _relay->xx_read(data, offset, size, hint);
   }
-  virtual void         xx_readv(const ReadList& requests, bool parallel_ok, bool immutable_ok, bool transient_ok, UsageHint hint) override {
+  void         xx_readv(const ReadList& requests, bool parallel_ok, bool immutable_ok, bool transient_ok, UsageHint hint) override {
     _relay->xx_readv(requests, parallel_ok, immutable_ok, transient_ok, hint);
   }
-  virtual void         xx_write(const void* data, std::int64_t offset, std::int64_t size, UsageHint hint) override {
+  void         xx_write(const void* data, std::int64_t offset, std::int64_t size, UsageHint hint) override {
     _relay->xx_write(data, offset, size, hint);
   }
-  virtual void         xx_close()         override {
+  void         xx_close()         override {
     _relay->xx_close();
   }
-  virtual std::int64_t xx_eof()     const override {
+  std::int64_t xx_eof()     const override {
     return _relay->xx_eof();
   }
-  virtual std::vector<std::int64_t> xx_segments(bool complete) const override
+  std::vector<std::int64_t> xx_segments(bool complete) const override
   {
     return _relay->xx_segments(complete);
   }
-  virtual bool         xx_iscloud() const override {
+  bool         xx_iscloud() const override {
     return _relay->xx_iscloud();
   }
 };

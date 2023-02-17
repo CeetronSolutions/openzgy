@@ -23,7 +23,8 @@
 #include "arrayops.h"
 #include "meta.h"
 #include "bulk.h"
-#include "exception.h"
+#include "../exception.h"
+#include "wintools.h"
 
 #include <memory>
 #include <cstdint>
@@ -105,6 +106,7 @@ GenLodBase::GenLodBase(
   , _skip_histogram(skip_histogram)
   , _progress(progress)
   , _loggerfn(logger)
+  , _timer_histogram("GenLod.hist")
 {
   // Do a sanity check on the supplied nlods.
   std::int32_t nlods = 1; // The loop stops before counting final level
@@ -353,6 +355,8 @@ GenLodImpl::GenLodImpl(
 std::tuple<std::shared_ptr<StatisticData>, std::shared_ptr<HistogramData>>
 GenLodImpl::call()
 {
+  //WindowsTools::threadTimeTest(1000); // Uncomment for ad-hoc testing.
+  //WindowsTools::threadReportString(); // Reset thread create counter.
   if (_logger(4, ""))
     _logger(4, std::stringstream()
             << "@ GenLod is running."
@@ -364,6 +368,8 @@ GenLodImpl::call()
   this->_reporttotal(_willneed());
   this->_report(nullptr);
   this->_calculate(index3_t{0,0,0}, chunksize, this->_nlods-1);
+  clearLodTimers(true); // For performance measurements.
+  //_logger(0, "GenLod threads " + WindowsTools::threadReportString());
   return std::make_tuple(this->_stats, this->_histo);
 }
 
@@ -379,6 +385,7 @@ GenLodImpl::_accumulateT(const std::shared_ptr<const DataBuffer>& data_in)
     return; // Probably because _skip_histogram was set.
   // Note that we never allow the histogram to grow dynamically;
   // that was a problematic feature of the old accessor.
+  SimpleTimerEx tt(_timer_histogram);
   HistogramBuilder hb(256, _histogram_range[0], _histogram_range[1]);
   std::int64_t len = data->size3d()[0] * data->size3d()[1] * data->size3d()[2];
   if (this->_skip_histogram) {
@@ -390,13 +397,16 @@ GenLodImpl::_accumulateT(const std::shared_ptr<const DataBuffer>& data_in)
     // we can ever get here.
     hb.add(data->data(), data->data() + 1);
     hb *= len;
+    _timer_histogram.addBytesRead(sizeof(T));
   }
   else if (data->isScalar()) {
     hb.add(data->data(), data->data() + 1);
     hb *= len;
+    _timer_histogram.addBytesRead(sizeof(T));
   }
   else {
     hb.add(data->data(), data->data() + len);
+    _timer_histogram.addBytesRead(sizeof(T) * len);
   }
   *this->_stats += hb.getstats();
   *this->_histo += hb.gethisto();

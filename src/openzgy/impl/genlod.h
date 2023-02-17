@@ -20,7 +20,8 @@
 #include "histogrambuilder.h"
 #include "statisticdata.h"
 #include "databuffer.h"
-#include "exception.h"
+#include "../exception.h"
+#include "fancy_timers.h"
 
 #include <memory>
 #include <cstdint>
@@ -73,6 +74,7 @@ protected:
   bool _skip_histogram;
   std::function<bool(std::int64_t,std::int64_t)> _progress;
   LoggerFn _loggerfn;
+  SummaryPrintingTimerEx _timer_histogram;
 
 public:
   GenLodBase(const index3_t& size,

@@ -15,7 +15,7 @@
 //Adapted from: Zgy/FileAccess/OrderedCornerPoints
 #pragma once
 
-#include "declspec.h"
+#include "../declspec.h"
 
 #include <stddef.h>
 #include <array>

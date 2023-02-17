@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "declspec.h"
+#include "../declspec.h"
 #include "enum.h"
 #include "file.h" // Only for the ReadRequest::data_t typedef
 
@@ -82,6 +82,7 @@ private:
   LoggerFn   _loggerfn;
   std::shared_ptr<SummaryPrintingTimerEx> _ptimer_st;
   std::shared_ptr<SummaryPrintingTimerEx> _ptimer_mt;
+  std::shared_ptr<SummaryPrintingTimerEx> _ptimer;
   std::shared_ptr<SummaryPrintingTimerEx> _ststimer;
   std::vector<std::uint8_t>         _modified_bricks;
   std::shared_ptr<StatisticData>    _modified_stats;

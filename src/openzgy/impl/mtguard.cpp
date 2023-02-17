@@ -13,10 +13,24 @@
 // limitations under the License.
 
 #include "mtguard.h"
+#include "environment.h"
 
 #include <iostream>
 #include <sstream>
 #include <omp.h>
+
+namespace {
+  /**
+   * Strictly for debugging. Print a few lines for each MT loop.
+   * Output goes to std::cerr (not the standard logger) and might
+   * become quite verbose.
+   */
+  static bool hack_mtguard_logging()
+  {
+    static int enable = InternalZGY::Environment::getNumericEnv("OPENZGY_HACK_MTGUARD_LOGGING", 0);
+    return enable > 0;
+  }
+}
 
 namespace InternalZGY {
 #if 0
@@ -31,7 +45,8 @@ MTGuard::MTGuard()
   , _first_ex()
   , _debug_name("anonymous")
   , _debug_requested(0)
-  , _debug_reported(true) // set false to enable reporting
+  , _debug_reported(!hack_mtguard_logging()) // set false to enable reporting
+  , _debug_threads_used(hack_mtguard_logging() ? 256 : 0)
 {
 }
 
@@ -46,7 +61,8 @@ MTGuard::MTGuard(const std::string& name, int requested)
   , _first_ex()
   , _debug_name(name)
   , _debug_requested(requested)
-  , _debug_reported(true) // set false to enable reporting
+  , _debug_reported(!hack_mtguard_logging()) // set false to enable reporting
+  , _debug_threads_used(hack_mtguard_logging() ? 256 : 0)
 {
 }
 
@@ -89,6 +105,12 @@ MTGuard::failed() const {
  */
 void
 MTGuard::run(const std::function<void()>& fn) {
+  // Used to check how many threads were actually used.
+  // This might be fewer then how many were created.
+  // E.g. due to asking for more threads then there are
+  // iterations in the for loop. Or due to corrupted state.
+  if ((std::size_t)omp_get_thread_num() < _debug_threads_used.size())
+    ++_debug_threads_used[omp_get_thread_num()];
   // Used to debug which OpenMT loops are run serially.
   // Only works if the loop uses MTGuard. And even in that
   // case your mileage may vary.
@@ -124,6 +146,23 @@ MTGuard::run(const std::function<void()>& fn) {
  */
 void
 MTGuard::finished() {
+  // Strictly for debugging.
+  if (_debug_threads_used.size() > 0) {
+    int total{0}, count{0};
+    for (int it : _debug_threads_used) {
+      if (it > 0) {
+        total += it;
+        count += 1;
+      }
+    }
+    std::fill(_debug_threads_used.begin(), _debug_threads_used.end(), 0);
+    std::stringstream ss;
+    ss << "OpenMP \"" << _debug_name << "\" done."
+       << " Made " << total << " calls"
+       << " in " << count << " unique threads.\n";
+    std::cerr << ss.str() << std::flush;
+  }
+
   if (_errors.load() != 0 && _first_ex) {
     std::exception_ptr throwme = _first_ex;
     _first_ex = std::exception_ptr();
