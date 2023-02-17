@@ -5,9 +5,10 @@ A copy of the native C++ part of the OpenZGY library from https://community.open
 - Allows building the native C++ library using CMake
 - Uses the ZFP library as a GIT submodule
 - Supports both Linux and Windows builds, using C++ 20
+- Supports both clang and gcc on Linux (no tests built with clang)
 - Allows you to build a linux version using Visual Studio 2022 and WSL2 support
 
 
-NOTE: The Python and .NET interfaces are not included
+
 
 
