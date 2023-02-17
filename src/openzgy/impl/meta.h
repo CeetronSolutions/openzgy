@@ -179,7 +179,7 @@ public:
     , zinc(0)
     , annotstart{0,0}
     , annotinc{0,0}
-    , corners{0,0,0,0,0,0,0,0}
+    , corners{ {{0}} }
     , have_size(false)
     , have_bricksize(false)
     , have_datatype(false)

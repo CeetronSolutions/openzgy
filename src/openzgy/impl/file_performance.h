@@ -54,9 +54,9 @@ public:
   virtual ~FileWithPerformanceLogger();
 
   // Intercept
-  virtual void         xx_read(void *data, std::int64_t offset, std::int64_t size, UsageHint usagehint) override;
-  virtual void         xx_readv(const ReadList& requests, bool parallel_ok, bool immutable_ok, bool transient_ok, UsageHint usagehint) override;
-  virtual void         xx_close() override;
+  void         xx_read(void *data, std::int64_t offset, std::int64_t size, UsageHint usagehint) override;
+  void         xx_readv(const ReadList& requests, bool parallel_ok, bool immutable_ok, bool transient_ok, UsageHint usagehint) override;
+  void         xx_close() override;
   static std::shared_ptr<IFileADT> inject(std::shared_ptr<IFileADT> file, const std::string& srcname);
 };
 

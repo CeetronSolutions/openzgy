@@ -48,7 +48,7 @@ public:
 public:
   GUID();
   explicit GUID(const guid_bytes_t& in);
-  explicit GUID(nullptr_t);
+  explicit GUID(std::nullptr_t);
   std::string toString() const;
   void copyTo(std::uint8_t *ptr, std::int64_t len);
 

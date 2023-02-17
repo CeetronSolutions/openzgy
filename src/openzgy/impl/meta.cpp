@@ -407,14 +407,14 @@ class FileHeaderAccess : public IFileHeaderAccess
 public:
   FileHeaderPOD _pod;
   FileHeaderAccess() { memset(&_pod, 0, sizeof(_pod)); }
-  virtual podbytes_t podbytes() const override { return pod2bytes(_pod); }
-  virtual void read(const std::shared_ptr<IFileADT>& file, std::int64_t offset);
-  virtual void byteswap();
-  virtual void dump(std::ostream& out, const std::string& prefix = "") override;
+  podbytes_t podbytes() const override { return pod2bytes(_pod); }
+  void read(const std::shared_ptr<IFileADT>& file, std::int64_t offset) override;
+  void byteswap() override;
+  void dump(std::ostream& out, const std::string& prefix = "") override;
 public:
-  virtual std::array<std::uint8_t,4> magic() const override { return ptr_to_array<std::uint8_t,4>(_pod._magic); }
-  virtual std::uint32_t version() const override { return _pod._version; }
-  virtual void set_version(std::uint32_t value) override { _pod._version = value; }
+  std::array<std::uint8_t,4> magic() const override { return ptr_to_array<std::uint8_t,4>(_pod._magic); }
+  std::uint32_t version() const override { return _pod._version; }
+  void set_version(std::uint32_t value) override { _pod._version = value; }
 };
 
 void
@@ -453,7 +453,7 @@ HeaderAccessFactory::createFileHeader()
 // Thread safety: None. The user of this type is responsible for that.
 class OffsetHeaderAccess : public IOffsetHeaderAccess
 {
-  virtual void dump(std::ostream& out, const std::string& prefix = "") override;
+  void dump(std::ostream& out, const std::string& prefix = "") override;
 };
 
 void
@@ -492,26 +492,26 @@ class OffsetHeaderV1Access : public OffsetHeaderAccess
 public:
   OffsetHeaderV1POD _pod;
   OffsetHeaderV1Access() { memset(&_pod, 0, sizeof(_pod)); }
-  virtual podbytes_t podbytes() const override { return pod2bytes(_pod); }
+  podbytes_t podbytes() const override { return pod2bytes(_pod); }
   // Set by calculate().
   std::int64_t _derived_infsize;
   std::int64_t _derived_histsize;
   std::int64_t _derived_alphalupsize;
   std::int64_t _derived_bricklupsize;
 
-  virtual void read(const std::shared_ptr<IFileADT>& file, std::int64_t offset) override;
-  virtual void byteswap() override;
-  virtual void calculate(const std::shared_ptr<IInfoHeaderAccess>& ih) override;
+  void read(const std::shared_ptr<IFileADT>& file, std::int64_t offset) override;
+  void byteswap() override;
+  void calculate(const std::shared_ptr<IInfoHeaderAccess>& ih) override;
 public:
-  virtual std::int64_t      infoff()      const override { return align(_pod._infoff); }
-  virtual std::int64_t      stroff()      const override { return 0; }
-  virtual std::int64_t      alphalupoff() const override { return align(_pod._alphalupoff); }
-  virtual std::int64_t      bricklupoff() const override { return align(_pod._bricklupoff); }
-  virtual std::int64_t      histoff()     const override { return align(_pod._histoff); }
-  virtual std::int64_t      infsize()      const override { return _derived_infsize; }
-  virtual std::int64_t      histsize()     const override { return _derived_histsize; }
-  virtual std::int64_t      alphalupsize() const override { return _derived_alphalupsize; }
-  virtual std::int64_t      bricklupsize() const override { return _derived_bricklupsize; }
+  std::int64_t      infoff()      const override { return align(_pod._infoff); }
+  std::int64_t      stroff()      const override { return 0; }
+  std::int64_t      alphalupoff() const override { return align(_pod._alphalupoff); }
+  std::int64_t      bricklupoff() const override { return align(_pod._bricklupoff); }
+  std::int64_t      histoff()     const override { return align(_pod._histoff); }
+  std::int64_t      infsize()      const override { return _derived_infsize; }
+  std::int64_t      histsize()     const override { return _derived_histsize; }
+  std::int64_t      alphalupsize() const override { return _derived_alphalupsize; }
+  std::int64_t      bricklupsize() const override { return _derived_bricklupsize; }
 };
 
 void
@@ -570,19 +570,19 @@ public:
   // Because V2 and V3 have no offset header on the file.
   // The data members declared here are computed from other headers.
   // For historical reasons the header still occupies one byte on file.
-  virtual podbytes_t podbytes() const override { return podbytes_t(1); }
-  virtual void read(const std::shared_ptr<IFileADT>& file, std::int64_t offset) override;
-  virtual void byteswap() override;
-  virtual void calculate(const std::shared_ptr<IInfoHeaderAccess>& ih) override;
-  virtual std::int64_t      infoff()      const override { return sizeof(FileHeaderPOD)+1; }
-  virtual std::int64_t      stroff()      const override { return align(_derived_stroff); }
-  virtual std::int64_t      alphalupoff() const override { return align(_derived_alphalupoff); }
-  virtual std::int64_t      bricklupoff() const override { return align(_derived_bricklupoff); }
-  virtual std::int64_t      histoff()     const override { return align(_derived_histoff); }
-  virtual std::int64_t      infsize()      const override { return align(_derived_infsize); }
-  virtual std::int64_t      histsize()     const override { return align(_derived_histsize); }
-  virtual std::int64_t      alphalupsize() const override { return align(_derived_alphalupsize); }
-  virtual std::int64_t      bricklupsize() const override { return align(_derived_bricklupsize); }
+  podbytes_t podbytes() const override { return podbytes_t(1); }
+  void read(const std::shared_ptr<IFileADT>& file, std::int64_t offset) override;
+  void byteswap() override;
+  void calculate(const std::shared_ptr<IInfoHeaderAccess>& ih) override;
+  std::int64_t      infoff()      const override { return sizeof(FileHeaderPOD)+1; }
+  std::int64_t      stroff()      const override { return align(_derived_stroff); }
+  std::int64_t      alphalupoff() const override { return align(_derived_alphalupoff); }
+  std::int64_t      bricklupoff() const override { return align(_derived_bricklupoff); }
+  std::int64_t      histoff()     const override { return align(_derived_histoff); }
+  std::int64_t      infsize()      const override { return align(_derived_infsize); }
+  std::int64_t      histsize()     const override { return align(_derived_histsize); }
+  std::int64_t      alphalupsize() const override { return align(_derived_alphalupsize); }
+  std::int64_t      bricklupsize() const override { return align(_derived_bricklupsize); }
 };
 
 void
@@ -617,18 +617,18 @@ HeaderAccessFactory::createOffsetHeader(std::uint32_t version)
 class InfoHeaderAccess : public IInfoHeaderAccess
 {
 public:
-  virtual void dump(std::ostream& out, const std::string& prefix = "") override;
+  void dump(std::ostream& out, const std::string& prefix = "") override;
   // Derived information computed from other virtual members, which means
   // they can be implemented in the base class. Note that all of these
   // could be cached if desired. They cannot change after a file is created.
-  virtual std::int64_t bytesperalpha() const override;
-  virtual std::int64_t bytesperbrick() const override;
-  virtual std::int64_t bytespersample() const override;
-  virtual std::array<double,2> storagetofloat() const override;
-  virtual double storagetofloat_slope() const override;
-  virtual double storagetofloat_intercept() const override;
-  virtual double defaultstorage() const override;
-  virtual double defaultvalue() const override;
+  std::int64_t bytesperalpha() const override;
+  std::int64_t bytesperbrick() const override;
+  std::int64_t bytespersample() const override;
+  std::array<double,2> storagetofloat() const override;
+  double storagetofloat_slope() const override;
+  double storagetofloat_intercept() const override;
+  double defaultstorage() const override;
+  double defaultvalue() const override;
 };
 
 void
@@ -846,46 +846,46 @@ public:
   std::array<std::array<double,2>,4> _cached_annot;
   std::array<std::array<double,2>,4> _cached_world;
   InfoHeaderV1Access() { memset(&_pod, 0, sizeof(_pod)); }
-  virtual podbytes_t podbytes() const override { return pod2bytes(_pod); }
-  virtual void       read(const std::shared_ptr<IFileADT>& file, std::int64_t offset, std::int64_t size) override;
-  virtual void       byteswap() override;
-  virtual void       calculate_cache() override;
-  virtual void       calculate_read(const podbytes_t& slbuf, const std::shared_ptr<IHistHeaderAccess>& hh) override;
-  virtual podbytes_t calculate_write() override;
+  podbytes_t podbytes() const override { return pod2bytes(_pod); }
+  void       read(const std::shared_ptr<IFileADT>& file, std::int64_t offset, std::int64_t size) override;
+  void       byteswap() override;
+  void       calculate_cache() override;
+  void       calculate_read(const podbytes_t& slbuf, const std::shared_ptr<IHistHeaderAccess>& hh) override;
+  podbytes_t calculate_write() override;
 public:
-  virtual std::array<std::int64_t,3> size() const override { return array_cast<std::int64_t,std::int32_t,3>(ptr_to_array<std::int32_t,3>(_pod._size)); }
-  virtual std::array<float,3>        orig() const override { return array_cast<float,std::int32_t,3>(ptr_to_array<std::int32_t,3>(_pod._orig)); }
-  virtual std::array<float,3>        inc()  const override { return array_cast<float,std::int32_t,3>(ptr_to_array<std::int32_t,3>(_pod._inc)); }
+  std::array<std::int64_t,3> size() const override { return array_cast<std::int64_t,std::int32_t,3>(ptr_to_array<std::int32_t,3>(_pod._size)); }
+  std::array<float,3>        orig() const override { return array_cast<float,std::int32_t,3>(ptr_to_array<std::int32_t,3>(_pod._orig)); }
+  std::array<float,3>        inc()  const override { return array_cast<float,std::int32_t,3>(ptr_to_array<std::int32_t,3>(_pod._inc)); }
   //unused: virtual std::array<float,3>        incfactor() const override { return ptr_to_array<float,3>(_pod._incfactor); }
-  virtual std::array<float,4>        gpiline() const override { return array_cast<float,std::int32_t,4>(ptr_to_array<std::int32_t,4>(_pod._gpiline)); }
-  virtual std::array<float,4>        gpxline() const override { return array_cast<float,std::int32_t,4>(ptr_to_array<std::int32_t,4>(_pod._gpxline)); }
-  virtual std::array<double,4>       gpx() const override { return ptr_to_array<double,4>(_pod._gpx); }
-  virtual std::array<double,4>       gpy() const override { return ptr_to_array<double,4>(_pod._gpy); }
-  virtual RawDataType                datatype() const override { return DecodeDataType(_pod._datatype); }
+  std::array<float,4>        gpiline() const override { return array_cast<float,std::int32_t,4>(ptr_to_array<std::int32_t,4>(_pod._gpiline)); }
+  std::array<float,4>        gpxline() const override { return array_cast<float,std::int32_t,4>(ptr_to_array<std::int32_t,4>(_pod._gpxline)); }
+  std::array<double,4>       gpx() const override { return ptr_to_array<double,4>(_pod._gpx); }
+  std::array<double,4>       gpy() const override { return ptr_to_array<double,4>(_pod._gpy); }
+  RawDataType                datatype() const override { return DecodeDataType(_pod._datatype); }
   //special: virtual std::uint8_t               coordtype() const override { return _pod._coordtype; }
-  virtual std::array<std::int64_t,3> bricksize() const override { return std::array<std::int64_t,3>{64, 64, 64}; }
-  virtual std::array<float,2>        safe_codingrange() const override { return std::array<float,2>{_cached_safe_codingrange_min, _cached_safe_codingrange_max}; }
-  virtual std::array<float,2>        raw_codingrange() const override { return std::array<float,2>{_cached_file_sample_min, _cached_file_sample_max}; }
-  virtual std::array<std::uint8_t,16>dataid() const override { return std::array<std::uint8_t,16>{0}; }
-  virtual std::array<std::uint8_t,16>verid() const override { return std::array<std::uint8_t,16>{0}; }
-  virtual std::array<std::uint8_t,16>previd() const override { return std::array<std::uint8_t,16>{0}; }
-  virtual std::string                srcname() const override { return std::string(); }
-  virtual std::string                srcdesc() const override { return std::string(); }
-  virtual RawDataType                srctype() const override { return datatype(); }
+  std::array<std::int64_t,3> bricksize() const override { return std::array<std::int64_t,3>{64, 64, 64}; }
+  std::array<float,2>        safe_codingrange() const override { return std::array<float,2>{_cached_safe_codingrange_min, _cached_safe_codingrange_max}; }
+  std::array<float,2>        raw_codingrange() const override { return std::array<float,2>{_cached_file_sample_min, _cached_file_sample_max}; }
+  std::array<std::uint8_t,16>dataid() const override { return std::array<std::uint8_t,16>{0}; }
+  std::array<std::uint8_t,16>verid() const override { return std::array<std::uint8_t,16>{0}; }
+  std::array<std::uint8_t,16>previd() const override { return std::array<std::uint8_t,16>{0}; }
+  std::string                srcname() const override { return std::string(); }
+  std::string                srcdesc() const override { return std::string(); }
+  RawDataType                srctype() const override { return datatype(); }
   //unused: virtual std::array<std::int32_t,3> curorig() const override { throw OpenZGY::Errors::ZgyInternalError("Not implemented"); }
   //unused: virtual std::array<std::int32_t,3> cursize() const override { throw OpenZGY::Errors::ZgyInternalError("Not implemented"); }
-  virtual std::int64_t               scnt() const override { return 0; }
-  virtual double                     ssum() const override { return 0; }
-  virtual double                     sssq() const override { return 0; }
-  virtual float                      smin() const override { return align(_cached_file_sample_min); }
-  virtual float                      smax() const override { return align(_cached_file_sample_max); }
+  std::int64_t               scnt() const override { return 0; }
+  double                     ssum() const override { return 0; }
+  double                     sssq() const override { return 0; }
+  float                      smin() const override { return align(_cached_file_sample_min); }
+  float                      smax() const override { return align(_cached_file_sample_max); }
   //unused: virtual std::array<float,3>        srvorig() const override { throw OpenZGY::Errors::ZgyInternalError("Not implemented"); }
   //unused: virtual std::array<float,3>        srvsize() const override { throw OpenZGY::Errors::ZgyInternalError("Not implemented"); }
   //unused: virtual std::uint8_t               gdef() const override { throw OpenZGY::Errors::ZgyInternalError("Not implemented"); }
   //unused: virtual std::array<double,2>       gazim() const override { throw OpenZGY::Errors::ZgyInternalError("Not implemented"); }
   //unused: virtual std::array<double,2>       gbinsz() const override { throw OpenZGY::Errors::ZgyInternalError("Not implemented"); }
-  virtual std::string                hprjsys() const override { return std::string(); }
-  virtual RawHorizontalDimension     hdim() const override {
+  std::string                hprjsys() const override { return std::string(); }
+  RawHorizontalDimension     hdim() const override {
     switch (DecodeCoordType(_pod._coordtype)) {
     default:
     case RawCoordType::Unknown:      return RawHorizontalDimension::Unknown;
@@ -897,7 +897,7 @@ public:
     // ArcDegMinSec is unsupported. Does not work in the old code either.
     }
   }
-  virtual double                     hunitfactor() const override {
+  double                     hunitfactor() const override {
     switch (DecodeCoordType(_pod._coordtype)) {
     default:
     case RawCoordType::Unknown:      return 1.0;
@@ -908,7 +908,7 @@ public:
     case RawCoordType::ArcDegMinSec: return 1.0;
     }
   }
-  virtual std::string                hunitname() const override {
+  std::string                hunitname() const override {
     switch (DecodeCoordType(_pod._coordtype)) {
     default:
     case RawCoordType::Unknown:      return "";
@@ -920,20 +920,20 @@ public:
     }
   }
   // V1 did not store the vertical unit at all.
-  virtual RawVerticalDimension       vdim() const override { return RawVerticalDimension::Unknown; }
-  virtual double                     vunitfactor() const override { return 1.0; }
-  virtual std::string                vunitname() const override { return std::string(); }
-  virtual std::uint32_t              slbufsize() const override { return 0; }
-  virtual const std::array<std::array<double,2>,4>& ocp_index() const override { return _cached_index; }
-  virtual const std::array<std::array<double,2>,4>& ocp_annot() const override { return _cached_annot; }
-  virtual const std::array<std::array<double,2>,4>& ocp_world() const override { return _cached_world; }
-  virtual const std::vector<std::array<std::int64_t,3>>& lodsizes() const override { return _cached_lodsizes; }
-  virtual std::int32_t nlods() const override { return _cached_nlods; }
-  virtual const std::vector<std::int64_t>& alphaoffsets() const override { return _cached_alphaoffsets; }
-  virtual const std::vector<std::int64_t>& brickoffsets() const override { return _cached_brickoffsets; }
+  RawVerticalDimension       vdim() const override { return RawVerticalDimension::Unknown; }
+  double                     vunitfactor() const override { return 1.0; }
+  std::string                vunitname() const override { return std::string(); }
+  std::uint32_t              slbufsize() const override { return 0; }
+  const std::array<std::array<double,2>,4>& ocp_index() const override { return _cached_index; }
+  const std::array<std::array<double,2>,4>& ocp_annot() const override { return _cached_annot; }
+  const std::array<std::array<double,2>,4>& ocp_world() const override { return _cached_world; }
+  const std::vector<std::array<std::int64_t,3>>& lodsizes() const override { return _cached_lodsizes; }
+  std::int32_t nlods() const override { return _cached_nlods; }
+  const std::vector<std::int64_t>& alphaoffsets() const override { return _cached_alphaoffsets; }
+  const std::vector<std::int64_t>& brickoffsets() const override { return _cached_brickoffsets; }
   // Write support.
-  virtual void setstats(std::int64_t scnt, double ssum, double sssq,
-                        double smin, double smax)
+  void setstats(std::int64_t scnt, double ssum, double sssq,
+                        double smin, double smax) override
   {
     throw OpenZGY::Errors::ZgyInternalError("Writing InfoHeader is only supported for the latest version.");
   }
@@ -1035,59 +1035,59 @@ public:
   float _cached_safe_codingrange[2];
 
   InfoHeaderV2Access() { memset(&_pod, 0, sizeof(_pod)); }
-  virtual podbytes_t podbytes() const override { return pod2bytes(_pod); }
-  virtual void       read(const std::shared_ptr<IFileADT>& file, std::int64_t offset, std::int64_t size) override;
-  virtual void       byteswap() override;
-  virtual void       calculate_read(const podbytes_t& slbuf, const std::shared_ptr<IHistHeaderAccess>& hh) override;
-  virtual void       calculate_cache() override;
-  virtual podbytes_t calculate_write() override;
+  podbytes_t podbytes() const override { return pod2bytes(_pod); }
+  void       read(const std::shared_ptr<IFileADT>& file, std::int64_t offset, std::int64_t size) override;
+  void       byteswap() override;
+  void       calculate_read(const podbytes_t& slbuf, const std::shared_ptr<IHistHeaderAccess>& hh) override;
+  void       calculate_cache() override;
+  podbytes_t calculate_write() override;
 public:
-  virtual std::array<std::int64_t,3> bricksize() const override { return array_cast<std::int64_t,std::int32_t,3>(ptr_to_array<std::int32_t,3>(_pod._bricksize)); }
-  virtual RawDataType                datatype() const override { return DecodeDataType(_pod._datatype); }
-  virtual std::array<float,2>        safe_codingrange() const override { return ptr_to_array<float,2>(_cached_safe_codingrange); }
-  virtual std::array<float,2>        raw_codingrange() const override { return ptr_to_array<float,2>(_pod._file_codingrange); }
-  virtual std::array<std::uint8_t,16>dataid() const override { return ptr_to_array<std::uint8_t,16>(_pod._dataid); }
-  virtual std::array<std::uint8_t,16>verid() const override { return ptr_to_array<std::uint8_t,16>(_pod._verid); }
-  virtual std::array<std::uint8_t,16>previd() const override { return ptr_to_array<std::uint8_t,16>(_pod._previd); }
-  virtual std::string                srcname() const override { return _srcname; }
-  virtual std::string                srcdesc() const override { return _srcdesc; }
-  virtual RawDataType                srctype() const override { return DecodeDataType(_pod._srctype); }
-  virtual std::array<float,3>        orig() const override { return ptr_to_array<float,3>(_pod._orig); }
-  virtual std::array<float,3>        inc()  const override { return ptr_to_array<float,3>(_pod._inc); }
-  virtual std::array<std::int64_t,3> size() const override { return array_cast<std::int64_t,std::int32_t,3>(ptr_to_array<std::int32_t,3>(_pod._size)); }
+  std::array<std::int64_t,3> bricksize() const override { return array_cast<std::int64_t,std::int32_t,3>(ptr_to_array<std::int32_t,3>(_pod._bricksize)); }
+  RawDataType                datatype() const override { return DecodeDataType(_pod._datatype); }
+  std::array<float,2>        safe_codingrange() const override { return ptr_to_array<float,2>(_cached_safe_codingrange); }
+  std::array<float,2>        raw_codingrange() const override { return ptr_to_array<float,2>(_pod._file_codingrange); }
+  std::array<std::uint8_t,16>dataid() const override { return ptr_to_array<std::uint8_t,16>(_pod._dataid); }
+  std::array<std::uint8_t,16>verid() const override { return ptr_to_array<std::uint8_t,16>(_pod._verid); }
+  std::array<std::uint8_t,16>previd() const override { return ptr_to_array<std::uint8_t,16>(_pod._previd); }
+  std::string                srcname() const override { return _srcname; }
+  std::string                srcdesc() const override { return _srcdesc; }
+  RawDataType                srctype() const override { return DecodeDataType(_pod._srctype); }
+  std::array<float,3>        orig() const override { return ptr_to_array<float,3>(_pod._orig); }
+  std::array<float,3>        inc()  const override { return ptr_to_array<float,3>(_pod._inc); }
+  std::array<std::int64_t,3> size() const override { return array_cast<std::int64_t,std::int32_t,3>(ptr_to_array<std::int32_t,3>(_pod._size)); }
   //unused: virtual std::array<std::int32_t,3> curorig() const override { return ptr_to_array<std::int32_t,3>(_pod._curorig); }
   //unused: virtual std::array<std::int32_t,3> cursize() const override { return ptr_to_array<std::int32_t,3>(_pod._cursize); }
-  virtual std::int64_t               scnt() const override { return align(_pod._scnt); }
-  virtual double                     ssum() const override { return align(_pod._ssum); }
-  virtual double                     sssq() const override { return align(_pod._sssq); }
-  virtual float                      smin() const override { return align(_pod._smin); }
-  virtual float                      smax() const override { return align(_pod._smax); }
+  std::int64_t               scnt() const override { return align(_pod._scnt); }
+  double                     ssum() const override { return align(_pod._ssum); }
+  double                     sssq() const override { return align(_pod._sssq); }
+  float                      smin() const override { return align(_pod._smin); }
+  float                      smax() const override { return align(_pod._smax); }
   //unused: virtual std::array<float,3> srvorig() const override { return ptr_to_array<float,3>(_pod._srvorig); }
   //unused: virtual std::array<float,3> srvsize() const override { return ptr_to_array<float,3>(_pod._srvsize); }
   //unused: virtual std::uint8_t gdef() const override { return _pod._gdef; }
   //unused: virtual std::array<double,2> gazim() const override { return ptr_to_array<double,2>(_pod._gazim); }
   //unused: virtual std::array<double,2> gbinsz() const override { return ptr_to_array<double,2>(_pod._gbinsz); }
-  virtual std::array<float,4>        gpiline() const override { return ptr_to_array<float,4>(_pod._gpiline); }
-  virtual std::array<float,4>        gpxline() const override { return ptr_to_array<float,4>(_pod._gpxline); }
-  virtual std::array<double,4>       gpx() const override { return ptr_to_array<double,4>(_pod._gpx); }
-  virtual std::array<double,4>       gpy() const override { return ptr_to_array<double,4>(_pod._gpy); }
-  virtual std::string                hprjsys() const override { return _hprjsys; }
-  virtual RawHorizontalDimension     hdim() const override { return DecodeHorizontalDimension(_pod._hdim); }
-  virtual double                     hunitfactor() const override { return align(_pod._hunitfactor); }
-  virtual std::string                hunitname() const override { return _hunitname; }
-  virtual RawVerticalDimension       vdim() const override { return DecodeVerticalDimension(_pod._vdim); }
-  virtual double                     vunitfactor() const override { return align(_pod._vunitfactor); }
-  virtual std::string                vunitname() const override { return _vunitname; }
-  virtual std::uint32_t              slbufsize() const override { return align(_pod._slbufsize); }
-  virtual const std::array<std::array<double,2>,4>& ocp_index() const override { return _cached_index; }
-  virtual const std::array<std::array<double,2>,4>& ocp_annot() const override { return _cached_annot; }
-  virtual const std::array<std::array<double,2>,4>& ocp_world() const override { return _cached_world; }
-  virtual std::int32_t nlods() const override { return _cached_nlods; }
-  virtual const std::vector<std::array<std::int64_t,3>>& lodsizes() const override { return _cached_lodsizes; }
-  virtual const std::vector<std::int64_t>& alphaoffsets() const override { return _cached_alphaoffsets; }
-  virtual const std::vector<std::int64_t>& brickoffsets() const override { return _cached_brickoffsets; }
-  virtual void setstats(std::int64_t scnt, double ssum, double sssq,
-                        double smin, double smax)
+  std::array<float,4>        gpiline() const override { return ptr_to_array<float,4>(_pod._gpiline); }
+  std::array<float,4>        gpxline() const override { return ptr_to_array<float,4>(_pod._gpxline); }
+  std::array<double,4>       gpx() const override { return ptr_to_array<double,4>(_pod._gpx); }
+  std::array<double,4>       gpy() const override { return ptr_to_array<double,4>(_pod._gpy); }
+  std::string                hprjsys() const override { return _hprjsys; }
+  RawHorizontalDimension     hdim() const override { return DecodeHorizontalDimension(_pod._hdim); }
+  double                     hunitfactor() const override { return align(_pod._hunitfactor); }
+  std::string                hunitname() const override { return _hunitname; }
+  RawVerticalDimension       vdim() const override { return DecodeVerticalDimension(_pod._vdim); }
+  double                     vunitfactor() const override { return align(_pod._vunitfactor); }
+  std::string                vunitname() const override { return _vunitname; }
+  std::uint32_t              slbufsize() const override { return align(_pod._slbufsize); }
+  const std::array<std::array<double,2>,4>& ocp_index() const override { return _cached_index; }
+  const std::array<std::array<double,2>,4>& ocp_annot() const override { return _cached_annot; }
+  const std::array<std::array<double,2>,4>& ocp_world() const override { return _cached_world; }
+  std::int32_t nlods() const override { return _cached_nlods; }
+  const std::vector<std::array<std::int64_t,3>>& lodsizes() const override { return _cached_lodsizes; }
+  const std::vector<std::int64_t>& alphaoffsets() const override { return _cached_alphaoffsets; }
+  const std::vector<std::int64_t>& brickoffsets() const override { return _cached_brickoffsets; }
+  void setstats(std::int64_t scnt, double ssum, double sssq,
+                        double smin, double smax) override
   {
     _pod._scnt = scnt;
     _pod._ssum = ssum;
@@ -1174,7 +1174,7 @@ HeaderAccessFactory::createInfoHeader(std::uint32_t version)
 // Thread safety: None. The user of this type is responsible for that.
 class HistHeaderAccess : public IHistHeaderAccess
 {
-  virtual void dump(std::ostream& out, const std::string& prefix) override;
+  void dump(std::ostream& out, const std::string& prefix) override;
 };
 
 void
@@ -1211,31 +1211,31 @@ private:
   std::vector<std::int64_t> _converted_bins;
 public:
   HistHeaderV1Access() { memset(&_pod, 0, sizeof(_pod)); }
-  virtual podbytes_t podbytes() const override { return pod2bytes(_pod); }
-  virtual void read(const std::shared_ptr<IFileADT>& file, std::int64_t offset, std::int64_t size) override;
-  virtual void byteswap() override;
-  virtual void calculate()
+  podbytes_t podbytes() const override { return pod2bytes(_pod); }
+  void read(const std::shared_ptr<IFileADT>& file, std::int64_t offset, std::int64_t size) override;
+  void byteswap() override;
+  void calculate() override
   {
     _converted_bins.clear();
     for (int ii=0; ii<bincount(); ++ii)
       _converted_bins.push_back(_pod._bin[ii]);
   }
-  virtual void sethisto(double minvalue, double maxvalue,
-                        const std::int64_t* bins, std::int64_t bincount)
+  void sethisto(double minvalue, double maxvalue,
+                        const std::int64_t* bins, std::int64_t bincount) override
   {
     throw OpenZGY::Errors::ZgyInternalError("Writing HistHeader is only supported for the latest version.");
   }
 
 public:
-  virtual std::int64_t bincount()    const { return 256; }
-  virtual std::int64_t samplecount() const { return 0; }
-  virtual double       minvalue()    const { return align(_pod._min); }
-  virtual double       maxvalue()    const { return align(_pod._max); }
+  std::int64_t bincount()    const override { return 256; }
+  std::int64_t samplecount() const override { return 0; }
+  double       minvalue()    const override { return align(_pod._min); }
+  double       maxvalue()    const override { return align(_pod._max); }
   // The returned pointer is invalidated by a call to calculate().
   // This should not be an issue since V1 only supports reading,
   // so there isn't really any reason to call calculate() more
   // than once.
-  virtual const std::int64_t* bins() const { return _converted_bins.data(); }
+  const std::int64_t* bins() const override { return _converted_bins.data(); }
 };
 
 void
@@ -1278,21 +1278,21 @@ class HistHeaderV2Access : public HistHeaderAccess
 public:
   HistHeaderV2POD _pod;
   HistHeaderV2Access() { memset(&_pod, 0, sizeof(_pod)); }
-  virtual podbytes_t podbytes() const override { return pod2bytes(_pod); }
-  virtual void read(const std::shared_ptr<IFileADT>& file, std::int64_t offset, std::int64_t size) override;
-  virtual void byteswap() override;
-  virtual void calculate() { }
+  podbytes_t podbytes() const override { return pod2bytes(_pod); }
+  void read(const std::shared_ptr<IFileADT>& file, std::int64_t offset, std::int64_t size) override;
+  void byteswap() override;
+  void calculate() override { }
 
 public:
-  virtual std::int64_t bincount()    const { return 256; }
-  virtual std::int64_t samplecount() const { return align(_pod._cnt); }
-  virtual double       minvalue()    const { return align(_pod._min); }
-  virtual double       maxvalue()    const { return align(_pod._max); }
+  std::int64_t bincount()    const override { return 256; }
+  std::int64_t samplecount() const override { return align(_pod._cnt); }
+  double       minvalue()    const override { return align(_pod._min); }
+  double       maxvalue()    const override { return align(_pod._max); }
   // Should be safely aligned, checked by hand.
-  virtual const std::int64_t* bins() const { return _pod._bin; }
+  const std::int64_t* bins() const override { return _pod._bin; }
   // Write support.
-  virtual void sethisto(double minvalue, double maxvalue,
-                        const std::int64_t* bins, std::int64_t bincount);
+  void sethisto(double minvalue, double maxvalue,
+                        const std::int64_t* bins, std::int64_t bincount) override;
 };
 
 void
@@ -1409,16 +1409,16 @@ private:
   //std::int64_t _lupsize;
 public:
   explicit LookupTableV0Access(bool mustflip, bool isalpha, std::int64_t num_bricks = 0);
-  virtual podbytes_t podbytes() const override;
-  virtual void read(const std::shared_ptr<IFileADT>& file, std::int64_t offset, std::int64_t size) override;
-  virtual void byteswap() override;
-  virtual void dump(std::ostream& out, const std::string& prefix = "");
+  podbytes_t podbytes() const override;
+  void read(const std::shared_ptr<IFileADT>& file, std::int64_t offset, std::int64_t size) override;
+  void byteswap() override;
+  void dump(std::ostream& out, const std::string& prefix = "") override;
 public:
-  virtual std::uint64_t lookupLinearIndex(std::int64_t index) const override;
-  virtual std::vector<std::uint64_t>& lup() override { return _lookup; }
-  virtual std::vector<std::uint64_t>& lupend() override { return _lookend; }
-  virtual const std::vector<std::uint64_t>& lup() const override { return _lookup; }
-  virtual const std::vector<std::uint64_t>& lupend() const override { return _lookend; }
+  std::uint64_t lookupLinearIndex(std::int64_t index) const override;
+  std::vector<std::uint64_t>& lup() override { return _lookup; }
+  std::vector<std::uint64_t>& lupend() override { return _lookend; }
+  const std::vector<std::uint64_t>& lup() const override { return _lookup; }
+  const std::vector<std::uint64_t>& lupend() const override { return _lookend; }
 };
 
 LookupTableV0Access::LookupTableV0Access(bool mustflip, bool isalpha, std::int64_t num_bricks)

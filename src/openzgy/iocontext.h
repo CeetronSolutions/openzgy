@@ -99,8 +99,8 @@ public:
   typedef std::function<std::string()> tokencb_t;
   typedef std::function<void(const std::string&, std::int64_t, std::int64_t, std::int64_t, const std::vector<std::int64_t>&)> debugtrace_t;
   typedef std::function<bool(int, const std::string&)> logger_t;
-  virtual std::string toString() const override;
-  virtual std::shared_ptr<IOContext> clone() const override;
+  std::string toString() const override;
+  std::shared_ptr<IOContext> clone() const override;
   SeismicStoreIOContext();
 
 private:

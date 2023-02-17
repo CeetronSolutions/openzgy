@@ -172,13 +172,13 @@ public:
   virtual ~SeismicStoreFile();
   static std::shared_ptr<IFileADT> xx_make_instance(const std::string& filename, OpenMode mode, const OpenZGY::IOContext *iocontext);
   // Functions from IFileADT
-  virtual void xx_read(void *data, std::int64_t offset, std::int64_t size, UsageHint usagehint=UsageHint::Unknown) override;
-  virtual void xx_readv(const ReadList& requests, bool parallel_ok=false, bool immutable_ok=false, bool transient_ok=false, UsageHint usagehint=UsageHint::Unknown) override;
-  virtual void xx_write(const void* data, std::int64_t offset, std::int64_t size, UsageHint usagehint=UsageHint::Unknown) override;
-  virtual void xx_close();
-  virtual std::int64_t xx_eof() const;
-  virtual std::vector<std::int64_t> xx_segments(bool complete) const override;
-  virtual bool xx_iscloud() const override;
+  void xx_read(void *data, std::int64_t offset, std::int64_t size, UsageHint usagehint=UsageHint::Unknown) override;
+  void xx_readv(const ReadList& requests, bool parallel_ok=false, bool immutable_ok=false, bool transient_ok=false, UsageHint usagehint=UsageHint::Unknown) override;
+  void xx_write(const void* data, std::int64_t offset, std::int64_t size, UsageHint usagehint=UsageHint::Unknown) override;
+  void xx_close();
+  std::int64_t xx_eof() const;
+  std::vector<std::int64_t> xx_segments(bool complete) const override;
+  bool xx_iscloud() const override;
   // Functions from IFileBase
   virtual void deleteFile(const std::string& filename, bool missing_ok) const;
   virtual std::string altUrl(const std::string& filename) const;
@@ -313,26 +313,26 @@ public:
   virtual ~SeismicStoreFileDelayedWrite();
   static std::shared_ptr<IFileADT> xx_make_instance(const std::string& filename, OpenMode mode, const OpenZGY::IOContext *iocontext);
   // Methods from IFileBase
-  virtual void deleteFile(const std::string& name, bool missing_ok) const override
+  void deleteFile(const std::string& name, bool missing_ok) const override
   {
     _relay->deleteFile(name, missing_ok);
   }
-  virtual std::string  altUrl(const std::string& name) const override
+  std::string  altUrl(const std::string& name) const override
   {
     return _relay->altUrl(name);
   }
-  virtual std::string  idToken() const override
+  std::string  idToken() const override
   {
     return _relay->idToken();
   }
   // Methods from IFileADT:
-  virtual void xx_read(void *data, std::int64_t offset, std::int64_t size, UsageHint usagehint=UsageHint::Unknown) override;
-  virtual void xx_readv(const ReadList& requests, bool parallel_ok=false, bool immutable_ok=false, bool transient_ok=false, UsageHint usagehint=UsageHint::Unknown) override;
-  virtual void xx_write(const void* data, std::int64_t offset, std::int64_t size, UsageHint usagehint=UsageHint::Unknown) override;
-  virtual void xx_close() override;
-  virtual std::int64_t xx_eof() const override;
-  virtual std::vector<std::int64_t> xx_segments(bool complete) const override;
-  virtual bool xx_iscloud() const override;
+  void xx_read(void *data, std::int64_t offset, std::int64_t size, UsageHint usagehint=UsageHint::Unknown) override;
+  void xx_readv(const ReadList& requests, bool parallel_ok=false, bool immutable_ok=false, bool transient_ok=false, UsageHint usagehint=UsageHint::Unknown) override;
+  void xx_write(const void* data, std::int64_t offset, std::int64_t size, UsageHint usagehint=UsageHint::Unknown) override;
+  void xx_close() override;
+  std::int64_t xx_eof() const override;
+  std::vector<std::int64_t> xx_segments(bool complete) const override;
+  bool xx_iscloud() const override;
 
 private:
   void _reopen_last_segment();

@@ -96,13 +96,13 @@ private:
 public:
   explicit FileWithSmallCache(std::shared_ptr<IFileADT> relay, std::int64_t size);
   virtual ~FileWithSmallCache();
-  virtual void         xx_read(void *data, std::int64_t offset, std::int64_t size, UsageHint usagehint) override;
-  virtual void         xx_readv(const ReadList& requests, bool parallel_ok, bool immutable_ok, bool transient_ok, UsageHint usagehint) override;
-  virtual void         xx_write(const void* data, std::int64_t offset, std::int64_t size, UsageHint usagehint) override;
-  virtual void         xx_close()         override;
-  virtual std::int64_t xx_eof()     const override;
-  virtual std::vector<std::int64_t> xx_segments(bool complete) const override;
-  virtual bool         xx_iscloud() const override;
+  void         xx_read(void *data, std::int64_t offset, std::int64_t size, UsageHint usagehint) override;
+  void         xx_readv(const ReadList& requests, bool parallel_ok, bool immutable_ok, bool transient_ok, UsageHint usagehint) override;
+  void         xx_write(const void* data, std::int64_t offset, std::int64_t size, UsageHint usagehint) override;
+  void         xx_close()         override;
+  std::int64_t xx_eof()     const override;
+  std::vector<std::int64_t> xx_segments(bool complete) const override;
+  bool         xx_iscloud() const override;
 };
 
 } // namespace

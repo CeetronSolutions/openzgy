@@ -240,13 +240,13 @@ private:
       // Technically I don't need the ZFP_HEADER_META part of the header,
       // but it makes things easier for the Python version. Since I have
       // the data I might as well do a consistency check.
-      uint sizearray[4]{0}; // size[0] is nx, i.e. fastest varying index.
+      size_t sizearray[4]{0}; // size[0] is nx, i.e. fastest varying index.
       zfp_field_size(field, &sizearray[0]);
       if (zfp_field_type(field) != type ||
           zfp_field_dimensionality(field) != 3 ||
-          sizearray[2] != size[0] || // nz -> slowest varying
-          sizearray[1] != size[1] || // ny
-          sizearray[0] != size[2]) // nx
+          sizearray[2] != static_cast<size_t>(size[0]) || // nz -> slowest varying
+          sizearray[1] != static_cast<size_t>(size[1]) || // ny
+          sizearray[0] != static_cast<size_t>(size[2])) // nx
       {
         //std::cout << ".type " << (int)zfp_field_type(field)
         //        << ".dims " << zfp_field_dimensionality(field)

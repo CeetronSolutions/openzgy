@@ -39,76 +39,76 @@ public:
 
   virtual ~SDGenericDatasetPlain();
 
-  virtual void open(
+  void open(
        seismicdrive::SDDatasetDisposition disposition,
        const std::unordered_map<std::string, std::string> &args) override
   {
     relay().open(disposition, args);
   }
 
-  virtual void close() override
+  void close() override
   {
     return relay().close();
   }
 
-  virtual std::string getConsistencyID() const override
+  std::string getConsistencyID() const override
   {
     return mutableRelay().getConsistencyID();
   }
 
-  virtual std::string getSerializedContext() const override
+  std::string getSerializedContext() const override
   {
     return mutableRelay().getSerializedContext();
   }
 
-  virtual bool getReadonlyMode() const override
+  bool getReadonlyMode() const override
   {
     return relay().getReadonlyMode();
   }
 
-  virtual void setReadonlyMode(bool readonly) override
+  void setReadonlyMode(bool readonly) override
   {
     return relay().setReadonlyMode(readonly);
   }
 
-  virtual void setExponentialRetryBackoffPolicy(
+  void setExponentialRetryBackoffPolicy(
        const seismicdrive::ExponentialRetryBackoffPolicy *policy,
        const seismicdrive::HttpConnectionLink link) override
   {
     return relay().setExponentialRetryBackoffPolicy(policy, link);
   }
 
-  virtual void readBlock(int blocknum, char *data, std::size_t offset, std::size_t numBytes) const override
+  void readBlock(int blocknum, char *data, std::size_t offset, std::size_t numBytes) const override
   {
     return mutableRelay().readBlock(blocknum, data, offset, numBytes);
   }
 
-  virtual void writeBlock(int blocknum, const char *data, std::size_t len, bool check_and_overwrite) override
+  void writeBlock(int blocknum, const char *data, std::size_t len, bool check_and_overwrite) override
   {
     return relay().writeBlock(blocknum, data, len, check_and_overwrite);
   }
 
-  virtual void deleteBlock(const std::string &blockName) override
+  void deleteBlock(const std::string &blockName) override
   {
     return relay().deleteBlock(blockName);
   }
 
-  virtual long long getSize() const override
+  long long getSize() const override
   {
     return mutableRelay().getSize();
   }
 
-  virtual std::uint64_t getBlockNum() const override
+  std::uint64_t getBlockNum() const override
   {
     return mutableRelay().getBlockNum();
   }
 
-  virtual long long getBlockSize(int blocknum) const override
+  long long getBlockSize(int blocknum) const override
   {
     return mutableRelay().getBlockSize(blocknum);
   }
 
-  virtual std::vector<long long>
+  std::vector<long long>
   getBlockSizes(const std::vector<std::string> &blockNames) const override
   {
     // TODO use getBlockSizes() once SDAPI has been upgraded for windows.

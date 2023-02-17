@@ -426,19 +426,19 @@ protected:
 
 public:
 
-  virtual std::array<int64_t,3>
+  std::array<int64_t,3>
   size() const override
   {
     return _meta->ih().size();
   }
 
-  virtual SampleDataType
+  SampleDataType
   datatype() const override
   {
     return EnumMapper::mapRawDataTypeToSampleDataType(_meta->ih().datatype());
   }
 
-  virtual std::array<float32_t,2>
+  std::array<float32_t,2>
   datarange() const override
   {
     if (_meta->ih().datatype() == InternalZGY::RawDataType::Float32)
@@ -447,7 +447,7 @@ public:
       return _meta->ih().safe_codingrange();
   }
 
-  virtual std::array<float32_t,2>
+  std::array<float32_t,2>
   raw_datarange() const override
   {
     if (_meta->ih().datatype() == InternalZGY::RawDataType::Float32)
@@ -456,55 +456,55 @@ public:
       return _meta->ih().raw_codingrange();
   }
 
-  virtual UnitDimension
+  UnitDimension
   zunitdim() const override
   {
     return EnumMapper::mapRawVerticalDimensionToUnitDimension(_meta->ih().vdim());
   }
 
-  virtual UnitDimension
+  UnitDimension
   hunitdim() const override
   {
     return EnumMapper::mapRawHorizontalDimensionToUnitDimension(_meta->ih().hdim());
   }
 
-  virtual std::string
+  std::string
   zunitname() const override
   {
     return _meta->ih().vunitname();
   }
 
-  virtual std::string
+  std::string
   hunitname() const override
   {
     return _meta->ih().hunitname();
   }
 
-  virtual float64_t
+  float64_t
   zunitfactor() const override
   {
     return _meta->ih().vunitfactor();
   }
 
-  virtual float64_t
+  float64_t
   hunitfactor() const override
   {
     return _meta->ih().hunitfactor();
   }
 
-  virtual float32_t
+  float32_t
   zstart() const override
   {
     return _meta->ih().orig()[2];
   }
 
-  virtual float32_t
+  float32_t
   zinc() const override
   {
     return _meta->ih().inc()[2];
   }
 
-  virtual std::array<float32_t,2>
+  std::array<float32_t,2>
   annotstart() const override
   {
     return std::array<float32_t,2>{
@@ -512,7 +512,7 @@ public:
       _meta->ih().orig()[1]};
   }
 
-  virtual std::array<float32_t,2>
+  std::array<float32_t,2>
   annotinc() const override
   {
     return std::array<float32_t,2>{
@@ -520,37 +520,37 @@ public:
       _meta->ih().inc()[1]};
   }
 
-  virtual const corners_t
-  corners() const
+  const corners_t
+  corners() const override 
   {
     return _meta->ih().ocp_world();
   }
 
-  virtual const corners_t
-  indexcorners() const
+  const corners_t
+  indexcorners() const override
   {
     return _meta->ih().ocp_index();
   }
 
-  virtual const corners_t
-  annotcorners() const
+  const corners_t
+  annotcorners() const override
   {
     return _meta->ih().ocp_annot();
   }
 
-  virtual std::array<int64_t,3>
+  std::array<int64_t,3>
   bricksize() const override
   {
     return _meta->ih().bricksize();
   }
 
-  virtual std::vector<std::array<int64_t,3>>
+  std::vector<std::array<int64_t,3>>
   brickcount() const override
   {
     return _meta->ih().lodsizes();
   }
 
-  virtual int32_t
+  int32_t
   nlods() const override
   {
     // TODO-Low: Performance: Cache usable nlods.
@@ -572,7 +572,7 @@ public:
   //  return InternalZGY::GUID(_meta->ih().dataid()).toString();
   //}
 
-  virtual std::string verid()  const override
+  std::string verid() const override
   {
     return InternalZGY::GUID(_meta->ih().verid()).toString();
   }
@@ -685,7 +685,7 @@ public:
     return ss.str();
   }
 
-  virtual void
+  void
   dump(std::ostream& os) const override
   {
     const SampleStatistics stat = statistics();
@@ -694,14 +694,14 @@ public:
     os << toString(*this, stat, hist, *info) << std::flush;
   }
 
-  virtual SampleStatistics
+  SampleStatistics
   statistics() const override
   {
     const InternalZGY::IInfoHeaderAccess& ih = _meta->ih();
     return SampleStatistics(ih.scnt(), ih.ssum(), ih.sssq(), ih.smin(), ih.smax());
   }
 
-  virtual SampleHistogram
+  SampleHistogram
   histogram() const override
   {
     const InternalZGY::IHistHeaderAccess& hh = _meta->hh();
@@ -826,7 +826,7 @@ public:
    * Calling this generic version of filestats() method will not
    * populate the file size and will not do any caching.
    */
-  virtual std::shared_ptr<const FileStatistics> filestats() const override
+  std::shared_ptr<const FileStatistics> filestats() const override
   {
     return filestats_nocache();
   }
@@ -843,7 +843,7 @@ public:
 class ZgyMetaAndTools: public ZgyMeta, virtual public IZgyTools
 {
 public:
-  virtual void
+  void
   transform(const corners_t& A, const corners_t& B, std::vector<std::array<float64_t,2>>& data) const override
   {
     // If this method is needed then it is fairly simple to implement.
@@ -852,7 +852,7 @@ public:
     throw std::runtime_error("Not implemented: ZgyMetaAndToole::transform()");
   }
 
-  virtual  std::array<float64_t,2>
+  std::array<float64_t,2>
   transform1(const corners_t& A, const corners_t& B, const std::array<float64_t,2>& point) const override
   {
     float64_t x{point[0]}, y{point[1]};
@@ -864,37 +864,37 @@ public:
     return std::array<float64_t,2>{x, y};
   }
 
-  virtual std::array<float64_t,2>
+  std::array<float64_t,2>
   annotToIndex(const std::array<float64_t,2>& point) const override
   {
     return transform1(annotcorners(), indexcorners(), point);
   }
 
-  virtual std::array<float64_t,2>
+  std::array<float64_t,2>
   annotToWorld(const std::array<float64_t,2>& point) const override
   {
     return transform1(annotcorners(), corners(), point);
   }
 
-  virtual std::array<float64_t,2>
+  std::array<float64_t,2>
   indexToAnnot(const std::array<float64_t,2>& point) const override
   {
     return transform1(indexcorners(), annotcorners(), point);
   }
 
-  virtual std::array<float64_t,2>
+  std::array<float64_t,2>
   indexToWorld(const std::array<float64_t,2>& point) const override
   {
     return transform1(indexcorners(), corners(), point);
   }
 
-  virtual std::array<float64_t,2>
+  std::array<float64_t,2>
   worldToAnnot(const std::array<float64_t,2>& point) const override
   {
     return transform1(corners(), annotcorners(), point);
   }
 
-  virtual std::array<float64_t,2>
+  std::array<float64_t,2>
   worldToIndex(const std::array<float64_t,2>& point) const override
   {
     return transform1(corners(), indexcorners(), point);
@@ -991,7 +991,7 @@ public:
    * more. In other words, the limit for lod 0 is actually
    * reader()->size() rounded up to a multiple of reader->bricksize().
    */
-  virtual void read(const size3i_t& start, const size3i_t& size, float* data, int lod) const override
+  void read(const size3i_t& start, const size3i_t& size, float* data, int lod) const override
   {
     // This comment applies to all the read and write overloads.
     // Keep in mind that a file must not be closed while being read
@@ -1007,7 +1007,7 @@ public:
       auto databuffer = std::make_shared<InternalZGY::DataBufferNd<float,3>>(fakeshared, size);
       accessor->readToExistingBuffer(databuffer, start, lod, true);
       databuffer.reset();
-      if (!fakeshared.unique())
+      if (fakeshared.use_count() != 1)
         throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
     }
     ZombieCheck::checkNonUniquePtr(accessor, "read accessor");
@@ -1019,7 +1019,7 @@ public:
    * As the read overload with a float buffer but only works for files with
    * SampleDataType::int16 and does not scale the samples.
    */
-  virtual void read(const size3i_t& start, const size3i_t& size, std::int16_t* data, int lod) const override
+  void read(const size3i_t& start, const size3i_t& size, std::int16_t* data, int lod) const override
   {
     auto accessor = _accessor;
     throw_if_not_readable();
@@ -1028,7 +1028,7 @@ public:
       auto databuffer = std::make_shared<InternalZGY::DataBufferNd<std::int16_t,3>>(fakeshared, size);
       accessor->readToExistingBuffer(databuffer, start, lod, false);
       databuffer.reset();
-      if (!fakeshared.unique())
+      if (fakeshared.use_count() != 1)
         throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
     }
     ZombieCheck::checkNonUniquePtr(accessor, "read accessor");
@@ -1040,7 +1040,7 @@ public:
    * As the read overload with a float buffer but only works for files with
    * SampleDataType::int8 and does not scale the samples.
    */
-  virtual void read(const size3i_t& start, const size3i_t& size, std::int8_t* data, int lod) const override
+  void read(const size3i_t& start, const size3i_t& size, std::int8_t* data, int lod) const override
   {
     auto accessor = _accessor;
     throw_if_not_readable();
@@ -1049,7 +1049,7 @@ public:
       auto databuffer = std::make_shared<InternalZGY::DataBufferNd<std::int8_t,3>>(fakeshared, size);
       accessor->readToExistingBuffer(databuffer, start, lod, false);
       databuffer.reset();
-      if (!fakeshared.unique())
+      if (fakeshared.use_count() != 1)
         throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
     }
     ZombieCheck::checkNonUniquePtr(accessor, "read accessor");
@@ -1082,7 +1082,7 @@ public:
    * If you need to know then you must loop over each ZGY brick and
    * make multiple calls to readconst().
    */
-  virtual std::pair<bool,double> readconst(const size3i_t& start, const size3i_t& size, int lod, bool as_float) const override
+  std::pair<bool,double> readconst(const size3i_t& start, const size3i_t& size, int lod, bool as_float) const override
   {
     auto accessor = _accessor;
     throw_if_not_readable();
@@ -1111,7 +1111,7 @@ public:
    *       a different question. Possibly this is for removing any
    *       read locks.
    */
-  void close()
+  void close() override
   {
     auto accessor = _accessor;
     if (accessor) {
@@ -1138,7 +1138,7 @@ public:
    * The result does not change while the file is open, so it can
    * be cached here.
    */
-  virtual std::shared_ptr<const FileStatistics> filestats() const override
+  std::shared_ptr<const FileStatistics> filestats() const override
   {
     if (!_filestats) {
       std::shared_ptr<FileStatistics> result
@@ -1373,7 +1373,7 @@ public:
    * is to allow the lod parameter to be removed. Also avoid multiple
    * inheritance. The downside is a small amount of code duplication.
    */
-  virtual void read(const size3i_t& start, const size3i_t& size, float* data) const override
+  void read(const size3i_t& start, const size3i_t& size, float* data) const override
   {
     auto accessor_rw = _accessor_rw;
     throw_if_not_readable();
@@ -1381,7 +1381,7 @@ public:
     auto databuffer = std::make_shared<InternalZGY::DataBufferNd<float,3>>(fakeshared, size);
     accessor_rw->readToExistingBuffer(databuffer, start, /*lod*/0, true);
     databuffer.reset();
-    if (!fakeshared.unique())
+    if (fakeshared.use_count() != 1)
       throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
     ZombieCheck::checkNonUniquePtr(accessor_rw, "read from write accessor");
   }
@@ -1389,7 +1389,7 @@ public:
   /**
    * \copydoc read(const size3i_t&,const size3i_t&,float*)const
    */
-  virtual void read(const size3i_t& start, const size3i_t& size, std::int16_t* data) const override
+  void read(const size3i_t& start, const size3i_t& size, std::int16_t* data) const override
   {
     auto accessor_rw = _accessor_rw;
     throw_if_not_readable();
@@ -1397,7 +1397,7 @@ public:
     auto databuffer = std::make_shared<InternalZGY::DataBufferNd<std::int16_t,3>>(fakeshared, size);
     accessor_rw->readToExistingBuffer(databuffer, start, /*lod*/0, false);
     databuffer.reset();
-    if (!fakeshared.unique())
+    if (fakeshared.use_count() != 1)
       throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
     ZombieCheck::checkNonUniquePtr(accessor_rw, "read from write accessor");
   }
@@ -1405,7 +1405,7 @@ public:
   /**
    * \copydoc read(const size3i_t&,const size3i_t&,float*)const
    */
-  virtual void read(const size3i_t& start, const size3i_t& size, std::int8_t* data) const override
+  void read(const size3i_t& start, const size3i_t& size, std::int8_t* data) const override
   {
     auto accessor_rw = _accessor_rw;
     throw_if_not_readable();
@@ -1413,7 +1413,7 @@ public:
     auto databuffer = std::make_shared<InternalZGY::DataBufferNd<std::int8_t,3>>(fakeshared, size);
     accessor_rw->readToExistingBuffer(databuffer, start, /*lod*/0, false);
     databuffer.reset();
-    if (!fakeshared.unique())
+    if (fakeshared.use_count() != 1)
       throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
     ZombieCheck::checkNonUniquePtr(accessor_rw, "read from write accessor");
   }
@@ -1431,7 +1431,7 @@ public:
    * is to allow the lod parameter to be removed. Also avoid multiple
    * inheritance. The downside is a small amount of code duplication.
    */
-  virtual std::pair<bool,double> readconst(const size3i_t& start, const size3i_t& size, bool as_float) const override
+  std::pair<bool,double> readconst(const size3i_t& start, const size3i_t& size, bool as_float) const override
   {
     auto accessor_rw = _accessor_rw;
     throw_if_not_readable();
@@ -1488,7 +1488,7 @@ public:
     accessor_rw->writeRegion(buffer, start, 0, false, _compressor);
     this->_dirty = true;
     buffer.reset();
-    if (!fakeshared.unique()) // Actually a fatal error.
+    if (fakeshared.use_count() != 1) // Actually a fatal error.
       throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
     ZombieCheck::checkNonUniquePtr(accessor_rw, "write accessor");
   }
@@ -1508,7 +1508,7 @@ public:
     accessor_rw->writeRegion(buffer, start, 0, true, _compressor);
     this->_dirty = true;
     buffer.reset();
-    if (!fakeshared.unique()) // Actually a fatal error.
+    if (fakeshared.use_count() != 1) // Actually a fatal error.
       throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
     ZombieCheck::checkNonUniquePtr(accessor_rw, "write accessor");
   }
@@ -1528,7 +1528,7 @@ public:
     accessor_rw->writeRegion(buffer, start, 0, true, _compressor);
     this->_dirty = true;
     buffer.reset();
-    if (!fakeshared.unique()) // Actually a fatal error.
+    if (fakeshared.use_count() != 1) // Actually a fatal error.
       throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
     ZombieCheck::checkNonUniquePtr(accessor_rw, "write accessor");
   }
@@ -1821,7 +1821,7 @@ public:
   void finalize(const std::vector<DecimationType>& decimation_in,
                 const std::function<bool(std::int64_t,std::int64_t)>& progress,
                 FinalizeAction action = FinalizeAction::BuildDefault,
-                bool force = false)
+                bool force = false) override
   {
     std::vector<DecimationType> decimation(decimation_in);
 #if 1
@@ -2015,7 +2015,7 @@ public:
    * so applications can deal with it. ZGY-Public will not be allowed
    * to open incomplete files. Version is set >3 to prevent this.
    */
-  void close_incomplete()
+  void close_incomplete() override
   {
     if (_fd) {
       // Delete instead of keep if the derived information is stale.
@@ -2047,7 +2047,7 @@ public:
    * but that will catch and swallow any exception. Relying on the
    * destructor to close the file is strongly discouraged.
    */
-  void close()
+  void close() override
   {
     // TODO-@@@: If the file has never been written to and the error
     // flag is set then discard everyhing and do NOT write any data.
@@ -2112,7 +2112,7 @@ public:
    * in ZgyReader and arrange for it to be cleared every time the
    * metadata is touched.
    */
-  virtual std::shared_ptr<const FileStatistics> filestats() const override
+  std::shared_ptr<const FileStatistics> filestats() const override
   {
     std::shared_ptr<FileStatistics> result
       (new FileStatistics(*filestats_nocache()));

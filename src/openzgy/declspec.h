@@ -14,7 +14,7 @@
 
 #pragma once
 
-#ifndef _WIN32
+#if defined(OPENZGY_STATIC) || !defined(_WIN32)
 #  define OPENZGY_API
 #  define OPENZGY_TEST_API
 #  define OPENZGY_DECLARE_EXPLICIT_TEMPLATE(...)   extern template class __VA_ARGS__;
