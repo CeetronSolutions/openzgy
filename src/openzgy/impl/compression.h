@@ -21,7 +21,7 @@
 #include <map>
 #include <mutex>
 
-#include "declspec.h"
+#include "../declspec.h"
 #include "enum.h"
 
 /**

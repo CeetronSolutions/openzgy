@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "declspec.h"
+#include "../declspec.h"
 #include <cstddef>
 
 namespace InternalZGY {
@@ -29,14 +29,23 @@ namespace InternalZGY {
 	{
 	public:
 		/// @brief Find the minimum and maximum in the values array. Safe for all floating point values.
-		/// @details NaN elements in values are ignored, +/- infinity elements are correctly honoured.
-		/// @note Calling with size=0 will result in a range of [std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()]
+		/// @details NaN and +/- Inf elements in values are ignored.
+		/// @note Calling with size=0 or no valid samples will return with min > max.
 		static void scanArray(const float* const values, const size_t size, const size_t stride, float& min, float& max);
 
 		/// @brief Find the minimum and maximum in the values array. Not NaN safe.
 		/// @details While this version is faster than scanArray above, it is not safe if your values array potentially contains NaN.
 		/// @warning If the values array contains NaN, the output of min and max is undefined.
-		/// @note Calling with size=0 will result in a range of [std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()]
+		/// @note Calling with size=0 will return with min > max.
 		static void unsafeScanArray(const float* const values, const size_t size, const size_t stride, float& min, float& max);
+
+		/// @brief Return true if sse2 intrinsics are available and enabled.
+		/// @details Use this for logging performance data only.
+                static bool has_sse2();
+
+		/// @brief Return true unless callers are requested to not call us at all.
+		/// @details Use this for testing performance only.
+		/// @details Callers don't need to honor this setting.
+                static bool use_sse2();
 	};
 }

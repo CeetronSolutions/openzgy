@@ -22,7 +22,7 @@
 #include "logger.h"
 #include "file_smallcache.h"
 #include "environment.h"
-#include "exception.h"
+#include "../exception.h"
 
 #include <iostream>
 #include <algorithm>
@@ -408,8 +408,8 @@ public:
   FileHeaderPOD _pod;
   FileHeaderAccess() { memset(&_pod, 0, sizeof(_pod)); }
   virtual podbytes_t podbytes() const override { return pod2bytes(_pod); }
-  virtual void read(const std::shared_ptr<IFileADT>& file, std::int64_t offset) override;
-  virtual void byteswap() override;
+  virtual void read(const std::shared_ptr<IFileADT>& file, std::int64_t offset);
+  virtual void byteswap();
   virtual void dump(std::ostream& out, const std::string& prefix = "") override;
 public:
   virtual std::array<std::uint8_t,4> magic() const override { return ptr_to_array<std::uint8_t,4>(_pod._magic); }
@@ -933,7 +933,7 @@ public:
   virtual const std::vector<std::int64_t>& brickoffsets() const override { return _cached_brickoffsets; }
   // Write support.
   virtual void setstats(std::int64_t scnt, double ssum, double sssq,
-                        double smin, double smax) override
+                        double smin, double smax)
   {
     throw OpenZGY::Errors::ZgyInternalError("Writing InfoHeader is only supported for the latest version.");
   }
@@ -1087,7 +1087,7 @@ public:
   virtual const std::vector<std::int64_t>& alphaoffsets() const override { return _cached_alphaoffsets; }
   virtual const std::vector<std::int64_t>& brickoffsets() const override { return _cached_brickoffsets; }
   virtual void setstats(std::int64_t scnt, double ssum, double sssq,
-                        double smin, double smax) override
+                        double smin, double smax)
   {
     _pod._scnt = scnt;
     _pod._ssum = ssum;
@@ -1214,28 +1214,28 @@ public:
   virtual podbytes_t podbytes() const override { return pod2bytes(_pod); }
   virtual void read(const std::shared_ptr<IFileADT>& file, std::int64_t offset, std::int64_t size) override;
   virtual void byteswap() override;
-  virtual void calculate() override
+  virtual void calculate()
   {
     _converted_bins.clear();
     for (int ii=0; ii<bincount(); ++ii)
       _converted_bins.push_back(_pod._bin[ii]);
   }
   virtual void sethisto(double minvalue, double maxvalue,
-                        const std::int64_t* bins, std::int64_t bincount) override
+                        const std::int64_t* bins, std::int64_t bincount)
   {
     throw OpenZGY::Errors::ZgyInternalError("Writing HistHeader is only supported for the latest version.");
   }
 
 public:
-  virtual std::int64_t bincount()    const override { return 256; }
-  virtual std::int64_t samplecount() const override { return 0; }
-  virtual double       minvalue()    const override { return align(_pod._min); }
-  virtual double       maxvalue()    const override { return align(_pod._max); }
+  virtual std::int64_t bincount()    const { return 256; }
+  virtual std::int64_t samplecount() const { return 0; }
+  virtual double       minvalue()    const { return align(_pod._min); }
+  virtual double       maxvalue()    const { return align(_pod._max); }
   // The returned pointer is invalidated by a call to calculate().
   // This should not be an issue since V1 only supports reading,
   // so there isn't really any reason to call calculate() more
   // than once.
-  virtual const std::int64_t* bins() const override { return _converted_bins.data(); }
+  virtual const std::int64_t* bins() const { return _converted_bins.data(); }
 };
 
 void
@@ -1281,18 +1281,18 @@ public:
   virtual podbytes_t podbytes() const override { return pod2bytes(_pod); }
   virtual void read(const std::shared_ptr<IFileADT>& file, std::int64_t offset, std::int64_t size) override;
   virtual void byteswap() override;
-  virtual void calculate() override { }
+  virtual void calculate() { }
 
 public:
-  virtual std::int64_t bincount()    const override { return 256; }
-  virtual std::int64_t samplecount() const override { return align(_pod._cnt); }
-  virtual double       minvalue()    const override { return align(_pod._min); }
-  virtual double       maxvalue()    const override { return align(_pod._max); }
+  virtual std::int64_t bincount()    const { return 256; }
+  virtual std::int64_t samplecount() const { return align(_pod._cnt); }
+  virtual double       minvalue()    const { return align(_pod._min); }
+  virtual double       maxvalue()    const { return align(_pod._max); }
   // Should be safely aligned, checked by hand.
-  virtual const std::int64_t* bins() const override { return _pod._bin; }
+  virtual const std::int64_t* bins() const { return _pod._bin; }
   // Write support.
   virtual void sethisto(double minvalue, double maxvalue,
-                        const std::int64_t* bins, std::int64_t bincount) override ;
+                        const std::int64_t* bins, std::int64_t bincount);
 };
 
 void
@@ -1412,7 +1412,7 @@ public:
   virtual podbytes_t podbytes() const override;
   virtual void read(const std::shared_ptr<IFileADT>& file, std::int64_t offset, std::int64_t size) override;
   virtual void byteswap() override;
-  virtual void dump(std::ostream& out, const std::string& prefix = "") override;
+  virtual void dump(std::ostream& out, const std::string& prefix = "");
 public:
   virtual std::uint64_t lookupLinearIndex(std::int64_t index) const override;
   virtual std::vector<std::uint64_t>& lup() override { return _lookup; }

@@ -18,7 +18,7 @@
 #define _CRT_SECURE_NO_WARNINGS 1
 
 #include "file.h"
-#include "exception.h"
+#include "../exception.h"
 #include "fancy_timers.h"
 #include "environment.h"
 #include "file_parallelizer.h"
@@ -51,6 +51,25 @@ namespace InternalZGY {
  * \file: file_local.cpp
  * \brief Low level I/O, regular files.
  */
+
+/**
+ * For debugging, ensure all local disk buffers are written to disk
+ * before closing. This makes timing results more reproducible. N/A
+ * for cloud I/O.
+ *
+ * ZgyTool on Linux currently does its own sync (of the entire system).
+ * In that situation it is better to enable fsync here, and disregard
+ * the sync reported by the tool. Because that will now report only the
+ * time needed to sync unrelated buffers.
+ *
+ * If the sync time is suspiciously slow then this suggests that fsync
+ * is called or implied somewhere else.
+ */
+static int enable_fsync()
+{
+  static int enable = Environment::getNumericEnv("OPENZGY_ENABLE_FSYNC", 0);
+  return enable;
+}
 
 /**
  * Thread safety when used for reading:
@@ -220,6 +239,10 @@ LocalFileWindows::xx_close()
   case OpenMode::ReadOnly:
   case OpenMode::ReadWrite:
   case OpenMode::Truncate:
+    if (mode != OpenMode::ReadOnly && enable_fsync() > 0) {
+      SimpleTimerEx mm(*_synctimer);
+      (void)_commit(_fd); // errors are not fatal.
+    }
     if (_close(_fd) < 0)
       throw OpenZGY::Errors::ZgyIoError(_name, errno);
     _fd = -2;
@@ -228,6 +251,7 @@ LocalFileWindows::xx_close()
 
   _fd = -2;
   _name = std::string();
+  _synctimer.reset();
   _rtimer.reset();
   _wtimer.reset();
   _mtimer.reset();
@@ -352,6 +376,10 @@ LocalFileWindows::xx_write(const void* data, std::int64_t offset, std::int64_t s
   _eof = std::max(_eof, offset + nbytes);
   if (nbytes != size)
     throw OpenZGY::Errors::ZgyInternalError(_name + ": Short write");
+  if (enable_fsync() >= 3) {
+    //SimpleTimerEx tt(*_sync3timer);
+    _commit(_fd);
+  }
 }
 
 /**

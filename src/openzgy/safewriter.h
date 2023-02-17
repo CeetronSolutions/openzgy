@@ -40,6 +40,11 @@ class ZgySafeWriter : public IZgyWriter
   std::shared_ptr<IZgyWriter> writer_;
   mutable std::mutex mutex_;
   mutable std::shared_ptr<InternalZGY::SummaryPrintingTimerEx> mtimer_;
+  mutable std::shared_ptr<InternalZGY::SummaryPrintingTimerEx> ctimer_;
+  mutable std::shared_ptr<InternalZGY::SummaryPrintingTimerEx> ftimer_;
+  // The lifetime of this class, not useful unless busy all the time.
+  mutable std::shared_ptr<InternalZGY::SummaryPrintingTimerEx> atimer_;
+  mutable std::shared_ptr<InternalZGY::SimpleTimerEx> simple_atimer_;
 
 public:
   typedef IZgyWriter::int8_t       int8_t;
@@ -58,6 +63,10 @@ public:
     : writer_(writer), mutex_()
   {
     mtimer_.reset(new InternalZGY::SummaryPrintingTimerEx("ZgyWriter.mutex"));
+    ctimer_.reset(new InternalZGY::SummaryPrintingTimerEx("ZgyWriter.close"));
+    ftimer_.reset(new InternalZGY::SummaryPrintingTimerEx("ZgyWriter.final"));
+    atimer_.reset(new InternalZGY::SummaryPrintingTimerEx("ZgyWriter.inuse"));
+    simple_atimer_.reset(new InternalZGY::SimpleTimerEx(*atimer_));
   }
   ZgySafeWriter(const ZgySafeWriter&) = delete;
   ZgySafeWriter& operator=(const ZgySafeWriter&) = delete;
@@ -429,6 +438,7 @@ public:
     InternalZGY::SimpleTimerEx mm(*mtimer_);
     std::lock_guard<std::mutex> lk(mutex_);
     mm.stop();
+    InternalZGY::SimpleTimerEx ff(*ftimer_);
     writer_->finalize(decimation, progress, action, force);
   }
 
@@ -437,6 +447,7 @@ public:
     InternalZGY::SimpleTimerEx mm(*mtimer_);
     std::lock_guard<std::mutex> lk(mutex_);
     mm.stop();
+    InternalZGY::SimpleTimerEx cc(*ctimer_);
     writer_->close_incomplete();
   }
 
@@ -445,6 +456,7 @@ public:
     InternalZGY::SimpleTimerEx mm(*mtimer_);
     std::lock_guard<std::mutex> lk(mutex_);
     mm.stop();
+    InternalZGY::SimpleTimerEx cc(*ctimer_);
     writer_->close();
   }
 

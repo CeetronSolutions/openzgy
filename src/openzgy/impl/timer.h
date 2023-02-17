@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "declspec.h"
+#include "../declspec.h"
 
 namespace InternalZGY {
 #if 0

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "declspec.h"
+#include "../declspec.h"
 
 #include <functional>
 #include <string>
@@ -25,7 +25,7 @@
 #include "file_parallelizer.h"
 #include "fancy_timers.h"
 #include "mtguard.h"
-#include "exception.h"
+#include "../exception.h"
 #include "../iocontext.h"
 #include "environment.h"
 #include "sdinterface.h"
@@ -1978,7 +1978,7 @@ SeismicStoreFile::altUrl(const std::string& filename) const
                 << "\n");
     return url;
   }
-  catch (const seismicdrive::SDExpectedReadOnlyDatasetException& ex) {
+  catch (const seismicdrive::error::dataset::context::NotReadOnly& ex) {
     throw OpenZGY::Errors::ZgyNotReadOnlyError(ex.what());
   }
   catch (const std::exception& ex) {

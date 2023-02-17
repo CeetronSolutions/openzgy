@@ -21,7 +21,7 @@
 #include "fancy_timers.h"
 #include "environment.h"
 #include "mtguard.h"
-#include "exception.h"
+#include "../exception.h"
 
 #include <memory.h>
 #include <math.h>
@@ -36,6 +36,92 @@ namespace InternalZGY {
 #if 0
 }
 #endif
+
+namespace {
+  /**
+   * For testing only; might be removed.
+   * Change the number of threads to be used for parallelizing the LOD compute.
+   * CAVEAT: Leaving the variable unset could still get different results
+   * from not specifying the thread count. I am not sure that leaving out
+   * num_threads() is equivalent to num_threads(omp_get_max_threads()).
+   * Set to 0 to disable, 1 to enable with default number of threads, and
+   * a negative number to use exactly -number threads. Yes this is a bit
+   * backwards. It is done to make the setting similar to
+   * OPENZGY_ENABLE_COMPRESS_MT which only has enable and disable.
+   */
+  static int enable_lodalgo_mt()
+  {
+    static int enable = Environment::getNumericEnv("OPENZGY_ENABLE_LODALGO_MT", 0);
+    return enable == 0 ? 1 : enable >= 1 ? omp_get_max_threads() : -enable;
+  }
+}
+
+namespace {
+  /**
+   * \brief Instrumenting this file for performance measurements.
+   *
+   * \details Keep all timers in one place to facilitate cleartimers().
+   *
+   * Thread safety: Safe because SummaryPrintingTimerEx is
+   * thread safe when used correctly.
+   */
+  class AdHocLodTimers
+  {
+  public:
+    SummaryPrintingTimerEx timerST;
+    SummaryPrintingTimerEx timerMT;
+    SummaryPrintingTimerEx timerOT;
+    SummaryPrintingTimerEx timerLP;
+    SummaryPrintingTimerEx timerWA;
+    SummaryPrintingTimerEx timerInside;
+    SummaryPrintingTimerEx timerLL;
+    AdHocLodTimers()
+      : timerST("createLod[ST]") // Seen from app, forced single threaded.
+      , timerMT("createlod[MT]") // Seen from app, possibly multithreded.
+      , timerOT("createlod-ot") // As [MT] but for "other" algorithms.
+      , timerLP("createlod-lp") // As [MT] but only records LowPass algo.
+      , timerWA("createlod-wa") // As [MT] but only WeightedAverage.
+      , timerInside("createlod[I]") // Sum of timers in all threads.
+      , timerLL("createlod[LL]") // As [I], measured aty a lower level.
+    {
+    }
+    static AdHocLodTimers& instance()
+    {
+      static AdHocLodTimers instance_;
+      return instance_;
+    }
+    void cleartimers(bool show) {
+      if (show) {
+        timerLL.print();
+        timerInside.print();
+        timerWA.print();
+        timerLP.print();
+        timerOT.print();
+        timerMT.print();
+        timerST.print();
+      }
+      else {
+        timerLL.reset();
+        timerInside.reset();
+        timerWA.reset();
+        timerLP.reset();
+        timerOT.reset();
+        timerMT.reset();
+        timerST.reset();
+      }
+    }
+  };
+}
+
+/**
+ * For ad-hoc performance measurements.
+ */
+void
+clearLodTimers(bool show)
+{
+  AdHocLodTimers::instance().cleartimers(show);
+}
+
 
 /**
  * \brief Weighted arithmetic average of 8 neighboring samples.
@@ -973,8 +1059,7 @@ createLodST(const std::shared_ptr<DataBuffer>& result,
             double histogram_min,
             double histogram_max)
 {
-  static SummaryPrintingTimerEx timer("createLod");
-  SimpleTimerEx tt(timer);
+  SimpleTimerEx tt(AdHocLodTimers::instance().timerLL);
   switch (result->datatype()) {
   case RawDataType::SignedInt8:    createLodT<std::int8_t>  (result, input, algorithm, hist, bincount, histogram_min, histogram_max); break;
   case RawDataType::UnsignedInt8:  createLodT<std::uint8_t> (result, input, algorithm, hist, bincount, histogram_min, histogram_max); break;
@@ -986,6 +1071,8 @@ createLodST(const std::shared_ptr<DataBuffer>& result,
   case RawDataType::IbmFloat32:
   default: throw OpenZGY::Errors::ZgyInternalError("Unrecognized type enum");
   }
+  AdHocLodTimers::instance().timerLL.addBytesRead(input->totalsize() * input->itemsize());
+  AdHocLodTimers::instance().timerLL.addBytesWritten(result->totalsize() * result->itemsize());
 }
 
 /**
@@ -1074,15 +1161,15 @@ createLodMT(const std::shared_ptr<DataBuffer>& result,
             double histogram_min,
             double histogram_max)
 {
-  static SummaryPrintingTimerEx timerST("createLod[ST]");
-  static SummaryPrintingTimerEx timerMT("createLod[MT]");
   const auto isize   = input->size3d();
 #if 1
   // If this is a 2d slice, regardless of which dimension had size 1,
   // there is probably not enough data to warrant slicing it up and
   // processing it in multiple threads.
+  // TODO-Performance: If numthreads == 1 this version could also
+  // have been called. Saving some instructions.
   if (isize[0] == 1 || isize[1] == 1 || isize[2] == 1) {
-    SimpleTimerEx tt(timerST);
+    SimpleTimerEx tt(AdHocLodTimers::instance().timerST);
     createLodST(result, input, algorithm,
                 hist, bincount, histogram_min, histogram_max);
     return;
@@ -1095,27 +1182,43 @@ createLodMT(const std::shared_ptr<DataBuffer>& result,
   // means a lot of extra testing, less efficiency, and caveats such
   // as updating a byte might be implemented as read/modify/write of
   // 4 or 8 bytes. So, always slice the slowest dim.
-  SimpleTimerEx tt(timerMT);
-  MTGuard guard("lod", -1);
-#pragma omp parallel
+  int numthreads = enable_lodalgo_mt();
+  // We cannot make use of more than (isize[slowest_dim]+1) / 2 threads.
+  // With default brick size this usually means 64 threads.
+  numthreads = std::min(numthreads, (int)(isize[slowest_dim]+1) / 2);
+  MTGuard guard("lod", numthreads);
+  SimpleTimerEx tt(AdHocLodTimers::instance().timerMT);
+  SimpleTimerEx tt2(algorithm==LodAlgorithm::LowPass ?
+                    AdHocLodTimers::instance().timerLP :
+                    algorithm==LodAlgorithm::WeightedAverage ?
+                    AdHocLodTimers::instance().timerWA :
+                    AdHocLodTimers::instance().timerOT);
+#pragma omp parallel num_threads(numthreads) if (numthreads > 1)
   {
     std::int64_t slices_per_thread = (isize[slowest_dim]-1) / omp_get_num_threads() + 1;
     if (slices_per_thread % 2 == 1)
       ++slices_per_thread;
+    const std::int64_t bytes_per_thread =
+      ((isize[0]*isize[1]*isize[2]) / isize[slowest_dim]) * slices_per_thread * input->itemsize();
 #if 0
     if (omp_get_thread_num() == 0)
       std::cout << "LOD compute " << isize[slowest_dim]
                 << " slices using " << omp_get_num_threads()
                 << " threads with " << slices_per_thread
-                << " slices per thread."
+                << " slices of " << bytes_per_thread << " bytes per thread."
                 << std::endl;
 #endif
     guard.run([&](){
+      // Accumulated time here should be just slightly more than the timer
+      // in createLodST(), confusingly named just "createlod"
+      // Bulk size might be reported too high by including padding.
+      SimpleTimerEx uu(AdHocLodTimers::instance().timerInside);
       createLodPart(result, input, algorithm,
                     hist, bincount, histogram_min, histogram_max,
                     slowest_dim,
                     omp_get_thread_num() * slices_per_thread,
                     slices_per_thread);
+      AdHocLodTimers::instance().timerInside.addBytesRead(bytes_per_thread);
     });
   }
   guard.finished();

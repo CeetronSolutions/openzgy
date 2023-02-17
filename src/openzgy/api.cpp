@@ -108,6 +108,89 @@ namespace {
   }
 }
 
+namespace {
+  class ZombieCheck {
+  public:
+    /**
+     * The default is to silently sweep errors under the carpet,
+     * after trying to prevent a crash due to code in the caller
+     * that is not thread safe. E.g. closing a file in one thread
+     * and reading from it in another.
+     */
+    static int complain_mode()
+    {
+      static int result = InternalZGY::Environment::getNumericEnv
+        ("OPENZGY_COMPLAIN_IF_INVALID_MT", 0);
+      return result;
+    }
+
+    /**
+     * Report a serious problem with code in the caller that is not
+     * thread safe. Or sweep it under the carpet. Throwing an exception
+     * is also an option, but is discouraged. Because the error isn't
+     * in this particular call. It just got caught here.
+     */
+    static void failure(const std::string& msg, const std::string& where)
+    {
+      if (complain_mode() & 0x01)
+        std::cerr << (msg + " in " + where + "\n") << std::flush;
+      if (complain_mode() & 0x02)
+        assert(false && "OpenZGY ZombieCheck failed");
+      if (complain_mode() & 0x04)
+        throw OpenZGY::Errors::ZgyUserError(msg + " in " + where + "\n");
+    }
+
+    /**
+     * Called when destructing a file, at which time there should be
+     * no extra references to the internal accessor and file pointers.
+     * If there are, this means there is probably an ongoing read
+     * in a different thread. Possibly *this has beed deleted as well.
+     * The latter triggers undefined behaviour. But if we are lucky
+     * it won't actually crash.
+     *
+     * \internal The expected ptr.use_count() is 2, because the caller
+     * has a reference and the "ptr" argument has another. That would
+     * be the case even if ptr was declared as a const reference.
+     * Presumably because the type won't match what the caller has.
+     *
+     * Keep in mind that _accessor also has a reference to _fd, so _fd
+     * won't be unique until after _accessor has been deleted.
+     */
+    static void checkUniquePtr(std::shared_ptr<const void> ptr, const char *where)
+    {
+      if (ptr && ptr.use_count() > 2)
+        failure("OpenZGY detected " +
+                std::to_string(ptr.use_count() - 2) +
+                " extra references", where);
+    }
+
+    /**
+     * Called when reading or writing a file, at which time there
+     * should be multiple references to the internal accessor
+     * instance. One in the _accessor instance member and one in the
+     * explicit local copy held by read() or write(). If there isn't
+     * then *this has probably been destructed causing the _accessor
+     * pointer to be released. A crash was probebly prevented by the
+     * local copy.
+     *
+     * The check might have been done on _fd as well, but as long as
+     * the accessor is alive it has its own reference to the file
+     * instance.
+     *
+     * \internal when testing use_count, take into account that "ptr"
+     * also holds a reference.
+     */
+    static void checkNonUniquePtr(std::shared_ptr<const void> ptr, const char *where)
+    {
+      // Expected at least one reference in the calling application,
+      // one local reference in the function, and one for the "ptr"
+      // argument to this function.
+      if (ptr && ptr.use_count() < 3)
+        failure("OpenZGY detected unexpected free", where);
+    }
+  };
+} // namespace
+
 namespace OpenZGY {
   class IOContext;
 }
@@ -438,19 +521,19 @@ public:
   }
 
   virtual const corners_t
-  corners() const override
+  corners() const
   {
     return _meta->ih().ocp_world();
   }
 
   virtual const corners_t
-  indexcorners() const override
+  indexcorners() const
   {
     return _meta->ih().ocp_index();
   }
 
   virtual const corners_t
-  annotcorners() const override
+  annotcorners() const
   {
     return _meta->ih().ocp_annot();
   }
@@ -869,10 +952,13 @@ public:
   {
     try {
       //close(); // See close() for why this may be a bad idea.
+      ZombieCheck::checkUniquePtr(_accessor, "~ZgyReader bulk");
       _accessor.reset();
+      ZombieCheck::checkUniquePtr(_fd, "~ZgyReader file");
       _fd.reset();
       // Debatable, but since nobody will be able to read from this
       // instance it shouldn't be a problem to remove the read lock.
+      // If the checks for unique pointers failed, we might be in trouble.
       _locked_in_process.reset();
     }
     catch (const std::exception& ex) {
@@ -907,15 +993,24 @@ public:
    */
   virtual void read(const size3i_t& start, const size3i_t& size, float* data, int lod) const override
   {
+    // This comment applies to all the read and write overloads.
+    // Keep in mind that a file must not be closed while being read
+    // in another thread. Keeping a local reference to the accessor's
+    // implementation does NOT remove this rule. It can, however,
+    // make it less likely that a buggy application will crash
+    // accessing freed memory. There is STILL A WINDOW where this
+    // might happen. But it is hopefully smaller.
+    auto accessor = _accessor;
     throw_if_not_readable();
-    if (!_accessor->expeditedRead(start, size, data, lod, InternalZGY::RawDataType::Float32)) {
+    if (!accessor->expeditedRead(start, size, data, lod, InternalZGY::RawDataType::Float32)) {
       std::shared_ptr<float> fakeshared = fake_shared(data);
       auto databuffer = std::make_shared<InternalZGY::DataBufferNd<float,3>>(fakeshared, size);
-      _accessor->readToExistingBuffer(databuffer, start, lod, true);
+      accessor->readToExistingBuffer(databuffer, start, lod, true);
       databuffer.reset();
-      if (fakeshared.use_count() != 1)
+      if (!fakeshared.unique())
         throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
     }
+    ZombieCheck::checkNonUniquePtr(accessor, "read accessor");
   }
 
   /**
@@ -926,15 +1021,17 @@ public:
    */
   virtual void read(const size3i_t& start, const size3i_t& size, std::int16_t* data, int lod) const override
   {
+    auto accessor = _accessor;
     throw_if_not_readable();
-    if (!_accessor->expeditedRead(start, size, data, lod, InternalZGY::RawDataType::SignedInt16)) {
+    if (!accessor->expeditedRead(start, size, data, lod, InternalZGY::RawDataType::SignedInt16)) {
       std::shared_ptr<std::int16_t> fakeshared = fake_shared(data);
       auto databuffer = std::make_shared<InternalZGY::DataBufferNd<std::int16_t,3>>(fakeshared, size);
-      _accessor->readToExistingBuffer(databuffer, start, lod, false);
+      accessor->readToExistingBuffer(databuffer, start, lod, false);
       databuffer.reset();
-      if (fakeshared.use_count() != 1)
+      if (!fakeshared.unique())
         throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
     }
+    ZombieCheck::checkNonUniquePtr(accessor, "read accessor");
   }
 
   /**
@@ -945,15 +1042,17 @@ public:
    */
   virtual void read(const size3i_t& start, const size3i_t& size, std::int8_t* data, int lod) const override
   {
+    auto accessor = _accessor;
     throw_if_not_readable();
-    if (!_accessor->expeditedRead(start, size, data, lod, InternalZGY::RawDataType::SignedInt8)) {
+    if (!accessor->expeditedRead(start, size, data, lod, InternalZGY::RawDataType::SignedInt8)) {
       std::shared_ptr<std::int8_t> fakeshared = fake_shared(data);
       auto databuffer = std::make_shared<InternalZGY::DataBufferNd<std::int8_t,3>>(fakeshared, size);
-      _accessor->readToExistingBuffer(databuffer, start, lod, false);
+      accessor->readToExistingBuffer(databuffer, start, lod, false);
       databuffer.reset();
-      if (fakeshared.use_count() != 1)
+      if (!fakeshared.unique())
         throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
     }
+    ZombieCheck::checkNonUniquePtr(accessor, "read accessor");
   }
 
   /**
@@ -985,8 +1084,11 @@ public:
    */
   virtual std::pair<bool,double> readconst(const size3i_t& start, const size3i_t& size, int lod, bool as_float) const override
   {
+    auto accessor = _accessor;
     throw_if_not_readable();
-    return _accessor->readConstantValue(start, size, lod, as_float);
+    auto result = accessor->readConstantValue(start, size, lod, as_float);
+    ZombieCheck::checkNonUniquePtr(accessor, "read accessor");
+    return result;
   }
 
   /**
@@ -1009,16 +1111,24 @@ public:
    *       a different question. Possibly this is for removing any
    *       read locks.
    */
-  void close() override
+  void close()
   {
-    if (_accessor) {
+    auto accessor = _accessor;
+    if (accessor) {
       _accessor.reset();
+      ZombieCheck::checkUniquePtr(accessor, "ZgyReader close");
+      accessor.reset();
     }
-    if (_fd) {
-      auto victim = _fd;
+    auto victim = _fd;
+    if (victim) {
       _fd.reset();
       victim->xx_close();
+      ZombieCheck::checkUniquePtr(victim, "ZgyReader close file");
+      victim.reset();
     }
+    // Maybe do this also if the ZombieCheck threw an exception?
+    // Not a big deal, because it is discouraged to configure
+    // ZombieCheck that way.
     _locked_in_process.reset();
     // Metadata remains accessible. Not sure whether this is a good idea.
   }
@@ -1054,7 +1164,7 @@ private:
    */
   void throw_if_not_readable() const
   {
-    if (!_fd || !_accessor)
+    if (!_fd || !_accessor || !_meta)
       throw Errors::ZgyUserError("ZGY file not open for read");
   }
 };
@@ -1265,13 +1375,15 @@ public:
    */
   virtual void read(const size3i_t& start, const size3i_t& size, float* data) const override
   {
+    auto accessor_rw = _accessor_rw;
     throw_if_not_readable();
     std::shared_ptr<float> fakeshared = fake_shared(data);
     auto databuffer = std::make_shared<InternalZGY::DataBufferNd<float,3>>(fakeshared, size);
-    _accessor_rw->readToExistingBuffer(databuffer, start, /*lod*/0, true);
+    accessor_rw->readToExistingBuffer(databuffer, start, /*lod*/0, true);
     databuffer.reset();
-    if (fakeshared.use_count() != 1)
+    if (!fakeshared.unique())
       throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
+    ZombieCheck::checkNonUniquePtr(accessor_rw, "read from write accessor");
   }
 
   /**
@@ -1279,13 +1391,15 @@ public:
    */
   virtual void read(const size3i_t& start, const size3i_t& size, std::int16_t* data) const override
   {
+    auto accessor_rw = _accessor_rw;
     throw_if_not_readable();
     std::shared_ptr<std::int16_t> fakeshared = fake_shared(data);
     auto databuffer = std::make_shared<InternalZGY::DataBufferNd<std::int16_t,3>>(fakeshared, size);
-    _accessor_rw->readToExistingBuffer(databuffer, start, /*lod*/0, false);
+    accessor_rw->readToExistingBuffer(databuffer, start, /*lod*/0, false);
     databuffer.reset();
-    if (fakeshared.use_count() != 1)
+    if (!fakeshared.unique())
       throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
+    ZombieCheck::checkNonUniquePtr(accessor_rw, "read from write accessor");
   }
 
   /**
@@ -1293,13 +1407,15 @@ public:
    */
   virtual void read(const size3i_t& start, const size3i_t& size, std::int8_t* data) const override
   {
+    auto accessor_rw = _accessor_rw;
     throw_if_not_readable();
     std::shared_ptr<std::int8_t> fakeshared = fake_shared(data);
     auto databuffer = std::make_shared<InternalZGY::DataBufferNd<std::int8_t,3>>(fakeshared, size);
-    _accessor_rw->readToExistingBuffer(databuffer, start, /*lod*/0, false);
+    accessor_rw->readToExistingBuffer(databuffer, start, /*lod*/0, false);
     databuffer.reset();
-    if (fakeshared.use_count() != 1)
+    if (!fakeshared.unique())
       throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
+    ZombieCheck::checkNonUniquePtr(accessor_rw, "read from write accessor");
   }
 
   /**
@@ -1317,8 +1433,11 @@ public:
    */
   virtual std::pair<bool,double> readconst(const size3i_t& start, const size3i_t& size, bool as_float) const override
   {
+    auto accessor_rw = _accessor_rw;
     throw_if_not_readable();
-    return _accessor_rw->readConstantValue(start, size, /*lod*/0, as_float);
+    auto result = accessor_rw->readConstantValue(start, size, /*lod*/0, as_float);
+    ZombieCheck::checkNonUniquePtr(accessor_rw, "read from write accessor");
+    return result;
   }
 
   /**
@@ -1341,6 +1460,7 @@ public:
    */
   void write(const size3i_t& start, const size3i_t& size, const float* data) override
   {
+    auto accessor_rw = _accessor_rw;
     throw_if_not_writable();
 
     // TODO-Worry: The buffer is supposed to be copied at least once
@@ -1365,11 +1485,12 @@ public:
     //     the buffer might be accessed after the function returns.
     std::shared_ptr<float> fakeshared = fake_shared(const_cast<float*>(data));
     std::shared_ptr<InternalZGY::DataBuffer> buffer(new InternalZGY::DataBufferNd<float,3>(fakeshared, size));
-    _accessor_rw->writeRegion(buffer, start, 0, false, _compressor);
+    accessor_rw->writeRegion(buffer, start, 0, false, _compressor);
     this->_dirty = true;
     buffer.reset();
-    if (fakeshared.use_count() != 1) // Actually a fatal error.
+    if (!fakeshared.unique()) // Actually a fatal error.
       throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
+    ZombieCheck::checkNonUniquePtr(accessor_rw, "write accessor");
   }
 
   /**
@@ -1380,14 +1501,16 @@ public:
    */
   void write(const size3i_t& start, const size3i_t& size, const std::int16_t *data) override
   {
+    auto accessor_rw = _accessor_rw;
     throw_if_not_writable();
     std::shared_ptr<std::int16_t> fakeshared = fake_shared(const_cast<std::int16_t*>(data));
     std::shared_ptr<InternalZGY::DataBuffer> buffer(new InternalZGY::DataBufferNd<int16_t,3>(fakeshared, size));
-    _accessor_rw->writeRegion(buffer, start, 0, true, _compressor);
+    accessor_rw->writeRegion(buffer, start, 0, true, _compressor);
     this->_dirty = true;
     buffer.reset();
-    if (fakeshared.use_count() != 1) // Actually a fatal error.
+    if (!fakeshared.unique()) // Actually a fatal error.
       throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
+    ZombieCheck::checkNonUniquePtr(accessor_rw, "write accessor");
   }
 
   /**
@@ -1398,14 +1521,16 @@ public:
    */
   void write(const size3i_t& start, const size3i_t& size, const std::int8_t* data) override
   {
+    auto accessor_rw = _accessor_rw;
     throw_if_not_writable();
     std::shared_ptr<std::int8_t> fakeshared = fake_shared(const_cast<std::int8_t*>(data));
     std::shared_ptr<InternalZGY::DataBuffer> buffer(new InternalZGY::DataBufferNd<std::int8_t,3>(fakeshared, size));
-    _accessor_rw->writeRegion(buffer, start, 0, true, _compressor);
+    accessor_rw->writeRegion(buffer, start, 0, true, _compressor);
     this->_dirty = true;
     buffer.reset();
-    if (fakeshared.use_count() != 1) // Actually a fatal error.
+    if (!fakeshared.unique()) // Actually a fatal error.
       throw Errors::ZgyInternalError("A Reference to the user's buffer was retained.");
+    ZombieCheck::checkNonUniquePtr(accessor_rw, "write accessor");
   }
 
   /**
@@ -1422,10 +1547,12 @@ public:
    */
   void writeconst(const size3i_t& start, const size3i_t& size, const float* data) override
   {
+    auto accessor_rw = _accessor_rw;
     throw_if_not_writable();
     std::shared_ptr<InternalZGY::DataBuffer> buffer(new InternalZGY::DataBufferNd<float,3>(*data, size));
-    _accessor_rw->writeRegion(buffer, start, 0, false, _compressor);
+    accessor_rw->writeRegion(buffer, start, 0, false, _compressor);
     this->_dirty = true;
+    ZombieCheck::checkNonUniquePtr(accessor_rw, "write accessor");
   }
 
   /**
@@ -1436,10 +1563,12 @@ public:
    */
   void writeconst(const size3i_t& start, const size3i_t& size, const std::int16_t* data) override
   {
+    auto accessor_rw = _accessor_rw;
     throw_if_not_writable();
     std::shared_ptr<InternalZGY::DataBuffer> buffer(new InternalZGY::DataBufferNd<std::int16_t,3>(*data, size));
-    _accessor_rw->writeRegion(buffer, start, 0, true, _compressor);
+    accessor_rw->writeRegion(buffer, start, 0, true, _compressor);
     this->_dirty = true;
+    ZombieCheck::checkNonUniquePtr(accessor_rw, "write accessor");
   }
 
   /**
@@ -1450,10 +1579,12 @@ public:
    */
   void writeconst(const size3i_t& start, const size3i_t& size, const std::int8_t* data) override
   {
+    auto accessor_rw = _accessor_rw;
     throw_if_not_writable();
     std::shared_ptr<InternalZGY::DataBuffer> buffer(new InternalZGY::DataBufferNd<std::int8_t,3>(*data, size));
-    _accessor_rw->writeRegion(buffer, start, 0, true, _compressor);
+    accessor_rw->writeRegion(buffer, start, 0, true, _compressor);
     this->_dirty = true;
+    ZombieCheck::checkNonUniquePtr(accessor_rw, "write accessor");
   }
 
   /**
@@ -1690,7 +1821,7 @@ public:
   void finalize(const std::vector<DecimationType>& decimation_in,
                 const std::function<bool(std::int64_t,std::int64_t)>& progress,
                 FinalizeAction action = FinalizeAction::BuildDefault,
-                bool force = false) override
+                bool force = false)
   {
     std::vector<DecimationType> decimation(decimation_in);
 #if 1
@@ -1836,10 +1967,21 @@ public:
 
     // Clearing _fd is also needed to ensure that a subsequent close()
     // that might be triggered from a destructor becomes a no-op.
+#if 0
+    // TODO, also drop the reference to the accessor?
+    // This seems to be an oversight, but risky to change.
+    auto accessor_rw = _accessor_rw;
+    if (accessor_rw) {
+      _accessor_rw.reset();
+      ZombieCheck::checkUniquePtr(accessor_rw, "ZgyWriter close");
+      accessor_rw.reset();
+    }
+#endif
 
     this->_fd->xx_close();
     this->_fd.reset();
     this->_locked_in_process.reset();
+    // ZombieCheck::checkUniquePtr(victim, "ZgyWriter close file");
 
     // Kludge for performance measurements,
     // The timers in DataBuffer are global. For some experiments
@@ -1873,7 +2015,7 @@ public:
    * so applications can deal with it. ZGY-Public will not be allowed
    * to open incomplete files. Version is set >3 to prevent this.
    */
-  void close_incomplete() override
+  void close_incomplete()
   {
     if (_fd) {
       // Delete instead of keep if the derived information is stale.
@@ -1905,7 +2047,7 @@ public:
    * but that will catch and swallow any exception. Relying on the
    * destructor to close the file is strongly discouraged.
    */
-  void close() override
+  void close()
   {
     // TODO-@@@: If the file has never been written to and the error
     // flag is set then discard everyhing and do NOT write any data.

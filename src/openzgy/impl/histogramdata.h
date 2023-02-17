@@ -15,7 +15,7 @@
 //Adapted from: Zgy/UtilityLib/HistogramData
 #pragma once
 
-#include "declspec.h"
+#include "../declspec.h"
 #include "roundandclip.h"
 
 #include <memory>

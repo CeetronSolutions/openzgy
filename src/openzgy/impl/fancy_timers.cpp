@@ -80,6 +80,8 @@ SummaryPrintingTimerEx::printToFile(std::ostream& outstream, bool csv, bool clea
                 << "," << bytes_read_.load()
                 << "," << bytes_written_.load()
                 << std::endl;
+    else if (!bytes_read_.load() && !bytes_written_.load())
+      outstream << msg << std::endl;
     else
       outstream << msg
                 << ", R: " << niceSize(bytes_read_.load())

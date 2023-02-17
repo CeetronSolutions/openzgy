@@ -32,7 +32,7 @@ GUID::GUID(const guid_bytes_t& in) : _data(in)
 {
 }
 
-GUID::GUID(std::nullptr_t) : _data{0}
+GUID::GUID(nullptr_t) : _data{0}
 {
 }
 

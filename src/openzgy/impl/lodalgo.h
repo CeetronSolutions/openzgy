@@ -15,7 +15,7 @@
 //Adapted from: Zgy/ArrayBasic/ArrayTile
 #pragma once
 
-#include "declspec.h"
+#include "../declspec.h"
 #include "enum.h"
 
 #include <cstdint>
@@ -68,5 +68,7 @@ void OPENZGY_TEST_API createLod(const std::shared_ptr<DataBuffer>& result,
                std::int32_t bincount,
                double histogram_min,
                double histogram_max);
+
+void OPENZGY_TEST_API clearLodTimers(bool show);
 
 } // namespace

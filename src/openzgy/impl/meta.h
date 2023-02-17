@@ -78,8 +78,8 @@
 
 #pragma once
 
-#include "declspec.h"
-#include "exception.h"
+#include "../declspec.h"
+#include "../exception.h"
 #include "file.h"
 #include "enum.h"
 #include "lookuptable.h"
@@ -179,7 +179,7 @@ public:
     , zinc(0)
     , annotstart{0,0}
     , annotinc{0,0}
-      , corners{ {{0}} }
+    , corners{0,0,0,0,0,0,0,0}
     , have_size(false)
     , have_bricksize(false)
     , have_datatype(false)

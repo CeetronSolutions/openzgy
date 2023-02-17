@@ -123,7 +123,7 @@
 #include "sdinterface.h"
 #include "environment.h"
 #include "locker.h"
-#include "exception.h"
+#include "../exception.h"
 
 #ifdef HAVE_SD // Most of the file
 

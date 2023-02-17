@@ -24,7 +24,7 @@
 #include <string>
 #include <memory>
 
-#include "declspec.h"
+#include "../declspec.h"
 #include "file.h"
 #include "file_relay.h"
 

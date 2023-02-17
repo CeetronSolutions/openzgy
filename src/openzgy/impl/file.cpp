@@ -15,7 +15,7 @@
 #include "file.h"
 #include "environment.h"
 #include "fancy_timers.h"
-#include "exception.h"
+#include "../exception.h"
 
 #include <vector>
 #include <string>
@@ -25,7 +25,6 @@
 #include <sstream>
 #include <mutex>
 #include <algorithm>
-#include <random>
 
 using OpenZGY::IOContext;
 namespace InternalZGY {
@@ -266,13 +265,13 @@ FileADT::_allocate(std::int64_t size)
     // And be careful about the corner case where the cache is empty.
     std::vector<std::shared_ptr<void>>::const_iterator it, start = cache.begin() + hint;
     for (it = start; it != cache.end(); ++it) {
-      if (it->use_count() == 1) {
+      if (it->unique()) {
         hint = it - cache.begin() + 1;
         return *it;
       }
     }
     for (it = cache.begin(); it != start; ++it) {
-      if (it->use_count() == 1) {
+      if (it->unique()) {
         hint = it - cache.begin() + 1;
         return *it;
       }
@@ -291,9 +290,7 @@ FileADT::_allocate(std::int64_t size)
       // usinh 1,000 or so threads.
       if ((std::int64_t)cache.size() > highwater && highwater > lowwater) {
         //std::cerr << "FileADT::_allocate() is evicting entries." << std::endl;
-        std::random_device rd;
-        std::mt19937 g(rd());
-        std::shuffle(cache.begin(), cache.end(), g);
+        std::random_shuffle(cache.begin(), cache.end());
         cache.resize(lowwater);
         hint = 0;
       }
@@ -395,6 +392,7 @@ FileCommon::FileCommon(const std::string& filename, OpenMode mode)
   , _name(filename)
   , _eof(0)
 {
+  _synctimer.reset(new SummaryPrintingTimerEx("File.sync"));
   _rtimer.reset(new SummaryPrintingTimerEx(mode == OpenMode::ReadWrite || mode == OpenMode::Truncate ? "File.reread" : "File.read"));
   _wtimer.reset(new SummaryPrintingTimerEx("File.write"));
   _mtimer.reset(new SummaryPrintingTimerEx("File.mutex"));

@@ -39,9 +39,9 @@ add_library(${PROJECT_NAME} OBJECT ${HEADER_FILES} ${SOURCE_FILES} )
 target_include_directories(${PROJECT_NAME}
   PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/zfp/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/openzgy
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/zgyaccess
   ${CMAKE_CURRENT_SOURCE_DIR}/src/openzgy
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/openzgy/impl
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/zgyaccess
 )
 
 set(BUILD_TESTING "OFF" CACHE BOOL "No testing enabled" FORCE)

@@ -17,7 +17,7 @@
 #include "compression.h"
 #include "fancy_timers.h"
 #include "environment.h"
-#include "exception.h"
+#include "../exception.h"
 
 #include <zfp.h>
 
@@ -235,22 +235,26 @@ private:
 
       const size_t header_size = zfp_read_header(zfp, field, ZFP_HEADER_FULL);
       if (header_size == 0)
-      {
-          throw OpenZGY::Errors::ZgyFormatError("ZFP corrupted header");
-      }
+        throw OpenZGY::Errors::ZgyFormatError("ZFP corrupted header");
 
       // Technically I don't need the ZFP_HEADER_META part of the header,
       // but it makes things easier for the Python version. Since I have
       // the data I might as well do a consistency check.
-      size_t sizearray[4]{0}; // size[0] is nx, i.e. fastest varying index.
+      uint sizearray[4]{0}; // size[0] is nx, i.e. fastest varying index.
       zfp_field_size(field, &sizearray[0]);
       if (zfp_field_type(field) != type ||
           zfp_field_dimensionality(field) != 3 ||
-          sizearray[2] != static_cast<size_t>(size[0]) || // nz -> slowest varying
-          sizearray[1] != static_cast<size_t>(size[1]) || // ny
-          sizearray[0] != static_cast<size_t>(size[2])) // nx
+          sizearray[2] != size[0] || // nz -> slowest varying
+          sizearray[1] != size[1] || // ny
+          sizearray[0] != size[2]) // nx
       {
-          throw OpenZGY::Errors::ZgyFormatError("ZFP type or size miamatch");
+        //std::cout << ".type " << (int)zfp_field_type(field)
+        //        << ".dims " << zfp_field_dimensionality(field)
+        //        << ".size " << sizearray[0]
+        //        << ", " << sizearray[1]
+        //        << ", " << sizearray[2]
+        //        << std::endl;
+        throw OpenZGY::Errors::ZgyFormatError("ZFP type or size miamatch");
       }
 
       const std::int64_t idata_size = size[0]*size[1]*size[2]*sizeof(float);

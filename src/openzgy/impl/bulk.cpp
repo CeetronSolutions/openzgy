@@ -107,12 +107,13 @@
 #include "histogrambuilder.h"
 #include "statisticdata.h"
 #include "histogramdata.h"
-#include "exception.h"
+#include "../exception.h"
 
 #include <algorithm>
 #include <limits>
 #include <cmath>
 #include <sstream>
+#include <omp.h>
 
 namespace InternalZGY {
 #if 0
@@ -496,6 +497,7 @@ ZgyInternalBulk::ZgyInternalBulk(
   , _loggerfn(logger ? logger : LoggerBase::standardCallback(LoggerBase::getVerboseFromEnv("OPENZGY_VERBOSE"), "openzgy-bulk: ", ""))
   , _ptimer_st(new SummaryPrintingTimerEx("writeAligned[S]"))
   , _ptimer_mt(new SummaryPrintingTimerEx("writeAligned[M]"))
+  , _ptimer(new SummaryPrintingTimerEx("writeAligned"))
   , _ststimer(new SummaryPrintingTimerEx("scaleToStorage"))
   , _modified_bricks()
   , _modified_stats()
@@ -2242,9 +2244,11 @@ ZgyInternalBulk::_writeAlignedRegion(
 
   std::vector<std::shared_ptr<const WriteBrickArgPack>> const_queue(worksize);
   std::vector<std::shared_ptr<const WriteNowArgPack>>   normal_queue(worksize);
-  MTGuard guard("copy-in", -1);
-#pragma omp parallel for if(enable_compress_mt() && worksize > 1)
+  int numthreads = std::min(omp_get_max_threads(), std::max((int)worksize, 1));
+  MTGuard guard("copy-in", numthreads);
+#pragma omp parallel for num_threads(numthreads) if(enable_compress_mt() && worksize > 1)
   for (std::int64_t ix = 0; ix < static_cast<std::int64_t>(worksize); ++ix) {
+    SimpleTimerEx t3(*_ptimer);
     guard.run([&](){
       const index3_t surveypos = work[ix]; // user's start i0,j0,k0 rounded down
       const index3_t brickpos = work[ix] / bs; // as above, but in brick coords

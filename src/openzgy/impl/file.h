@@ -67,7 +67,7 @@ using the regular read and write methods of the OS or to a cloud back-end.
 #include <functional>
 #include <mutex>
 
-#include "declspec.h"
+#include "../declspec.h"
 
 namespace OpenZGY {
   class IOContext;
@@ -346,6 +346,7 @@ protected:
    * Thread safety: Synchronized by the per-file mutex.
    */
   std::int64_t _eof;
+  std::shared_ptr<SummaryPrintingTimerEx> _synctimer; // Access is thread safe
   std::shared_ptr<SummaryPrintingTimerEx> _rtimer; // Access is thread safe
   std::shared_ptr<SummaryPrintingTimerEx> _wtimer; // Access is thread safe
   std::shared_ptr<SummaryPrintingTimerEx> _mtimer; // Access is thread safe
