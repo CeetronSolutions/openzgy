@@ -47,6 +47,7 @@ namespace ZGYAccess
 
         std::vector<std::pair<double, double>> WorldCorners() const;
         std::pair<double, double> ZRange() const;
+        std::pair<double, double> DataRange() const;
 
         std::shared_ptr<SeismicSliceData> seismicSlice(std::array<double, 3> worldStart, std::array<double, 3> worldStop);
 

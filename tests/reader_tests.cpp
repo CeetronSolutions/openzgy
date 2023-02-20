@@ -55,3 +55,21 @@ TEST(reader_tests, testHistogram)
     reader.Close();
 
 }
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+TEST(reader_tests, testMinMaxDataValue)
+{
+    ZGYAccess::ZGYReader reader;
+
+    ASSERT_TRUE(reader.Open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+
+    auto [minval, maxval] = reader.DataRange();
+
+    ASSERT_DOUBLE_EQ(minval, -28);
+    ASSERT_DOUBLE_EQ(maxval, 227);
+
+    reader.Close();
+
+}

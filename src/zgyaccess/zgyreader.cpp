@@ -209,7 +209,7 @@ std::vector<std::pair<double, double>> ZGYReader::WorldCorners() const
 
 std::pair<double, double> ZGYReader::ZRange() const
 {
-    if (m_reader == nullptr) return { 0, 0 };
+    if (m_reader == nullptr) return { 0.0, 0.0 };
 
     double zmin = m_reader->zstart();
     double zmax = zmin;
@@ -220,6 +220,16 @@ std::pair<double, double> ZGYReader::ZRange() const
     
     return std::make_pair(zmin, zmax);
 }
+
+std::pair<double, double> ZGYReader::DataRange() const
+{
+    if (m_reader == nullptr) return { 0.0, 0.0 };
+
+    auto hist = m_reader->histogram();
+
+    return std::make_pair(hist.minvalue, hist.maxvalue);
+}
+
 
 std::shared_ptr<SeismicSliceData> ZGYReader::seismicSlice(std::array<double, 3> worldStart, std::array<double, 3> worldStop)
 {
@@ -248,7 +258,7 @@ HistogramData* ZGYReader::histogram()
         for (int i = 0; i < nVals; i++)
         {
             m_histogram.Xvalues.push_back(hist.minvalue + binsize * i + offset);
-            m_histogram.Yvalues.push_back(hist.bins[i]);
+            m_histogram.Yvalues.push_back(1.0 * hist.bins[i]);
         }
     }
     return &m_histogram;
