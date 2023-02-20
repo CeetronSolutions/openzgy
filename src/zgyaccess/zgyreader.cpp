@@ -232,7 +232,27 @@ std::shared_ptr<SeismicSliceData> ZGYReader::seismicSlice(std::array<double, 3> 
     return retval;
 }
 
+HistogramData* ZGYReader::histogram()
+{
+    m_histogram.reset();
+    if (m_reader == nullptr) return &m_histogram;
 
+    const auto hist = m_reader->histogram();
+
+    int nVals = (int)hist.bins.size();
+    if (nVals > 0)
+    {
+        double binsize = (hist.maxvalue - hist.minvalue) / nVals;
+        double offset = binsize / 2;
+
+        for (int i = 0; i < nVals; i++)
+        {
+            m_histogram.Xvalues.push_back(hist.minvalue + binsize * i + offset);
+            m_histogram.Yvalues.push_back(hist.bins[i]);
+        }
+    }
+    return &m_histogram;
+}
 
 
 }

@@ -15,6 +15,21 @@ namespace OpenZGY
 namespace ZGYAccess
 {
 
+    class HistogramData
+    {
+    public: 
+        HistogramData() {};
+
+        void reset()
+        {
+            Xvalues.clear();
+            Yvalues.clear();
+        };
+
+        std::vector<double> Xvalues;
+        std::vector<double> Yvalues;
+    };
+
     class ZGYReader
     {
     public:
@@ -35,6 +50,8 @@ namespace ZGYAccess
 
         std::shared_ptr<SeismicSliceData> seismicSlice(std::array<double, 3> worldStart, std::array<double, 3> worldStop);
 
+        HistogramData* histogram();
+
 
     private:
         std::string cornerToString(std::array<double, 2> corner);
@@ -43,6 +60,8 @@ namespace ZGYAccess
     private:
         std::string                          m_filename;
         std::shared_ptr<OpenZGY::IZgyReader> m_reader;
+
+        HistogramData m_histogram;
     };
 
 }
