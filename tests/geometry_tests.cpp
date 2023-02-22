@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <string>
+#include <cmath>
 
 #include "zgyaccess/zgy_point.h"
 #include "zgyaccess/zgy_line.h"
