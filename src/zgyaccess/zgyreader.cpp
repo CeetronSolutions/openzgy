@@ -102,8 +102,9 @@ std::vector<std::pair<std::string, std::string>> ZGYReader::MetaData()
     const auto& datarange = m_reader->datarange();
     retValues.push_back(std::make_pair("Data range", std::to_string(datarange[0]) + " to " + std::to_string(datarange[1])));
 
+    const auto [zmin, zmax] = ZRange();
     retValues.push_back(std::make_pair("Depth unit", m_reader->zunitname()));
-    retValues.push_back(std::make_pair("Depth offset", std::to_string(m_reader->zstart())));
+    retValues.push_back(std::make_pair("Depth range", std::to_string(zmin) + " to " + std::to_string(zmax)));
     retValues.push_back(std::make_pair("Depth increment", std::to_string(m_reader->zinc())));
 
     retValues.push_back(std::make_pair("Horizontal unit", m_reader->hunitname()));
@@ -117,6 +118,7 @@ std::vector<std::pair<std::string, std::string>> ZGYReader::MetaData()
     retValues.push_back(std::make_pair("Crossline increment", std::to_string(annotinc[1])));
 
     const auto& annotsize = m_reader->size();
+
     retValues.push_back(std::make_pair("Inline size", std::to_string(annotsize[0])));
     retValues.push_back(std::make_pair("Crossline size", std::to_string(annotsize[1])));
 
@@ -215,9 +217,9 @@ std::pair<double, double> ZGYReader::DataRange() const
 {
     if (m_reader == nullptr) return { 0.0, 0.0 };
 
-    auto hist = m_reader->histogram();
+    auto datarange = m_reader->datarange();
 
-    return std::make_pair(hist.minvalue, hist.maxvalue);
+    return std::make_pair(datarange[0], datarange[1]);
 }
 
 HistogramData* ZGYReader::histogram()
