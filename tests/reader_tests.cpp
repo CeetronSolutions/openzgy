@@ -92,3 +92,24 @@ TEST(reader_tests, testSeismicOutline)
 
     reader.Close();
 }
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+TEST(reader_tests, testZRange)
+{
+    ZGYAccess::ZGYReader reader;
+
+    ASSERT_TRUE(reader.Open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+
+    auto [zmin, zmax] = reader.ZRange();
+    double ztep = reader.ZStep();
+
+    ASSERT_DOUBLE_EQ(ztep, 4.125);
+    ASSERT_DOUBLE_EQ(zmin, 2500);
+    ASSERT_DOUBLE_EQ(zmax, 3292);
+
+
+    reader.Close();
+}
+

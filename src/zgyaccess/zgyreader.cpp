@@ -204,6 +204,13 @@ std::pair<double, double> ZGYReader::ZRange() const
     return std::make_pair(zmin, zmax);
 }
 
+double ZGYReader::ZStep() const
+{
+    if (m_reader == nullptr) return 0.0;
+
+    return 1.0 * m_reader->zinc();
+}
+
 std::pair<double, double> ZGYReader::DataRange() const
 {
     if (m_reader == nullptr) return { 0.0, 0.0 };
