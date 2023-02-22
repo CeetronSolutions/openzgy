@@ -25,7 +25,6 @@ TEST(reader_tests, testOpenFile)
 
 
     reader.Close();
-
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -53,7 +52,6 @@ TEST(reader_tests, testHistogram)
     ASSERT_EQ(hist->Xvalues.size(), hist->Yvalues.size());
 
     reader.Close();
-
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -71,5 +69,26 @@ TEST(reader_tests, testMinMaxDataValue)
     ASSERT_DOUBLE_EQ(maxval, 227);
 
     reader.Close();
+}
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+TEST(reader_tests, testSeismicOutline)
+{
+    ZGYAccess::ZGYReader reader;
+
+    ASSERT_TRUE(reader.Open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+
+    ZGYAccess::Outline outline = reader.seismicOutline();
+
+    ASSERT_TRUE(outline.isValid());
+    ASSERT_EQ(outline.points().size(), 4);
+
+    ASSERT_DOUBLE_EQ(outline.points()[0].x(), 1000.0);
+    ASSERT_DOUBLE_EQ(outline.points()[0].y(), 1000.0);
+
+    ASSERT_TRUE(outline.points()[3] == ZGYAccess::Point2d(3775.0, 2890.0));
+
+    reader.Close();
 }

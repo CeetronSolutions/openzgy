@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "seismicslice.h"
+#include "zgy_outline.h"
 
 namespace OpenZGY
 {
@@ -45,13 +46,14 @@ namespace ZGYAccess
         std::array<int, 2> Size();
         std::array<int, 2> Step();
 
-        std::vector<std::pair<double, double>> WorldCorners() const;
         std::pair<double, double> ZRange() const;
         std::pair<double, double> DataRange() const;
 
         std::shared_ptr<SeismicSliceData> seismicSlice(std::array<double, 3> worldStart, std::array<double, 3> worldStop);
 
         HistogramData* histogram();
+
+        Outline seismicOutline();
 
 
     private:

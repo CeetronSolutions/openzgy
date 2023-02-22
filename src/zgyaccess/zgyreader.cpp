@@ -34,7 +34,6 @@ bool ZGYReader::Open(std::string filename)
     return true;
 }
 
-
 void ZGYReader::Close()
 {
     if (m_reader == nullptr) return;
@@ -191,22 +190,6 @@ std::array<int, 2> ZGYReader::Step()
     return { int(annotinc[0]), int(annotinc[1]) };
 }
 
-std::vector<std::pair<double, double>> ZGYReader::WorldCorners() const
-{
-    if (m_reader == nullptr) return { std::make_pair(0.0, 0.0),  };
-
-    std::vector<std::pair<double, double>> retval;
-
-    auto& corners = m_reader->corners();
-
-    for (auto& c : corners)
-    {
-        retval.push_back(std::make_pair(c[0], c[1]));
-    }
-
-    return retval;
-}
-
 std::pair<double, double> ZGYReader::ZRange() const
 {
     if (m_reader == nullptr) return { 0.0, 0.0 };
@@ -230,18 +213,6 @@ std::pair<double, double> ZGYReader::DataRange() const
     return std::make_pair(hist.minvalue, hist.maxvalue);
 }
 
-
-std::shared_ptr<SeismicSliceData> ZGYReader::seismicSlice(std::array<double, 3> worldStart, std::array<double, 3> worldStop)
-{
-    std::shared_ptr<SeismicSliceData> retval = std::make_shared<SeismicSliceData>(0,0);
-
-    if (m_reader == nullptr) return retval;
-    
-
-
-    return retval;
-}
-
 HistogramData* ZGYReader::histogram()
 {
     m_histogram.reset();
@@ -263,6 +234,35 @@ HistogramData* ZGYReader::histogram()
     }
     return &m_histogram;
 }
+
+Outline ZGYReader::seismicOutline()
+{
+    Outline retval;
+
+    if (m_reader == nullptr) return retval;
+
+    auto& corners = m_reader->corners();
+
+    for (auto& c : corners)
+    {
+        retval.addPoint(c[0], c[1]);
+    }
+
+    return retval;
+}
+
+std::shared_ptr<SeismicSliceData> ZGYReader::seismicSlice(std::array<double, 3> worldStart, std::array<double, 3> worldStop)
+{
+    std::shared_ptr<SeismicSliceData> retval = std::make_shared<SeismicSliceData>(0, 0);
+
+    if (m_reader == nullptr) return retval;
+
+
+
+    return retval;
+}
+
+
 
 
 }
