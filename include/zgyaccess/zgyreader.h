@@ -42,20 +42,24 @@ namespace ZGYAccess
 
         std::vector<std::pair<std::string, std::string>> MetaData();
 
-        std::array<int, 2> Origin();
-        std::array<int, 2> Size();
-        std::array<int, 2> Step();
-
         std::pair<double, double> ZRange() const;
         double ZStep() const;
 
+        std::pair<int, int> inlineRange() const;
+        int inlineStep() const;
+
+        std::pair<int, int> crosslineRange() const;
+        int crosslineStep() const;
+
         std::pair<double, double> DataRange() const;
+
+        std::pair<double, double> toWorldCoordinate(int inLine, int crossLine) const;
 
         std::shared_ptr<SeismicSliceData> seismicSlice(std::array<double, 3> worldStart, std::array<double, 3> worldStop);
 
         HistogramData* histogram();
 
-        Outline seismicOutline();
+        Outline seismicWorldOutline();
 
 
     private:

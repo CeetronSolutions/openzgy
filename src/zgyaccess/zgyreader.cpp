@@ -168,29 +168,72 @@ std::string ZGYReader::sizeToString(std::array<std::int64_t, 3> size)
     return retval;
 }
 
-std::array<int, 2> ZGYReader::Origin()
+std::pair<int, int> ZGYReader::inlineRange() const
 {
     if (m_reader == nullptr) return { 0, 0 };
 
     const auto& annotstart = m_reader->annotstart();
-    return { int(annotstart[0]), int(annotstart[1]) };
-}
-
-std::array<int, 2> ZGYReader::Size()
-{
-    if (m_reader == nullptr) return { 0, 0 };
-
     const auto& annotsize = m_reader->size();
-    return { int(annotsize[0]), int(annotsize[1]) };
+    const auto& annotinc = m_reader->annotinc();
+
+    double stop = annotstart[0] + annotsize[0] * annotinc[0];
+
+    return std::make_pair((int)annotstart[0], (int)stop);
 }
 
-std::array<int, 2> ZGYReader::Step()
+int ZGYReader::inlineStep() const
 {
-    if (m_reader == nullptr) return { 0, 0 };
+    if (m_reader == nullptr) return 0;
 
     const auto& annotinc = m_reader->annotinc();
-    return { int(annotinc[0]), int(annotinc[1]) };
+    return (int) annotinc[0];
 }
+
+std::pair<int, int> ZGYReader::crosslineRange() const
+{
+    if (m_reader == nullptr) return { 0, 0 };
+
+    const auto& annotstart = m_reader->annotstart();
+    const auto& annotsize = m_reader->size();
+    const auto& annotinc = m_reader->annotinc();
+
+    double stop = annotstart[1] + annotsize[1] * annotinc[1];
+
+    return std::make_pair((int)annotstart[1], (int)stop);
+}
+
+int ZGYReader::crosslineStep() const
+{
+    if (m_reader == nullptr) return 0;
+
+    const auto& annotinc = m_reader->annotinc();
+    return (int)annotinc[1];
+}
+
+
+//std::array<int, 2> ZGYReader::Origin()
+//{
+//    if (m_reader == nullptr) return { 0, 0 };
+//
+//    const auto& annotstart = m_reader->annotstart();
+//    return { int(annotstart[0]), int(annotstart[1]) };
+//}
+//
+//std::array<int, 2> ZGYReader::Size()
+//{
+//    if (m_reader == nullptr) return { 0, 0 };
+//
+//    const auto& annotsize = m_reader->size();
+//    return { int(annotsize[0]), int(annotsize[1]) };
+//}
+//
+//std::array<int, 2> ZGYReader::Step()
+//{
+//    if (m_reader == nullptr) return { 0, 0 };
+//
+//    const auto& annotinc = m_reader->annotinc();
+//    return { int(annotinc[0]), int(annotinc[1]) };
+//}
 
 std::pair<double, double> ZGYReader::ZRange() const
 {
@@ -244,7 +287,7 @@ HistogramData* ZGYReader::histogram()
     return &m_histogram;
 }
 
-Outline ZGYReader::seismicOutline()
+Outline ZGYReader::seismicWorldOutline()
 {
     Outline retval;
 
@@ -259,6 +302,18 @@ Outline ZGYReader::seismicOutline()
 
     return retval;
 }
+
+std::pair<double, double> ZGYReader::toWorldCoordinate(int inLine, int crossLine) const
+{
+    if (m_reader == nullptr) return { 0, 0 };
+
+    std::array<double, 2> annotCoord{ 1.0 * inLine, 1.0 * crossLine };
+
+    auto worldCoord = m_reader->annotToWorld(annotCoord);
+
+    return std::make_pair(worldCoord[0], worldCoord[1]);
+}
+
 
 std::shared_ptr<SeismicSliceData> ZGYReader::seismicSlice(std::array<double, 3> worldStart, std::array<double, 3> worldStop)
 {

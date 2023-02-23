@@ -80,7 +80,7 @@ TEST(reader_tests, testSeismicOutline)
 
     ASSERT_TRUE(reader.Open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
 
-    ZGYAccess::Outline outline = reader.seismicOutline();
+    ZGYAccess::Outline outline = reader.seismicWorldOutline();
 
     ASSERT_TRUE(outline.isValid());
     ASSERT_EQ(outline.points().size(), 4);
@@ -108,6 +108,41 @@ TEST(reader_tests, testZRange)
     ASSERT_DOUBLE_EQ(ztep, 4.125);
     ASSERT_DOUBLE_EQ(zmin, 2500);
     ASSERT_DOUBLE_EQ(zmax, 3292);
+
+
+    reader.Close();
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+TEST(reader_tests, testWorldCoord)
+{
+    ZGYAccess::ZGYReader reader;
+
+    ASSERT_TRUE(reader.Open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+
+    auto [inlineFrom, inlineTo] = reader.inlineRange();
+    int inlineStep = reader.inlineStep();
+    auto [xlineFrom, xlineTo] = reader.crosslineRange();
+    int xlineStep = reader.crosslineStep();
+
+    auto [wX, wY] = reader.toWorldCoordinate(inlineFrom, xlineFrom);
+    auto [w2X, w2Y] = reader.toWorldCoordinate(inlineTo, xlineFrom);
+
+    ASSERT_EQ(inlineStep, 5);
+    ASSERT_EQ(xlineStep, 2);
+
+    ASSERT_EQ(inlineFrom, 1234);
+    ASSERT_EQ(inlineTo, 1794);
+
+    ASSERT_EQ(xlineFrom, 5678);
+    ASSERT_EQ(xlineTo, 5806);
+
+    ASSERT_DOUBLE_EQ(wX, 1000.0);
+    ASSERT_DOUBLE_EQ(w2X, 3800.0);
+    ASSERT_DOUBLE_EQ(wY, 1000.0);
+    ASSERT_DOUBLE_EQ(w2Y, 1000.0);
 
 
     reader.Close();
