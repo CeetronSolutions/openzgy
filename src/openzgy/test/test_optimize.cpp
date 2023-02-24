@@ -89,8 +89,12 @@ using InternalZGY::PrintingTimer;
  *
  * With g++ -O3, double: 14 instructions, one of which is an
  * almost-always-true conditional jump.
+ *
+ * Note, if you are goung to look at the generated assembly
+ * code, it might help to declare C linkage. This is
+ * technically invalid for non-trivial retuen types.
  */
-extern "C"
+//extern "C"
 std::pair<FLOAT, FLOAT>
 range1(const FLOAT *ptr, const FLOAT* end)
 {
@@ -116,7 +120,7 @@ range1(const FLOAT *ptr, const FLOAT* end)
  * With g++ -O3, double: 9 instructions, one of which
  * is an almost-always-true conditional jump.
  */
-extern "C"
+//extern "C"
 std::pair<FLOAT, FLOAT>
 range2(const FLOAT *ptr, const FLOAT* end)
 {
@@ -143,7 +147,7 @@ range2(const FLOAT *ptr, const FLOAT* end)
  * of returning the allfinite variable apparently
  * only costs one instruction.
  */
-extern "C"
+//extern "C"
 std::pair<FLOAT, FLOAT>
 range3(const FLOAT *ptr, const FLOAT* end, bool *allfinite)
 {
@@ -185,7 +189,7 @@ range3(const FLOAT *ptr, const FLOAT* end, bool *allfinite)
  * the pointers 256-bit aligned, and the compiler use
  * more efficient sse instructions?
  */
-extern "C"
+//extern "C"
 std::pair<FLOAT, FLOAT>
 range4(const FLOAT *ptr, const FLOAT* end)
 {
@@ -227,7 +231,7 @@ range4(const FLOAT *ptr, const FLOAT* end)
  * OpenMP. Note that the first loop will almost always stop after the
  * first iteration. So only the second loop should run multi-threaded.
  */
-extern "C"
+//extern "C"
 std::pair<FLOAT, FLOAT>
 range5(const FLOAT *ptr, const FLOAT* end)
 {

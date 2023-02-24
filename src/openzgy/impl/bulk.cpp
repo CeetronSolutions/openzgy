@@ -103,7 +103,7 @@
 #include "compression.h"
 #include "environment.h"
 #include "fancy_timers.h"
-#include "mtguard.h"
+#include "workorder.h"
 #include "histogrambuilder.h"
 #include "statisticdata.h"
 #include "histogramdata.h"
@@ -259,6 +259,9 @@ namespace {
     }
   }
 
+  /**
+   * Return true if cube a is equal to or larger than cube b in all dimensions.
+   */
   static bool
   covers(const std::array<int64_t,3>& astart,
          const std::array<int64_t,3>& asize,
@@ -269,6 +272,51 @@ namespace {
     for (int ii=0; ii<3; ++ii)
       ok = ok && (astart[ii] <= bstart[ii] &&
                   astart[ii] + asize[ii] >= bstart[ii] + bsize[ii]);
+    return ok;
+  }
+
+  /**
+   * Return true if cubes a and b have at least one sample in common.
+   */
+  static bool
+  overlaps(const std::array<int64_t,3>& astart,
+           const std::array<int64_t,3>& asize,
+           const std::array<int64_t,3>& bstart,
+           const std::array<int64_t,3>& bsize)
+  {
+    bool ok = true;
+    for (int ii=0; ii<3; ++ii)
+      ok = ok && (astart[ii] < bstart[ii] + bsize[ii] &&
+                  bstart[ii] < astart[ii] + asize[ii]);
+    return ok;
+  }
+
+  /**
+   * Return true if cubes a and b have at least one sample in common.
+   * Return the actual intersection if it exists. Return unspecified
+   * start and zero size if the function return is false.
+   */
+  static bool
+  overlaps(
+       const std::array<int64_t,3>& astart,
+       const std::array<int64_t,3>& asize,
+       const std::array<int64_t,3>& bstart,
+       const std::array<int64_t,3>& bsize,
+       std::array<int64_t,3>& rstart,
+       std::array<int64_t,3>& rsize)
+  {
+    bool ok = true;
+    for (int ii=0; ii<3; ++ii) {
+      rstart[ii] = std::max(astart[ii], bstart[ii]);
+      rsize[ii] = (std::min(astart[ii] + asize[ii],
+                            bstart[ii] + bsize[ii]) -
+                   rstart[ii]);
+      ok = ok && rsize[ii] > 0;
+    }
+    if (!ok) {
+      rstart = std::array<int64_t,3>{0,0,0};
+      rsize = std::array<int64_t,3>{0,0,0};
+    }
     return ok;
   }
 }
@@ -1198,6 +1246,23 @@ ZgyInternalBulk::_logger(int priority, const std::string& message) const
  *
  * The first line is optional. It just prevents the expression in
  * the second line from being evaluatet if debugging is disabled.
+ *
+ * CAVEAT: Modifying a temporary in this manner is not very clean.
+ * Newer versions of C++ forbid assigning a non-const reference to
+ * a temporary, which can result in some confusing build errors.
+ * And it might work for operator<< defined as mambers of ostream,
+ * but not user defined operator<< outside the class. So the result
+ * depends on both compiler version and the ordering of the data
+ * being output.
+ *
+ * There is yet another trick to work around the issues:
+ * Use std::stringstream().flush() instead of just std::stringstream()
+ * when calling the logger. flush() on a new sstream is a no-op, but
+ * it returns a non-const reference. This fools the compiler, as it
+ * will no longer realize it shouldn't allow that.
+ *
+ * Stackoverflow has more details: https://stackoverflow.com/\
+ * questions/7979215/c-stringstream-to-ostream-to-string
  */
 bool
 ZgyInternalBulk::_logger(int priority, const std::ios& ss) const
@@ -1256,22 +1321,48 @@ ZgyInternalBulk::_validateUserPosition(
     _logger(1, ss.str() + "\n");
     throw OpenZGY::Errors::ZgyUserError(ss.str());
   }
-  const std::array<std::int64_t,3>& ssize = ih.lodsizes()[lod] * bs;
-  if (start[0] < 0 || end[0] > ssize[0] || size[0] <= 0 ||
-      start[1] < 0 || end[1] > ssize[1] || size[1] <= 0 ||
-      start[2] < 0 || end[2] > ssize[2] || size[2] <= 0) {
+  const std::array<std::int64_t,3> ssize = ih.lodsizes()[lod] * bs;
+  if (size[0] <= 0 || size[1] <= 0 || size[2] <= 0) {
+    _logger(1, "Requested region is empty\n");
+    throw OpenZGY::Errors::ZgyUserError("Requested region is empty");
+  }
+  if (start[0] < 0 || end[0] > ssize[0] ||
+      start[1] < 0 || end[1] > ssize[1] ||
+      start[2] < 0 || end[2] > ssize[2]) {
     std::stringstream ss;
     ss << "Requested region"
        << " from (" << start[0] << ", " << start[1] << ", " << start[2] << ")"
        << " to (" << end[0] << ", " << end[1] << ", " << end[2] << ")"
        << " lod " << lod
-       << " is empty or outside the valid range"
+       << " is outside the valid range"
        << " (0, 0, 0)"
        << " to (" << ssize[0] << ", " << ssize[1] << ", " << ssize[2] << ")"
        ;
     _logger(1, ss.str() + "\n");
     throw OpenZGY::Errors::ZgyUserError(ss.str());
   }
+}
+
+bool
+ZgyInternalBulk::_singleBrickOutsideSurvey(
+    const std::array<std::int64_t,3>& start,
+    const std::array<std::int64_t,3>& size,
+    int32_t lod) const
+{
+  const std::array<std::int64_t,3> bs  =   _metadata->ih().bricksize();
+  const std::array<std::int64_t,3> ssize = _metadata->ih().lodsizes()[lod] * bs;
+  int inside{0};
+  for (int dim = 0; dim < 3; ++dim) {
+    if ((start[dim] % bs[dim]) != 0)
+      return false;
+    if (size[dim] != bs[dim])
+      return false;
+    if (start[dim] >= 0 && start[dim] + bs[dim] <= ssize[dim])
+      ++inside;
+  }
+  if (inside == 3)
+    return false;
+  return true;
 }
 
 /**
@@ -1708,6 +1799,10 @@ ZgyInternalBulk::_setPaddingToEdge(
     srcorig[dim] = 1;
     cpyorig[dim] = slice;
     cpysize[dim] = 1;
+    // Had I set srcorig[dim] = 0, this would have been a no-op copying one
+    // 2d slice, at one past the last valid slice of samples, to itself.
+    // By setting srcorig[dim] = 1, I "trick" the copier to read from the
+    // previous slice instead. Which is what is needed to get padding.
     data->copyFrom(data.get(), srcorig.data(), dstorig.data(), cpyorig.data(), cpysize.data());
     ++slice;
   }
@@ -2244,18 +2339,21 @@ ZgyInternalBulk::_writeAlignedRegion(
 
   std::vector<std::shared_ptr<const WriteBrickArgPack>> const_queue(worksize);
   std::vector<std::shared_ptr<const WriteNowArgPack>>   normal_queue(worksize);
-  int numthreads = std::min(omp_get_max_threads(), std::max((int)worksize, 1));
-  MTGuard guard("copy-in", numthreads);
-#pragma omp parallel for num_threads(numthreads) if(enable_compress_mt() && worksize > 1)
-  for (std::int64_t ix = 0; ix < static_cast<std::int64_t>(worksize); ++ix) {
-    SimpleTimerEx t3(*_ptimer);
-    guard.run([&](){
+  std::mutex mutex; // protect the two queues.
+
+  // Note, with WriteOrder, number of threads isn't practical to control.
+  // Nor is there much point in disabling MT at runtime as long as
+  // nobody puts back the horrible OpenMP from MSVC.
+  WorkOrderRunner::parallelFor(worksize, [&](std::int64_t ix)
+    {
+      SimpleTimerEx t3(*_ptimer);
       const index3_t surveypos = work[ix]; // user's start i0,j0,k0 rounded down
       const index3_t brickpos = work[ix] / bs; // as above, but in brick coords
       std::shared_ptr<DataBuffer> brick = constbrick;
       if (!brick) {
         brick = DataBuffer::makeNewBuffer3d(bs, data->datatype());
         // TODO-Performance, any way of avoiding the fill()?
+        // At least if copyFrom seems to be writing the entire brick?
         // TODO-Medium: If the existing brick has a constvalue then
         // initialize with that value insteaf of defaultstorage.
         // The reason is that if the application filled the entire
@@ -2271,17 +2369,15 @@ ZgyInternalBulk::_writeAlignedRegion(
         (brickpos, lod, brick, compressor, 0);
       args = _writeOneBrick(*args);
       if (args->data->isScalar()) {
-#pragma omp critical // paranoia?
+        std::lock_guard<std::mutex> lck(mutex); // paranoia?
         const_queue[ix] = args;
       }
       else {
         std::shared_ptr<const WriteNowArgPack> now =_writeOneNormalBrick(*args);
-#pragma omp critical // paranoia?
+        std::lock_guard<std::mutex> lck(mutex); // paranoia?
         normal_queue[ix] = now;
       }
     });
-  } // end parallel for loop
-  guard.finished();
 
   // Note errorhandling:
   // If there are any errors during actual writing this probably
@@ -2519,7 +2615,11 @@ ZgyInternalBulk::writeRegion(
   // cause the defaultvalue to be included in the histogram range anyway.
   // See note in _writeAlignedRegion().
   if (lod == 0) {
-    if (_modified_stats && _modified_stats->getmin() <= _modified_stats->getmax()) {
+    if (data->datatype() == RawDataType::SignedInt8) {
+      _written_sample_min = -128;
+      _written_sample_max = +127;
+    }
+    else if (_modified_stats && _modified_stats->getmin() <= _modified_stats->getmax()) {
       // _modified_stats refers to everything ever written, not just what
       // data->range() would have given, but here it works just as well.
       _written_sample_min = std::min(_written_sample_min, _modified_stats->getmin());
@@ -2535,6 +2635,306 @@ ZgyInternalBulk::writeRegion(
   }
 
   _writeAlignedRegion(data, start, lod, compressor);
+}
+
+/*
+ * Make sure the caller provided the correct number and type
+ * of brick-sized data buffers.
+ *
+ * TODO-WIP-BrickedAPI: See _validateUserPosition() for other things
+ * that might be checked.
+ */
+void
+ZgyInternalBulk::checkBricksInternal(
+    const std::vector<std::array<int64_t,3>>& position,
+    const std::vector<std::shared_ptr<DataBuffer>>& data,
+    bool as_float) const
+{
+  const std::array<std::int64_t,3> bricksize =
+    this->_metadata->ih().bricksize();
+  const RawDataType dtype =
+    (as_float ? RawDataType::Float32 : this->_metadata->ih().datatype());
+  if (position.size() != data.size())
+    throw OpenZGY::Errors::ZgyUserError
+      ("The brick API expects the same number of positions as buffers");
+  for (const auto& it : data)
+    if (it.get() == nullptr || it->datatype() != dtype || it->size3d() != bricksize)
+    throw OpenZGY::Errors::ZgyUserError
+      ("The brick API expects brick-sized data buffers.");
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// bulk.h --- BRICK API --- public parts ////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Internal reads from genlod end up here.
+ *
+ * As readBricksInternal(), but passing buffers to store
+ * the result is now optional. And This function is not
+ * required to use them. The result can be a mix of
+ * regular and scalar buffers. No result will be null.
+ *
+ * check_constant=true means the code will also return
+ * a scalar buffer for a brick not explicitly flagged
+ * as const, but just contains a single sample value.
+ * Caveat: this test will also look at padding samples.
+ */
+std::vector<std::shared_ptr<DataBuffer>>
+ZgyInternalBulk::readBricksToNewBuffers(
+     const std::vector<std::array<std::int64_t,3>>& position_in,
+     const std::vector<std::shared_ptr<DataBuffer>>& data_in,
+     int lod, bool as_float, bool check_constant) const
+{
+  std::vector<std::array<std::int64_t, 3>> position(position_in);
+  std::vector<std::shared_ptr<DataBuffer>> data(data_in);
+  data.resize(position_in.size());
+
+  // Invariants for this file.
+  const IInfoHeaderAccess& ih = this->_metadata->ih();
+  const std::array<std::int64_t,3> bricksize =
+    ih.bricksize();
+  const RawDataType dtype =
+    (as_float ? RawDataType::Float32 : ih.datatype());
+  const double emptyvalue = as_float ?
+    ih.defaultvalue() :
+    ih.defaultstorage();
+  const std::array<std::int64_t, 3> ssize =
+    ih.lodsizes()[lod] * bricksize;
+
+  std::vector<std::pair<bool, double>> cvbricks =
+    readConstValueBricks(position, lod, as_float);
+
+  // For any brick flagged as all-const, ignore the provided
+  // buffer (if any) and return a scalar buffer instead.
+  // In the same loop, allocate any missing data buffers.
+  for (std::size_t ii = 0; ii < position.size(); ++ii)
+  {
+    const bool outside = (position[ii][0] >= ssize[0] ||
+      position[ii][1] >= ssize[1] ||
+      position[ii][2] >= ssize[2]);
+    if (outside) {
+      data[ii] = DataBuffer::makeScalarBuffer3d
+        (emptyvalue, bricksize, dtype);
+    }
+    else if (cvbricks[ii].first) {
+      data[ii] = DataBuffer::makeScalarBuffer3d
+        (cvbricks[ii].second, bricksize, dtype);
+      position[ii] = std::array<std::int64_t, 3>{ -bricksize[0], 0, 0 };
+    }
+    else if (data[ii] == nullptr || data[ii]->isScalar()) {
+      data[ii] = DataBuffer::makeNewBuffer3d(bricksize, dtype);
+    }
+  }
+
+  // This will ignore any entries with null or scalar buffers.
+  // Also outside-survey since we already handled those.
+  readBricksInternal(position, data, lod, as_float);
+
+  // Caller wants a thorough check for all const.
+  if (check_constant)
+    for (std::size_t ii = 0; ii < position.size(); ++ii)
+      if (data[ii] != nullptr && !data[ii]->isScalar())
+        if (data[ii]->isAllSame(data[ii]->size3d().data()))
+          data[ii] = DataBuffer::makeScalarBuffer3d
+            (data[ii]->scalarAsDouble(),
+             data[ii]->size3d(),
+             data[ii]->datatype());
+
+  return data;
+}
+
+/**
+ * Calls to IZgyReader::readbricks() end up here.
+ *
+ * The caller needs to convert the data buffers between simple smart
+ * pointers and our internal DataBuffer type.
+ *
+ * The caller is responsible for providing the correct number and type
+ * of brick-sized data buffers.
+ */
+void
+ZgyInternalBulk::readBricksInternal(
+    const std::vector<std::array<int64_t,3>>& position,
+    const std::vector<std::shared_ptr<DataBuffer>>& data,
+    int lod, bool as_float) const
+{
+  checkBricksInternal(position, data, as_float);
+
+  // Assuming start >= 0 and everything nicely aligned, the check
+  // for brick outside survey is simply brick start >= survey end.
+  const IInfoHeaderAccess& ih = this->_metadata->ih();
+  const std::array<std::int64_t,3> bs  = ih.bricksize();
+  const std::array<std::int64_t,3> ssize = ih.lodsizes()[lod] * bs;
+
+  // TODO-WIP-BrickedAPI: Calling the old implementation layer here
+  // misses the point of speeding up access. Especially since calling
+  // expeditedRead() is not attempted. The implementation layer will
+  // need a major rewrite before this starts making sense.
+  for (std::size_t ii=0; ii<position.size(); ++ii) {
+    const bool outside = (position[ii][0] >= ssize[0] ||
+                          position[ii][1] >= ssize[1] ||
+                          position[ii][2] >= ssize[2]);
+    if (data[ii] == nullptr || data[ii]->isScalar())
+    {
+      if (_logger(3, ""))
+        _logger(3, std::stringstream()
+          << "    No buffer   " << lod << " pos " << fmt(position[ii]));
+    }
+    else if (!outside) {
+      if (expeditedRead
+          (position[ii],
+           data[ii]->size3d(),
+           data[ii]->voidData().get(),
+           lod,
+           data[ii]->datatype()))
+      {
+        if (_logger(3, ""))
+          _logger(3, std::stringstream()
+            << "    Expedited read lod " << lod << " at " << fmt(position[ii]));
+      }
+      else
+      {
+        this->readToExistingBuffer(data[ii], position[ii], lod, as_float);
+        if (_logger(3, ""))
+          _logger(3, std::stringstream()
+            << "    Read lod " << lod << " at " << fmt(position[ii]));
+      }
+    }
+    else {
+      if (_logger(3, ""))
+        _logger(3, std::stringstream()
+                << "    Not reading " << lod << " pos " << fmt(position[ii]));
+      // TODO-WIP-BrickedAPI: If there are all-const buffers among
+      // the inputs then perhaps choose one of those. But be careful
+      // to keep the behavior consistent. The idea is that if the
+      // user initialized the entire survey with a const value
+      // then this should also be used for padding, so the lowres
+      // bricks can still be stored as all-const instead of being
+      // a mix of user's and system't default.
+      // Note that in readBricksToNewBuffers() this would (should?)
+      // cause the corresponding output buffer to be scalar.
+      data[ii]->fill(as_float ? ih.defaultvalue() : ih.defaultstorage());
+    }
+  }
+}
+
+/**
+ * Calls to IZgyWriter::writebricks() end up here.
+ *
+ * The caller needs to convert the data buffers between simple
+ * smart pointers and our internal DataBuffer type.
+ *
+ * The internal version also accepts a lod parameter
+ * (needed when computing low resolution data) and a flag
+ * telling whether statistics are already updated
+ * (because we are called from the general API wrapper).
+ * And a flag telling that we are not allowed to write
+ * to the data buffer (used by a shortcut in write()).
+ *
+ * If immutable_buffer is true, the data buffer is guaranteed
+ * to not be overwritten. But it might end up being copied
+ * up front just to be safe.
+ *
+ * The databuffer list can hold a mix of regular and scalar
+ * buffers if required. But if the request comes from writeconst()
+ * it is better to call writeConstInternal() instead.
+ */
+void
+ZgyInternalBulk::writeBricksInternal(
+     const std::vector<std::array<int64_t,3>>& position,
+     const std::vector<std::shared_ptr<DataBuffer>>& data,
+     int lod, bool is_storage, const compressor_t& compressor,
+     bool statistics_done, bool immutable_buffer)
+{
+  checkBricksInternal(position, data, !is_storage);
+
+  const IInfoHeaderAccess& ih = this->_metadata->ih();
+  const std::array<std::int64_t,3> bs  = ih.bricksize();
+  const std::array<std::int64_t,3> ssize = ih.lodsizes()[lod] * bs;
+
+  // TODO-WIP-BrickedAPI: Calling the old implementation layer here
+  // misses the point of speeding up access.
+  for (std::size_t ii=0; ii<position.size(); ++ii) {
+    const bool outside = (position[ii][0] >= ssize[0] ||
+                          position[ii][1] >= ssize[1] ||
+                          position[ii][2] >= ssize[2]);
+    if (!outside) {
+      if (_logger(3, ""))
+        _logger(3, std::stringstream()
+                << "    Writing lod " << lod << " pos " << fmt(position[ii]));
+      writeRegion(data[ii], position[ii], lod, is_storage, compressor);
+    }
+    else {
+      if (_logger(3, ""))
+        _logger(3, std::stringstream()
+                << "No writ lod " << lod << " pos " << fmt(position[ii]));
+    }
+  }
+}
+
+/**
+ * TODO-WIP-BrickedAPI: Performance issue.
+ * Instead of just looping and calling the old code,
+ * implement a new readConstantValue() and _partsNeeded()
+ * that work on list of bricks.
+ *
+ * TODO-WIP-BrickedAPI: Expose in the public api
+ * as readconstbricks().
+ */
+std::vector<std::pair<bool, double>>
+ZgyInternalBulk::readConstValueBricks(
+  const std::vector<std::array<std::int64_t, 3>>& position,
+  int32_t lod, bool as_float) const
+{
+  const IInfoHeaderAccess& ih = this->_metadata->ih();
+  const std::array<std::int64_t, 3> bs = ih.bricksize();
+  const double outsidevalue = as_float ? ih.defaultvalue() : ih.defaultstorage();
+  std::vector<std::pair<bool, double>> result;
+  for (const auto& it : position)
+    if (_singleBrickOutsideSurvey(it, bs, lod))
+      result.push_back(std::make_pair(true, outsidevalue));
+    else
+      result.push_back(readConstantValue(it, bs, lod, as_float));
+  return result;
+}
+
+/**
+ * Equivalent to calling writeBricksInternal() to set every sample
+ * in the region to the same value. Called from writeconst in the
+ * general API, and maybe internally. Using writeBricksInternal()
+ * might lead to running out of memory. As well as being slower.
+ *
+ * It is particularly important to use this function instad of
+ * writeBricksInternal() when the entire survey is being set to
+ * the same value. Because in that case the lod and statistics
+ * tracking and min/max tracking shouls all be reset.
+ *
+ * Value should always be a scalar buffer. The scalar value,
+ * valuetype, and size are extracted from the buffer.
+ *
+ * Implementation note: Except for the most simple cases the code
+ * may end up falling back to writeBricksInternal() anyway.
+ * E.g. for already allocated bricks or r/m/w processing.
+ * But it can do things such as splitting the request into
+ * brick-columns if it looks like we might run out of memory.
+ */
+void
+ZgyInternalBulk::writeConstInternal(
+     const std::vector<std::array<int64_t,3>>& position,
+     const std::shared_ptr<InternalZGY::DataBuffer>& value,
+     bool is_storage)
+{
+  throw std::runtime_error("writeConstInternal not implemented yet");
+}
+
+/**
+ * Allow GenLod to do special handling when the target is on the cloud.
+ */
+bool
+ZgyInternalBulk::isCloud() const
+{
+  return _file->xx_iscloud();
 }
 
 } // namespace

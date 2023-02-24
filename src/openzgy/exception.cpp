@@ -17,6 +17,12 @@
 #include <string.h>
 #include <string>
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <Windows.h>
+#endif
+
 namespace OpenZGY { namespace Errors {
 #if 0
 }}
@@ -58,10 +64,37 @@ namespace {
       errstring = "Unknown errno " + std::to_string(system_errno);
     return filename + ": " + errstring;
   }
-}
+
+  static std::string get_win_error(const std::string& filename, int windows_errno)
+  {
+#ifdef _WIN32
+    char buf[2048];
+    DWORD ok = FormatMessageA(
+      FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+      NULL, windows_errno, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+      &buf[0], sizeof(buf) / sizeof(buf[0]),
+      NULL);
+    if (ok == 0)
+      buf[0] = '\0';
+    // Strip trailing newline
+    for (char* cp = &buf[strlen(buf) - 1]; cp >= buf && (*cp == '\r' || *cp == '\n'); --cp)
+      *cp = '\0';
+    if (*buf == '\0')
+      sprintf_s(buf, sizeof(buf), "Windows error %d", windows_errno);
+    return filename + ": " + std::string(buf);
+#else
+    return filename + ": Win error " + std::to_string(windows_errno);
+#endif
+  }
+} // anonymous namespace
 
 ZgyIoError::ZgyIoError(const std::string& filename, int system_errno)
   : ZgyError(get_error(filename, system_errno))
+{
+}
+
+ZgyWindowsError::ZgyWindowsError(const std::string& filename, unsigned long windows_errno)
+  : ZgyError(get_win_error(filename, windows_errno))
 {
 }
 

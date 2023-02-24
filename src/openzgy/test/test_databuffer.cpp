@@ -112,9 +112,9 @@ test_databuffer_construct()
     r = buffer->range();
     TEST_CHECK(r.first == 1);   // Check data was copied.
     TEST_CHECK(r.second == 42);
-    TEST_CHECK(!data.unique()); // Because our "data" still in scope.
+    TEST_CHECK(data.use_count() != 1); // Because our "data" still in scope.
     buffer->clear();
-    TEST_CHECK(data.unique());  // The databuffer should have released it.
+    TEST_CHECK(data.use_count() == 1);  // The databuffer should have released it.
   }
 }
 

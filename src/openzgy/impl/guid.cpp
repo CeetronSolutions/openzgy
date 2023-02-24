@@ -42,6 +42,12 @@ GUID::toString() const
   return format(this->_data);
 }
 
+std::string
+GUID::makeGUID()
+{
+  return GUID(nullptr).toString();
+}
+
 /**
  * Copy the raw bytes of the guid to the specified pointer.
  * The length is redundant. It should always be 16 but is

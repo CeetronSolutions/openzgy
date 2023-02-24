@@ -34,6 +34,8 @@
 #include <tuple>
 #include <list>
 #include <sstream>
+#include <atomic>
+#include <mutex>
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -191,8 +193,62 @@ namespace {
   };
 } // namespace
 
+/**
+ * Parse a list of integers separated by one of comma,*,x,space,tab.
+ * Returns an empty list if the environment variable is not found.
+ * Throws if the string is not well formed.
+ * Might want to move this inside class Environment.
+ */
+std::vector<int>
+getNumericEnvList(const char* name, int expect_size)
+{
+  std::vector<int> result;
+  std::string stl_str = InternalZGY::Environment::getStringEnv(name);
+  if (stl_str.empty()) {
+    return result;
+  }
+  else {
+    const char* str = stl_str.c_str();
+    for (;;) {
+      char* end = nullptr;
+      result.push_back(static_cast<int>(strtol(str, &end, 10)));
+      if (end == str)
+        throw std::runtime_error
+          (std::string(name) +
+           ": expected a number, found " +
+           std::string("\"") + std::string(str) + "\".");
+      else if (*end == '\0')
+        break;
+      else if (strchr(" \t,x*", *end) == nullptr)
+        throw std::runtime_error
+          (std::string(name) +
+           ": numbers should be separated by one of space,tab,comma,x,*. Not " +
+           std::string("'") + std::string(end).substr(0, 1) + "'.");
+      str = end + 1;
+    }
+  }
+  if (!result.empty() && expect_size >= 1 && (int)result.size() != expect_size)
+    throw std::runtime_error
+    (std::string(name) +
+      ": expected " + std::to_string(expect_size) + " numbers. Not " +
+      std::to_string(result.size()) + ".");
+  return result;
+}
+
 namespace OpenZGY {
   class IOContext;
+}
+
+namespace OpenZGY { namespace Formatters {
+    std::string enumToString(SampleDataType);
+    std::string enumToString(UnitDimension);
+    std::string enumToString(DecimationType);
+    std::string enumToString(FinalizeAction);
+    std::ostream& operator<<(std::ostream&, SampleDataType);
+    std::ostream& operator<<(std::ostream&, UnitDimension);
+    std::ostream& operator<<(std::ostream&, DecimationType);
+    std::ostream& operator<<(std::ostream&, FinalizeAction);
+  }
 }
 
 namespace OpenZGY { namespace Impl {
@@ -521,7 +577,7 @@ public:
   }
 
   const corners_t
-  corners() const override 
+  corners() const override
   {
     return _meta->ih().ocp_world();
   }
@@ -541,6 +597,36 @@ public:
   std::array<int64_t,3>
   bricksize() const override
   {
+    // THIS MIGHT CONFUSE THE CALLING APPLICATON. USE ONLY FOR TESTING.
+    // Mega-kludge. Lie about the physical brick size.
+    // This (sort of) works because the API layer in OpenZGY is supposed to
+    // completely hide the fact that the file is bricked. So, bricksize()
+    // might be considered just as a hint about the optimal size to read.
+    // Petrel and possibly others uses this. This trick is the only way to
+    // get Petrel to read more than one physical brick at a time.
+    // This could allow more multi-threading compared to just changing the
+    // physical brick size.
+    // Caveat: This also changes the brick size in BASE. Probably.
+    // Caveat: The override also affects ZgtWriterArgs::metafrom().
+    // Caveat: If bricksize() in the API layer gets called from the
+    // implementation layer, this will be very bad.
+    // Caveat: Utilities such as ZgyDump will also pick up this lie,
+    // reporting the wrong brick size.
+    // Changing OpenZgyBulkAccessor constructor in Salmon might have been better.
+    static std::vector<int> force =
+      getNumericEnvList("OPENZGY_HACK_LOGICAL_BRICKSIZE", 3);
+    if (force.size() == 3) {
+      static std::atomic_flag warned;
+      if (!warned.test_and_set()) {
+        std::stringstream ss;
+        ss << "ZGY logical size forced to "
+           << force[0] << "," << force[1] << "," << force[2];
+        //this->_logger(0, ss.str());
+        // _logger only in leaf classes. But this is a major hack anyway.
+        std::cerr << (ss.str() + "\n");
+      }
+      return std::array<int64_t, 3>{force[0], force[1], force[2]};
+    }
     return _meta->ih().bricksize();
   }
 
@@ -567,7 +653,7 @@ public:
   }
 
   // Currently not needed by any client.
-  //virtual std::string dataid() const override
+  //std::string dataid() const override
   //{
   //  return InternalZGY::GUID(_meta->ih().dataid()).toString();
   //}
@@ -578,7 +664,7 @@ public:
   }
 
   // Currently not needed by any client.
-  //virtual std::string previd() const override
+  //std::string previd() const override
   //{
   //  return InternalZGY::GUID(_meta->ih().previd()).toString();
   //}
@@ -1236,6 +1322,19 @@ public:
     // we need to hold on to _fd ourselves and provide it when it is time
     // to flush metadata to disk.
     InternalZGY::ZgyInternalWriterArgs iargs = EnumMapper::mapWriterArgs(args);
+
+    // Mega-kludge. Allow overriding the brick size requested by the caller.
+    // THIS MIGHT CONFUSE THE CALLING APPLICATON. USE ONLY FOR TESTING.
+    std::vector<int> bs_override = getNumericEnvList("OPENZGY_HACK_OVERRIDE_BRICKSIZE", 3);
+    if (bs_override.size() == 3) {
+      iargs.bricksize = std::array<std::int64_t, 3>
+        {bs_override[0], bs_override[1], bs_override[2]};
+      iargs.have_bricksize = true; // Don't override later.
+      std::stringstream ss;
+      ss << "ZGY physical brick size forced to "
+         << bs_override[0] << "," << bs_override[1] << "," << bs_override[2];
+      _logger(0, ss.str());
+    }
     _meta_rw.reset(new InternalZGY::ZgyInternalMeta(iargs, compress, _logger));
     _meta = _meta_rw; // in base class
 
@@ -1743,6 +1842,61 @@ public:
     }
   }
 
+  std::string
+  _formatListOfAlgo(const std::vector<DecimationType>& list)
+  {
+    if (list.empty())
+      return "<empty>";
+    std::stringstream ss;
+    for (DecimationType algo : list)
+      ss << "," << Formatters::enumToString(algo);
+    return ss.str().substr(1);
+  }
+
+  /**
+   * Override LOD algorithms from environment variables.
+   * The envirionment also has precedence over algorithms
+   * explicitly specified in the call to finalize().
+   * Uses numbers not strings. Because this is just
+   * a temporary hack anyway.
+   */
+  std::vector<DecimationType>
+  _lodAlgoFromEnvironment(const std::vector<DecimationType>& decimation_in)
+  {
+    std::vector<DecimationType> decimation(decimation_in);
+
+    if (decimation.size() < 1)
+      decimation.push_back(DecimationType::LowPass);
+    if (decimation.size() < 2)
+      decimation.push_back(DecimationType::WeightedAverage);
+    if (decimation.size() < 3)
+      decimation.push_back(decimation.back());
+
+    std::vector<DecimationType> result;
+    result.push_back(static_cast<DecimationType>
+                     (InternalZGY::Environment::getNumericEnv
+                      ("OPENZGY_LODALGO_1", (int)decimation[0])));
+    result.push_back(static_cast<DecimationType>
+                     (InternalZGY::Environment::getNumericEnv
+                      ("OPENZGY_LODALGO_2", (int)decimation[1])));
+    result.push_back(static_cast<DecimationType>
+                     (InternalZGY::Environment::getNumericEnv
+                      ("OPENZGY_LODALGO_N", (int)decimation[2])));
+
+    if (decimation[0] == result[0] &&
+        decimation[1] == result[1] &&
+        decimation[2] == result[2])
+    {
+      return decimation_in;
+    }
+    else {
+      _logger(0, "LOD algorithms changed from " +
+              _formatListOfAlgo(decimation_in) +
+              " to " + _formatListOfAlgo(result));
+      return result;
+    }
+  }
+
   /**
    * \brief Maybe generate low resolution data, statistics, and histogram.
    *
@@ -1824,6 +1978,8 @@ public:
                 bool force = false) override
   {
     std::vector<DecimationType> decimation(decimation_in);
+    decimation = _lodAlgoFromEnvironment(decimation_in);
+
 #if 1
     // UGLY KLUDGE for testing a questionable feature. If possible, set
     // this programmatically instead. Or, better still, don't use it at all.
@@ -2185,17 +2341,17 @@ public:
       (prefix, InternalZGY::OpenMode::Closed, ctxt.get());
   }
 
-  void deletefile(const std::string& filename, bool missing_ok)
+  void deletefile(const std::string& filename, bool missing_ok) override
   {
     _fd->deleteFile(filename, missing_ok);
   }
 
-  std::string alturl(const std::string& filename)
+  std::string alturl(const std::string& filename) override
   {
     return _fd->altUrl(filename);
   }
 
-  std::string idtoken()
+  std::string idtoken() override
   {
     return _fd->idToken();
   }
@@ -2399,6 +2555,7 @@ EnumMapper::mapDecimationTypeToLodAlgorithm(DecimationType value)
   using InternalZGY::LodAlgorithm;
   switch (value) {
   case DecimationType::LowPass:          return LodAlgorithm::LowPass;
+  case DecimationType::LowPassNew:       return LodAlgorithm::LowPassNew;
   case DecimationType::WeightedAverage:  return LodAlgorithm::WeightedAverage;
   case DecimationType::Average:          return LodAlgorithm::Average;
   case DecimationType::Median:           return LodAlgorithm::Median;
@@ -2439,34 +2596,172 @@ EnumMapper::mapDecimationTypeToLodAlgorithm(const std::vector<DecimationType>& v
 } // namespace OpenZGY::Impl
 // Remain in namespace OpenZGY
 
+class ProgressWithDots::Impl
+{
+public:
+  int dots_printed_;
+  int length_;
+  std::ostream& outfile_;
+  std::mutex mutex_;
+  Impl(int length, std::ostream& outfile)
+  : dots_printed_(0)
+  , length_(length)
+  , outfile_(outfile)
+  , mutex_()
+  {}
+};
+
 ProgressWithDots::ProgressWithDots(int length, std::ostream& outfile)
-  : _dots_printed(0)
-  , _length(length)
-  , _outfile(outfile)
-  , _mutex()
+  : pimpl_(std::make_shared<Impl>(length, outfile))
 {
 }
 
 bool
 ProgressWithDots::operator()(std::int64_t done, std::int64_t total)
 {
-  if (_length < 1)
+  if (pimpl_->length_ < 1)
     return true;
-  std::lock_guard<std::mutex> lk(_mutex);
-  if (_dots_printed == 0) {
-    _outfile << "[" + std::string(_length, ' ') + "]\r[" << std::flush;
+  std::lock_guard<std::mutex> lk(pimpl_->mutex_);
+  if (pimpl_->dots_printed_ == 0) {
+    pimpl_->outfile_ << "[" + std::string(pimpl_->length_, ' ') + "]\r[" << std::flush;
   }
-  std::int64_t needed = (total <= 0) ? 1 : 1 + ((done * (_length-1)) / total);
-  if (needed > _dots_printed) {
-    while (needed > _dots_printed) {
-      _outfile << '.';
-      _dots_printed += 1;
+  std::int64_t needed = (total <= 0) ? 1 : 1 + ((done * (pimpl_->length_-1)) / total);
+  if (needed > pimpl_->dots_printed_) {
+    while (needed > pimpl_->dots_printed_) {
+      pimpl_->outfile_ << '.';
+      pimpl_->dots_printed_ += 1;
     }
-    _outfile << std::flush;
+    pimpl_->outfile_ << std::flush;
   }
   if (done == total)
-    _outfile << "\n" << std::flush;
+    pimpl_->outfile_ << "\n" << std::flush;
   return true;
+}
+
+class FancyProgressWithDots::Impl
+{
+public:
+  const int     length_;
+  std::ostream& outfile_;
+  std::mutex    mutex_;
+  double        starttime_;
+  double        prev_starttime_;
+  int           prev_printed_;
+  std::int64_t  prev_done_;
+  int           output_count_;
+
+  Impl(int length, std::ostream& outfile)
+    : length_(length)
+    , outfile_(outfile)
+    , mutex_()
+    , starttime_(timestamp())
+    , prev_starttime_(starttime_)
+    , prev_printed_(0)
+    , prev_done_(0)
+    , output_count_(0)
+  {}
+};
+
+FancyProgressWithDots::FancyProgressWithDots(int length, std::ostream& outfile)
+  : pimpl_(std::make_shared<Impl>(length, outfile))
+{
+}
+
+static void
+to_hm(double seconds, std::stringstream& ss, bool do_seconds = false)
+{
+  int sec = do_seconds ? (int)ceil(seconds) : (int)ceil(seconds/60.0)*60;
+  int min = sec / 60;
+  sec -= min * 60;
+  int hour = min / 60;
+  min -= hour * 60;
+  if (seconds < 0)
+    ss << " --:--";
+  else if (!do_seconds)
+    ss << " " << std::setw(2) << std::setfill(' ') << hour
+       << ":" << std::setw(2) << std::setfill('0') << min
+       << std::setfill(' ');
+  else if (hour == 0)
+    ss << " " << std::setw(2) << std::setfill(' ') << min
+       << ":" << std::setw(2) << std::setfill('0') << sec
+       << std::setfill(' ');
+  else
+      ss << " " << std::setw(2) << std::setfill(' ') << hour
+         << ":" << std::setw(2) << std::setfill('0') << min
+         << ":" << std::setw(2) << std::setfill('0') << sec
+         << std::setfill(' ');
+}
+
+bool
+FancyProgressWithDots::operator()(std::int64_t done, std::int64_t total)
+{
+  Impl& p(*this->pimpl_);
+  if (p.length_ < 1)
+    return true;
+  std::lock_guard<std::mutex> lk(p.mutex_);
+  const int needed =
+    (total <= 0) ? 1 : 1 + (int)((done * (p.length_-1)) / total);
+  if (needed == p.prev_printed_ && timestamp() - p.prev_starttime_ < 20.0)
+    return true;
+
+  // Timing
+  if (done == 0)
+    p.starttime_ = timestamp();
+  //const std::int64_t this_done  = done - p.prev_done_;
+  const double this_endtime     = timestamp();
+  //const double this_elapsed     = this_endtime - p.prev_starttime_;
+  const double all_elapsed      = this_endtime - p.starttime_;
+  //const double average_all_step = done<=0 ? 0 : all_elapsed / done;
+  //const double average_per_step = this_done<=0 ? 0 : this_elapsed / this_done;
+  const double est_totaltime    = done <= 0 ? 0 : all_elapsed * ((double)total / (double)done);
+  const double est_remain       = est_totaltime - all_elapsed;
+  p.prev_starttime_ = this_endtime;
+  p.prev_printed_   = needed;
+  p.prev_done_      = done;
+
+  // Progress bar
+  std::stringstream ss;
+  ss << '\r' << '[';
+  for (int ii = 0; ii < p.length_; ++ii)
+    ss << (ii >= needed ? ' ' : ii % 5 == 0 ? '+' : '.');
+  ss << ']';
+
+  // Timing
+  // What is most useful?
+  //  - Total elapsed time.
+  //  - Estimated time left (ETL) based on average over entire run.
+  //  - Estimated total time based on average over entire run.
+  //  - Time for this 2% step vs. the average time for the same period.
+  //  - Fancier estimation based on moving average (not implemnented)
+  //  - Wall clock ETA.
+  //  - A single char showing something happening every 10 seconds or so,
+  //ss << " Run";
+  to_hm(all_elapsed, ss);
+  //ss << " ETL ";
+  to_hm(est_remain, ss);
+  //ss << " Est. total";
+  //to_hm (est_totaltime, ss);
+  //ss << " average " << average_all_step << " " << average_per_step;
+  ss << " ";
+  //ss << ((p.output_count_ % 2) == 0 ? '*' : '+');
+  //ss << " ";
+  //ss << "done " << done << "/" << total << " ";
+  if (done == total)
+    ss << '\n';
+  p.outfile_ << ss.str() << std::flush;
+  ++p.output_count_;
+  return true;
+}
+
+double
+FancyProgressWithDots::timestamp()
+{
+  // Remember the good old days with ::time(nullptr) ?
+  typedef std::chrono::high_resolution_clock clock;
+  static constexpr double factor =
+    static_cast<double>(clock::duration::period::num) /
+    static_cast<double>(clock::duration::period::den);
+  return clock::now().time_since_epoch().count() * factor;
 }
 
 // Dummy destructors for the interface types.
@@ -2676,6 +2971,7 @@ namespace Formatters {
   {
     switch (value) {
     case DecimationType::LowPass:          return "DecimationType::LowPass";
+    case DecimationType::LowPassNew:       return "DecimationType::LowPassNew";
     case DecimationType::WeightedAverage:  return "DecimationType::WeightedAverage";
     case DecimationType::Average:          return "DecimationType::Average";
     case DecimationType::Median:           return "DecimationType::Median";

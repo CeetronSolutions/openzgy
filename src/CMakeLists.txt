@@ -11,11 +11,13 @@ set(HEADER_FILES ${HEADER_FILES}
     src/openzgy/impl/compression.h
     src/openzgy/impl/cornerpoints.h
     src/openzgy/impl/databuffer.h
+    src/openzgy/impl/edgebrick.h
     src/openzgy/impl/enum.h
     src/openzgy/impl/environment.h
     src/openzgy/impl/fancy_timers.h
     src/openzgy/impl/file.h
     src/openzgy/impl/file_consolidate.h
+    src/openzgy/impl/file_parallelizer.h
     src/openzgy/impl/file_performance.h
     src/openzgy/impl/file_relay.h
     src/openzgy/impl/file_smallcache.h
@@ -26,6 +28,7 @@ set(HEADER_FILES ${HEADER_FILES}
     src/openzgy/impl/iltf2d.h
     src/openzgy/impl/locker.h
     src/openzgy/impl/lodalgo.h
+    src/openzgy/impl/lodfilters.h
     src/openzgy/impl/lodsampling.h
     src/openzgy/impl/logger.h
     src/openzgy/impl/lookuptable.h
@@ -42,6 +45,7 @@ set(HEADER_FILES ${HEADER_FILES}
     src/openzgy/impl/transform.h
     src/openzgy/impl/types.h
     src/openzgy/impl/wintools.h
+    src/openzgy/impl/workorder.h
 )
 
 set(SOURCE_FILES ${SOURCE_FILES}
@@ -59,6 +63,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
     src/openzgy/impl/file.cpp
     src/openzgy/impl/file_consolidate.cpp
     src/openzgy/impl/file_local.cpp
+    src/openzgy/impl/file_native.cpp
     src/openzgy/impl/file_parallelizer.cpp
     src/openzgy/impl/file_performance.cpp
     src/openzgy/impl/file_relay.cpp
@@ -72,6 +77,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
     src/openzgy/impl/iltf2d.cpp
     src/openzgy/impl/locker.cpp
     src/openzgy/impl/lodalgo.cpp
+    src/openzgy/impl/lodfilters.cpp
     src/openzgy/impl/lodsampling.cpp
     src/openzgy/impl/logger.cpp
     src/openzgy/impl/lookuptable.cpp
@@ -88,6 +94,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
     src/openzgy/impl/transform.cpp
     src/openzgy/impl/types.cpp
     src/openzgy/impl/wintools.cpp
+    src/openzgy/impl/workorder.cpp
 )
 
 include(src/zgyaccess/CMakeLists.txt)

@@ -65,6 +65,31 @@ namespace
   a[7] =  -0.10596589191287473
   a[8] =  -0.06968050331585399
   a[9] =   0.07996591908598821
+
+  UPDATED:
+
+  The filter was defined without requiring a 0 dB DC response,
+  which is really bad for the purpose we are using it for.
+  We need the sum of the coefficients to be exactly 1.0
+  Instead of designing a new filter, multiply each coefficient
+  with the same fudge factor to make the sum 1.0.
+
+  0.46728086247062456
+  0.13215387136350137
+ -0.11012372306899207
+ -0.07241458842975841
+  0.08310357766462453
+
+  UPDATED:
+
+  For the purpose of computing low resolution bricks, doing the
+  calculation in single precision float ought to be more than enough.
+
+  0.46728086f
+  0.13215387f
+ -0.11012372f
+ -0.07241458f
+  0.08310357f
 */
 
 
@@ -73,32 +98,14 @@ void LodSampling::downSample1D(double* dst, int sizeDst, const double* src, int 
   // Low pass filter (See description of filter parameters above.)
   // Note: The filter can only be replaced by a filter with even number of coefficients.
   double a[] = {
-    0.44963820678761110,
-    0.12716426995479813,
-   -0.10596589191287473,
-   -0.06968050331585399,
-    0.07996591908598821};
+    0.46728086247062456,
+    0.13215387136350137,
+   -0.11012372306899207,
+   -0.07241458842975841,
+    0.08310357766462453};
 
   const int FILTER_LENGTH_HALF = sizeof(a)/sizeof(double);
   const int FILTER_LENGTH_HALF_MINUS_ONE = FILTER_LENGTH_HALF - 1;
-
-  // The sum of all coefficients is 0.96224400119933744, not 1.
-  // This means that when 10 or more consecutive input samples are constant,
-  // the decimated result would be slightly less than the input instead of
-  // ending up with the same constant value. This violates the principle
-  // of least surprise. I don't know whether this is a minor artifact of an
-  // otherwise really clever algorithm or whether it is a bug.
-  // Probably the former. But for our use (generating LOD bricks) my gut
-  // feeling is that it is better to get precise values in the constant-input
-  // case. It is less important that the "average" case might have the
-  // results amplified slightly. Even if this causes peaks to be clipped.
-  // So, I'll adjust all the factors by the same fudge factor.
-  double fudge = 0;
-  for (int ii=0; ii<FILTER_LENGTH_HALF; ++ii)
-    fudge += a[ii];
-  fudge = 0.5 / fudge;
-  for (int ii=0; ii<FILTER_LENGTH_HALF; ++ii)
-    a[ii] *= fudge;
 
   assert ( sizeSrc >= FILTER_LENGTH_HALF_MINUS_ONE );
   assert ( sizeSrc == sizeDst*2);

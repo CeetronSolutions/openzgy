@@ -19,7 +19,7 @@
 #include "timer.h"
 #include "fancy_timers.h"
 #include "environment.h"
-#include "mtguard.h"
+#include "workorder.h"
 #include "file_performance.h"
 
 #include <vector>
@@ -37,7 +37,6 @@
 #include <unistd.h>
 #include <mutex>
 #include <atomic>
-#include <omp.h>
 
 using OpenZGY::IOContext;
 namespace InternalZGY {
@@ -333,33 +332,18 @@ LocalFileLinux::xx_readv(const ReadList& requests, bool parallel_ok, bool immuta
     }
   }
   else {
-    // OpenMP needs signed loop variable on windows.
-    const std::int64_t requestcount = requests.size();
+    // Note: requests.size() is likely small, and less than the number
+    // of available threads. It is likely that all requests.size()
+    // data buffers will be in use at the same time. So, code for
+    // buffer re-use is probably not useful.
 
-    // It is pointless to use more threads than we have requests.
-    const int threadcount = static_cast<int>
-      (std::min(requestcount,static_cast<std::int64_t>(omp_get_max_threads())));
-
-    MTGuard guard("local-read", threadcount);
-#pragma omp parallel num_threads(threadcount)
-    {
-      std::int64_t datasize = 0;
-      std::shared_ptr<char> data;
-#pragma omp for
-      for (std::int64_t ii=0; ii<requestcount; ++ii) {
+    WorkOrderRunner::parallelFor(requests.size(), [&](std::int64_t ii)
+      {
         const ReadRequest& r = requests[ii];
-        if (datasize < r.size || !data || !data.unique()) {
-          datasize = 0;
-          data.reset(new char[r.size], std::default_delete<char[]>());
-          datasize = r.size;
-        }
-        guard.run([&](){
-          this->LocalFileLinux::xx_read(data.get(), r.offset, r.size, usagehint);
-          _deliver(r.delivery, data, 0, r.size, transient_ok);
-        });
-      }
-    }
-    guard.finished();
+        std::shared_ptr<char> data(new char[r.size], std::default_delete<char[]>());
+        this->LocalFileLinux::xx_read(data.get(), r.offset, r.size, usagehint);
+        _deliver(r.delivery, data, 0, r.size, transient_ok);
+      });
   }
 }
 

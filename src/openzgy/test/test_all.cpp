@@ -32,7 +32,7 @@ static void do_nothing()
 {
 }
 
-struct test__ test_list__[1000]{0};
+struct test__ test_list__[1000]{{0}};
 int test_registered__ = 0;
 void register_test(const char* name, void (*func)(void))
 {

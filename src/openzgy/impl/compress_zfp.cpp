@@ -244,9 +244,9 @@ private:
       zfp_field_size(field, &sizearray[0]);
       if (zfp_field_type(field) != type ||
           zfp_field_dimensionality(field) != 3 ||
-          sizearray[2] != static_cast<size_t>(size[0]) || // nz -> slowest varying
-          sizearray[1] != static_cast<size_t>(size[1]) || // ny
-          sizearray[0] != static_cast<size_t>(size[2])) // nx
+          static_cast<std::int64_t>(sizearray[2]) != size[0] || // nz -> slowest varying
+          static_cast<std::int64_t>(sizearray[1]) != size[1] || // ny
+          static_cast<std::int64_t>(sizearray[0]) != size[2]) // nx
       {
         //std::cout << ".type " << (int)zfp_field_type(field)
         //        << ".dims " << zfp_field_dimensionality(field)

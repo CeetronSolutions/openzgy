@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include "../declspec.h"
+
 #include <cstdint>
 #include <cstddef>
 #include <array>
@@ -51,6 +53,8 @@ public:
   explicit GUID(std::nullptr_t);
   std::string toString() const;
   void copyTo(std::uint8_t *ptr, std::int64_t len);
+  // External code only allowed to deal with strings.
+  static OPENZGY_API std::string makeGUID();
 
 private:
   static guid_bytes_t generate();

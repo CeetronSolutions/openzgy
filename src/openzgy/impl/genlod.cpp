@@ -1,4 +1,4 @@
-// Copyright 2017-2021, Schlumberger
+// Copyright 2017-2023, Schlumberger
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+#include "edgebrick.h"
 
 #include "genlod.h"
 #include "enum.h"
@@ -25,6 +27,8 @@
 #include "bulk.h"
 #include "../exception.h"
 #include "wintools.h"
+#include "workorder.h"
+#include "environment.h"
 
 #include <memory>
 #include <cstdint>
@@ -41,6 +45,41 @@ namespace InternalZGY {
 
 using namespace ArrayOps;
 using namespace Formatters;
+
+/**
+ * For testing only; might be removed.
+ * Change the number of threads to be used for computing statistics
+ * and histogram. Beware, computation might be over just one brick
+ * or even less. So this only makes sense if OpenMP or equivvalent
+ * is very performant.
+ */
+static int numthreads_histogram()
+{
+  static int result = Environment::getNumericEnv("OPENZGY_NUMTHREADS_HISTOGRAM", 1);
+  return result;
+}
+
+/**
+ * 0 - Old GenLod algorithm.
+ * 1 - Enable plan A for uncompressed on-prem newly created files.
+ * 2 - Also compressed and/or cloud files. (Untested; has known issues.)
+ * 3 - Also files opened for update. (Will currently not work.)
+ */
+static int plan_a()
+{
+  static int result = Environment::getNumericEnv("OPENZGY_PLAN_A", 1);
+  return result;
+}
+
+/**
+ * When timers are active, might want more verbose logging,
+ * but not so much that it warrants setting OPENZGY_VERBOSE.
+ */
+static bool openzgy_timers()
+{
+  static int result = Environment::getNumericEnv("OPENZGY_TIMERS", 0);
+  return result > 0;
+}
 
 //# TODO-Low: Several tweaks are possible but might not offer
 //# much value. See a detailed discussion in doc/lowres.html.
@@ -127,14 +166,17 @@ GenLodBase::GenLodBase(
  * all blocks in lod 0 and the writes will cover all blocks in lod > 0.
  * For plan D all blocks are written which means the computation of
  * _total done in __init__ might need to change.
+ *
+ * Factor is used with the brick api, where we know the size of
+ * each individual brick and the number of bricks we have.
  */
 void
-GenLodBase::_report(const DataBuffer* data) const
+GenLodBase::_report(const DataBuffer* data, std::int64_t factor) const
 {
   if (data) {
     std::array<std::int64_t,3> bricks =
       (data->size3d() + this->_bricksize - std::int64_t(1)) / this->_bricksize;
-    const_cast<std::int64_t&>(this->_done) += (bricks[0] * bricks[1] * bricks[2]);
+    const_cast<std::int64_t&>(this->_done) += (bricks[0] * bricks[1] * bricks[2] * factor);
   }
   if (this->_progress && !this->_progress(_done, _total))
     throw OpenZGY::Errors::ZgyAborted("Computation of low resolution data was aborted");
@@ -200,6 +242,41 @@ GenLodBase::_write(
     const std::shared_ptr<const DataBuffer>& data) const
 {
   this->_report(data.get());
+}
+
+/**
+ * This is a stub that can be overridden later. If not overridden,
+ * and code attempts to call it, then an exception is raised,
+ *
+ * Read one or more bricks from the ZGY file (plans A, B and C).
+ * The caller can but doesn't need to pass a vector of buffers
+ * to be used. And even when it does, the function isn't obliged
+ * to use them. E.g. because some bricks were all-const and should
+ * be returned as a scalar buffer.
+ */
+
+std::vector<std::shared_ptr<DataBuffer>>
+GenLodBase::_readbricks(
+     const std::vector<std::array<int64_t,3>>& position,
+     const std::vector<std::shared_ptr<DataBuffer>>& buffers,
+     int lod) const
+{
+  throw OpenZGY::Errors::ZgyInternalError("GenLodBase::_readbricks() missing");
+}
+
+void
+GenLodBase::_writebricks(
+     const std::vector<std::array<int64_t,3>>& position,
+     const std::vector<std::shared_ptr<DataBuffer>>& data,
+     int lod) const
+{
+  throw OpenZGY::Errors::ZgyInternalError("GenLodBase::_writebricks() missing");
+}
+
+bool
+GenLodBase::_use_plan_a() const
+{
+  return false;
 }
 
 /**
@@ -355,11 +432,27 @@ GenLodImpl::GenLodImpl(
 std::tuple<std::shared_ptr<StatisticData>, std::shared_ptr<HistogramData>>
 GenLodImpl::call()
 {
+  const int loglevel = openzgy_timers() ? 0 : 3;
+  if (_use_plan_a()) {
+    if (_logger(loglevel, ""))
+      _logger(loglevel, std::stringstream()
+              << "GenLod A is running."
+              << " Histogram range " << fmt(_histogram_range));
+    std::tuple<std::shared_ptr<StatisticData>, std::shared_ptr<HistogramData>> ret;
+    if (_nlods == 1)
+      ret = callSingleBrick();
+    else
+      ret = callNewVersion();
+    //_logger(loglevel, "stats: " + std::get<0>(ret)->toString());
+    //_logger(loglevel, "histo: " + std::get<1>(ret)->toString());
+    return ret;
+  }
+
   //WindowsTools::threadTimeTest(1000); // Uncomment for ad-hoc testing.
   //WindowsTools::threadReportString(); // Reset thread create counter.
-  if (_logger(4, ""))
-    _logger(4, std::stringstream()
-            << "@ GenLod is running."
+  if (_logger(loglevel, ""))
+    _logger(loglevel, std::stringstream()
+            << "GenLod C is running."
             << " Histogram range " << fmt(_histogram_range));
   // Keep this in sync with GenLodC::_willneed(). If incremental is true
   // it is not trivial to use anything other than one brick. which gets
@@ -369,47 +462,491 @@ GenLodImpl::call()
   this->_report(nullptr);
   this->_calculate(index3_t{0,0,0}, chunksize, this->_nlods-1);
   clearLodTimers(true); // For performance measurements.
-  //_logger(0, "GenLod threads " + WindowsTools::threadReportString());
+  //_logger(loglevel, "GenLod threads " + WindowsTools::threadReportString());
+  //_logger(loglevel, "stats: " + _stats->toString());
+  //_logger(loglevel, "histo: " + _histo->toString());
   return std::make_tuple(this->_stats, this->_histo);
 }
 
+/**
+ * The caller has a multiple of 8 input data bricks to be decimated,
+ * with each group of 8 ordered dim2 fastest, dim0 slowest. I.e. same
+ * ordering of bricks as ordering of samples inside each brick.
+ * And one output brick per group.
+ *
+ * Return the offset into the decimated output brick, in samples,
+ * corresponding to the first sample in inputs[index].
+ */
+static std::int64_t
+offsetInOutput(std::int64_t index, const index3_t& bs)
+{
+  //const std::int64_t vbrick = index / 8;
+  const std::int64_t subi = (index / 4) % 2;
+  const std::int64_t subj = (index / 2) % 2;
+  const std::int64_t subk = index % 2;
+  return (subk * bs[2] / 2 +
+          subj * bs[2] * bs[1] / 2 +
+          subi * bs[2] * bs[1] * bs[0] / 2);
+}
+
+/**
+ * Decimate a single input cube, storing the result in 1/8 of an output
+ * cube. The index into outdata will always be input_buffer_num/8.
+ * index mod 8 is used to choose the correct octant in the output,
+ * so it cannot be chosen freely.
+ */
+void
+GenLodImpl::decimateOneInputBrick(
+     const std::vector<std::shared_ptr<DataBuffer>>& outbuffer,
+     const std::vector<std::shared_ptr<DataBuffer>>& indata,
+     std::int64_t input_buffer_num,
+     LodAlgorithm algorithm)
+{
+  if (input_buffer_num < 0 ||
+      (std::size_t)input_buffer_num >= indata.size() ||
+      (std::size_t)input_buffer_num / 8 >= outbuffer.size())
+  {
+    throw OpenZGY::Errors::ZgyInternalError("Buffer overrun prevented");
+  }
+  if (!outbuffer[input_buffer_num / 8])
+    throw OpenZGY::Errors::ZgyInternalError("Output decimation buffer is null");
+  if (outbuffer[input_buffer_num / 8]->isScalar())
+    throw OpenZGY::Errors::ZgyInternalError("Output decimation buffer is scalar");
+  const index3_t bs = _bricksize;
+  const std::int64_t vbrick = input_buffer_num / 8;
+  const std::int64_t output_offset = offsetInOutput(input_buffer_num, bs);
+  // TODO-Medium missing _wa_defaultstorage.
+  if (_logger(3, ""))
+    _logger(3, std::stringstream()
+      << "    createLod buffer " << input_buffer_num
+      << " offset " << output_offset);
+  createLod(outbuffer[vbrick], indata[input_buffer_num], algorithm,
+    output_offset,
+    _wa_histogram->getbins(),
+    _wa_histogram->getsize(),
+    _wa_histogram->getmin(),
+    _wa_histogram->getmax());
+}
+
+/**
+ * Return the part of the brick that is not padding.
+ * TODO-WIP-BrickedAPI: Consolidate with the one in bulk.cpp.
+ */
+std::array<std::int64_t, 3>
+GenLodImpl::_usedPartOfBrick(
+     const std::array<std::int64_t, 3>& bricksize,
+     const std::array<std::int64_t, 3>& surveysize,
+     const std::array<std::int64_t, 3>& brickpos,
+     std::int32_t lod) /*static*/
+{
+  std::array<std::int64_t, 3> used{ 0,0,0 };
+  const std::int64_t lodfactor = static_cast<std::int64_t>(1) << lod;
+  for (int dim = 0; dim < 3; ++dim) {
+    const std::int64_t ssize = (surveysize[dim] + lodfactor - 1) / lodfactor;
+    used[dim] = std::max((std::int64_t)0, std::min(brickpos[dim] + bricksize[dim], ssize) - brickpos[dim]);
+  }
+  return used;
+}
+
+/**
+ * Update histogram and statistics if the input is LOD 0.
+ * Only call for data in lod 0.
+ */
+void
+GenLodImpl::accumulateOneInputBrick(
+  const std::vector<std::shared_ptr<DataBuffer>>& indata,
+  const std::vector<index3_t>& inpos,
+  std::int64_t input_buffer_num)
+{
+  // TODO-WIP-BrickedAPI: Threadsafe? HistogramBuilder instances
+  // ought to be treated the same way as data buffers. Allocated
+  // outside the parallel loop, giving each thread its own.
+  // Then we don't need to lock _histo etc.
+  std::array<std::int64_t, 3> used = _usedPartOfBrick
+    (this->_bricksize, this->_surveysize, inpos[input_buffer_num], /*lod=*/0);
+  _accumulateAndStore(indata[input_buffer_num], used);
+}
+
+
+/**
+ * See also ZgyInternalBulk::readConstantValue().
+ * Much of the logic is the same. And not entirely trivial.
+ */
+bool /*static*/
+GenLodImpl::areAllEightSameConst(
+     const std::vector<std::shared_ptr<DataBuffer>>& indata,
+     std::int64_t ipos)
+{
+  if (indata.size() < (std::size_t)ipos + 8)
+    throw OpenZGY::Errors::ZgyInternalError("Buffer overrun prevented");
+  for (std::int64_t ix = ipos; ix < ipos + 8; ++ix)
+    if (!indata[ix]->isScalar())
+      return false;
+  const double value = indata[ipos]->scalarAsDouble();
+  if (std::isnan(value)) {
+    for (std::int64_t ix = ipos + 1; ix < ipos + 8; ++ix)
+      if (!std::isnan(indata[ix]->scalarAsDouble()))
+        return false;
+  }
+  else {
+    for (std::int64_t ix = ipos + 1; ix < ipos + 8; ++ix)
+      if (indata[ix]->scalarAsDouble() != value)
+        return false;
+  }
+  return true;
+}
+
+/**
+ * EXPERIMENTAL!
+ *
+ * Generate and store statistics, histogram, and low resolution
+ * bricks for the entire survey using plan A.
+ *
+ * See doc/lowres.html for a description of the plans. For compressed
+ * files, plan A is discouraged because the higher LOD levels will
+ * accumulate a lot of noise.
+ *
+ * The main point of this exercise is to experiment with processing
+ * individual bricks instead of reshaping to a single region,
+ * processing, and reshaping back. If that works, the change should be
+ * applied to the existing plan C as well. (Which will be more
+ * complicated). The plan A code will probably be thrown away. But if
+ * really desperate for performance tweaks, plan A and C might both be
+ * maintained. Plan A to be used for uncompressed on-prem and possibly
+ * uncompressed cloud. Plan C for the rest.
+ *
+ * TODO-WIP-BrickedAPI: Add support for incremental generation. This
+ * is to get a prettier progress bar in Petrel. At the cost of
+ * slightly non-deterministic LOD levels. And slightly less
+ * performance when or if the file is read back from the cloud.
+ *
+ * \internal
+ *
+ * TODO-WIP-BrickedAPI: Experiment with several ways of iterating over
+ * the data and of dealing with threading.
+ *
+ * The I/O layer could be asked to read several bricks at a time,
+ * optionally splitting and parallelizing the request on one hand, and
+ * consolidating reads and joining them on the other. Or the iteration
+ * and multi-threading could be done in this function. On-prem, my gut
+ * feeling is to read and write as little data as possible in each
+ * iteration, but it probably won't matter much either way. For cloud
+ * access the reads need to process as much data as possible in each
+ * call. So, if desperate for performance, we might implement
+ * different strategies for cloud and on-prem.
+ *
+ * Iteration will be:
+ *   for each 2x2 brick columns in, 1 half-height brick column out:
+ *     for each 2x2x2 bricks in, 1 brick out:
+ *       for each brick in, writing to 1/8th of an output brick buffer:
+ *         decimate one brick of data
+ *         accumulate statistics for one brick of data.
+ *
+ * To simplify the code, the number of bricks in a vertical column
+ * will be rounded up to make it even.
+ *
+ * Reading and writing could be done in any of these layers:
+ *
+ *  - Entire 2x2 brick columns in, 1 half-height brick column out.
+ *    Buffer size depend on the lod level (height of brick column).
+ *    Maximum is lod0 with 4*lod0 vertical size, 1*lod1 vertical size
+ *    rounded up to make the input size even. Output size is 8*input.
+ *  - 2x2x2 bricks in, 1 brick out. Requires 9 bricks of buffers.
+ *  - 1 brick in, 1 brick (buffered) out. Requires 2 bricks of buffers.
+ *
+ * Multi-threading could also be done in any of those layers. And it
+ * is possible to use nested parallel loops. So, technically there are
+ * 3 possibilities for I/O and 8 for multi-threading, 24 in total.
+ * Technically even more. E.g. process N groups of 8+1 bricks with N
+ * more than one but small enough to handle less that one
+ * brick-column.
+ *
+ * Multi-threading as much as possible means handling one brick per
+ * thread, and 4 brick-columns per task. With a typical survey of
+ * 1024 samples per trace, 4 brick-columns at lod0 would contain
+ * 64 bricks.  So, 64 threads unless parallelFor restricts it.
+ *
+ * Note, the unfinished DataBufferListInfo might help with handling
+ * arbitrary regions.
+ *
+ * TODO-WIP-BrickedAPI: Possible shortcut.
+ * When processing 8 bricks in, 1 brick out, check whether each of the
+ * inputs are scalar and all have the same value. If so, just copy the
+ * first input brick to the output brick. Making the output scalar as
+ * well. And do the short cut handling for histogram and statistics.
+ * This short cut might be important for incremental LOD generation.
+ *
+ * TODO-WIP-BrickedAPI: Possible shortcut. Need unit test in any case.
+ * If one (but not all) input is scalar, fill the corresponding 1/8 of
+ * the output with the scalar value and don't call any decimation
+ * algorithm. This short cut will probably be required once the brick
+ * API is fully implemented and can return scalars. This short cut
+ * might belong in createLod() and not here. Also do a similar quick
+ * handling of histogram and statistics.
+ *
+ * TODO-WIP-BrickedAPI: Possible shortcut.
+ * After producing one regular output brick, check to see if it can be
+ * replaced with a scalar. Not really needed in plan A, but plan C
+ * might benefit a lot. In plan A, the write and read-back will take
+ * care of it. The test is cheap if it fails, because isAllSame()
+ * should return very quickly. And if it succeeds, it just proved
+ * itself to be useful.
+ *
+ * TODO-WIP-BrickedAPI: If the user writes a constant value to the
+ * entire survey, then all bricks, even those which are normally
+ * padded, will be scalars. The problem is that bricks completely
+ * outside the survey will be scalar with the default value which
+ * is normally zero, while inside bricks will have the user's
+ * scalar. This would lead to regular bricks in low res data even
+ * though there are none in lod0.
+ *
+ * TODO-WIP-BrickedAPI: For incremental lod generation, a significant
+ * improvement is possible in plan A. If 1 to 7 of a group of 8 bricks
+ * is flagged as clean, then do a read/modify/write by reading the old
+ * values into the output buffer, and then skippig the green input
+ * bricks. Note that this gets a bit complicated, because the reads
+ * from the output lod level ought to be grouped together into a single
+ * read. Tip: Keep the vectors the same size as today. Use a pos of
+ * (0, 0, -bs[0]) as a placeholder for "do not read". This works
+ * better if read can return actual scalar buffers, which should be
+ * fairly straight forward in the outside survey case. Not implemented
+ * as of this comment.
+ */
+std::tuple<std::shared_ptr<StatisticData>, std::shared_ptr<HistogramData>>
+GenLodImpl::callNewVersion()
+{
+  const index3_t bs = _bricksize;
+  const std::int64_t in_brickcolumn_lod1 =
+    (_surveysize[2] + (2 * bs[2] - 1)) / (2 * bs[2]);
+  const std::int64_t all_buffer_count = 9 * in_brickcolumn_lod1;
+  std::vector<std::shared_ptr<DataBuffer>> all_buffers;
+  for (int ii = 0; ii < all_buffer_count; ++ii)
+    all_buffers.push_back(DataBuffer::makeNewBuffer3d(_bricksize, _dtype));
+
+  // Dry run to help progress report. Maybe move to _willneed().
+  // For a full build using plan A, I don't really need the loop.
+  // That is a trivial computation. For incrementals, not so much.
+  std::int64_t need{0};
+  for (int out_lod = 1; out_lod < this->_nlods; ++out_lod) {
+    const std::int64_t lodfactor = std::int64_t(1) << out_lod;
+    const index3_t out_surveysize =
+      (this->_surveysize + (lodfactor - 1)) / lodfactor;
+    for (std::int64_t ii = 0; ii < out_surveysize[0]; ii += bs[0]) {
+      for (std::int64_t jj = 0; jj < out_surveysize[1]; jj += bs[1]) {
+        for (std::int64_t kk = 0; kk < out_surveysize[2]; kk += bs[2]) {
+          // Handle 8 input bricks, one output brick.
+          need += 9;
+        }
+      }
+    }
+  }
+  // End dry run
+  this->_reporttotal(need);
+  this->_report(nullptr);
+
+  for (int out_lod = 1; out_lod < this->_nlods; ++out_lod) {
+    if (_logger(2, ""))
+      _logger(2, std::stringstream() << "  Create LOD " << out_lod);
+    const LodAlgorithm algorithm =
+      _decimation[std::min(out_lod-1, (int)_decimation.size()-1)];
+    const std::int64_t lodfactor = std::int64_t(1) << out_lod;
+    const index3_t out_surveysize =
+      (this->_surveysize + (lodfactor - 1)) / lodfactor;
+    const index3_t out_surveybricks
+    {(out_surveysize[0] + (bs[0] - 1)) / bs[0],
+     (out_surveysize[1] + (bs[1] - 1)) / bs[1],
+     (out_surveysize[2] + (bs[2] - 1)) / bs[2]};
+    for (std::int64_t pos0 = 0; pos0 < out_surveybricks[0]; ++pos0) {
+      for (std::int64_t pos1 = 0; pos1 < out_surveybricks[1]; ++pos1) {
+        processFourInputColumnsOneLod
+          (out_lod, pos0, pos1, out_surveybricks[2], algorithm, all_buffers);
+      }
+    }
+  }
+  clearLodTimers(true);
+  return std::make_tuple(this->_stats, this->_histo);
+}
+
+/**
+ * Compute and write out low resolution bricks for level "lod" and coordinates
+ * i.e. brick numbers in "lod" (pos0, pos1, 0) to (pos0, pos1, zcount-1).
+ */
+void
+GenLodImpl::processFourInputColumnsOneLod(
+     const int out_lod,
+     const std::int64_t pos0,
+     const std::int64_t pos1,
+     const std::int64_t zcount,
+     const LodAlgorithm algorithm,
+     const std::vector<std::shared_ptr<DataBuffer>>& all_buffers)
+{
+  const index3_t bs = _bricksize;
+  if ((std::int64_t)all_buffers.size() < 9 * zcount)
+    throw OpenZGY::Errors::ZgyInternalError("Buffer overrun prevented");
+  std::vector<std::shared_ptr<DataBuffer>> level_outbuffers
+    (all_buffers.begin(), all_buffers.begin() + zcount);
+  std::vector<std::shared_ptr<DataBuffer>> level_inbuffers
+    (all_buffers.begin() + zcount, all_buffers.begin() + 9 * zcount);
+  std::vector<index3_t> ipos;
+  std::vector<index3_t> opos;
+  // Handle 4 input brick columns, 1 half height output column.
+  for (std::int64_t pos2 = 0; pos2 < zcount; ++pos2) {
+    opos.push_back(index3_t{pos0*bs[0],pos1*bs[1],pos2*bs[2]});
+    // Handle 8 input bricks, one output brick.
+    for (std::int64_t subi = 0; subi < 2; ++subi) {
+      for (std::int64_t subj = 0; subj < 2; ++subj) {
+        for (std::int64_t subk = 0; subk < 2; ++subk) {
+          ipos.push_back(index3_t
+            {(2*pos0+subi)*bs[0], (2*pos1+subj)*bs[1], (2*pos2+subk)*bs[2]});
+        }
+      }
+    }
+  }
+  // Handle 4 input brick columns, 1 half height output column.
+  std::vector<std::shared_ptr<DataBuffer>> indata =
+    _readbricks(ipos, level_inbuffers, out_lod - 1);
+  // Handle the case where all 8 inputs of the lowres brick have
+  // the same constant value.
+  // TODO-WIP-BrickedAPI: Handle the case where some bricks are
+  // completely outside the survey, and disagree about sample values.
+  std::vector<bool> same;
+  for (std::int64_t ix = 0; ix < zcount; ++ix) {
+    same.push_back(areAllEightSameConst(indata, ix * 8));
+  }
+  WorkOrderRunner::parallelFor(8 * zcount,
+    [this,&level_outbuffers,&indata,&ipos,algorithm,out_lod,&same]
+    (std::int64_t part)
+    {
+      // Handle 1 input brick, saving the result to 1/8th of an output brick.
+      // Or, handle 8 identical scalar bricks by making the output scalar.
+      if (out_lod == 1) {
+        accumulateOneInputBrick(indata, ipos, part);
+      }
+      if (same[part/8]) {
+        if ((part % 8) == 0) {
+          level_outbuffers[part/8] = indata[part];
+        }
+      }
+      else {
+        decimateOneInputBrick(level_outbuffers, indata, part, algorithm);
+      }
+    });
+  // Write 1 half height output column made from 4 input columns.
+  _writebricks(opos, level_outbuffers, out_lod);
+}
+
+/**
+ * A file consisting of just a single low resolution brick and thus
+ * no low resolution levels will need special handling in plan A.
+ * Collecting statistics and histogram is normally done while creating
+ * lod 1 from lod 0. Which is not done in this corner case.
+ *
+ * Call this version if _nlods == 1.
+ */
+std::tuple<std::shared_ptr<StatisticData>, std::shared_ptr<HistogramData>>
+GenLodImpl::callSingleBrick()
+{
+  if (_surveysize[0] > _bricksize[0] ||
+      _surveysize[1] > _bricksize[1] ||
+      _surveysize[2] > _bricksize[2])
+  {
+    throw OpenZGY::Errors::ZgyInternalError
+      ("This file was expected to have just one brick.");
+  }
+  this->_reporttotal(1);
+  this->_report(nullptr);
+  std::vector<std::array<std::int64_t, 3>> positions{{0, 0, 0}};
+  std::vector<std::shared_ptr<DataBuffer>> bricks;
+  bricks.push_back(DataBuffer::makeNewBuffer3d(_bricksize, _dtype));
+  bricks = _readbricks(positions, bricks, 0);
+  accumulateOneInputBrick(bricks, positions, 0);
+  clearLodTimers(true);
+  return std::make_tuple(this->_stats, this->_histo);
+}
+
+/**
+ * Collect histogram and statistics for one C-contiguous buffer.
+ *
+ * Caller passes the size of the region of interest. In the old
+ * code the buffer only contains valid samples, so in that case
+ * the roi is just the buffer's size. In the brick based version
+ * we need to take edge bricks into account.
+ *
+ * Caller passes the histogram builder that will contain the result.
+ * Normally this will be a newly created and empty builder:
+ * HistogramBuilder hb(256, _histogram_range[0], _histogram_range[1]);
+ * It would perhaps look cleaner to allocate it here and return the
+ * result. But this way might give *slightly* better performance
+ * due to less allocatopn inside a parallel region. Also, the histogram
+ * range can now be hard coded at a higher level.
+ *
+ * Note that we never allow the histogram to grow dynamically.
+ * That was a problematic feature of the old accessor.
+ */
 template <typename T>
 void
-GenLodImpl::_accumulateT(const std::shared_ptr<const DataBuffer>& data_in)
+GenLodImpl::_accumulateT(
+     const std::shared_ptr<const DataBuffer>& data_in,
+     const index3_t& roi,
+     std::shared_ptr<HistogramBuilder> builder,
+     bool fake,
+     bool use_plan_a,
+     std::int64_t *written)
 {
   std::shared_ptr<const DataBufferNd<T,3>> data =
     std::dynamic_pointer_cast<const DataBufferNd<T,3>>(data_in);
-  if (!data)
+  if (!data || !builder || (roi[0] * roi[1] * roi[2]) == 0)
     return;
-  if (!this->_stats || !this->_histo)
-    return; // Probably because _skip_histogram was set.
-  // Note that we never allow the histogram to grow dynamically;
-  // that was a problematic feature of the old accessor.
-  SimpleTimerEx tt(_timer_histogram);
-  HistogramBuilder hb(256, _histogram_range[0], _histogram_range[1]);
-  std::int64_t len = data->size3d()[0] * data->size3d()[1] * data->size3d()[2];
-  if (this->_skip_histogram) {
+  const std::int64_t len = roi[0] * roi[1] * roi[2];
+  const bool sparse =
+    (data->size3d()[0] != roi[0] ||
+     data->size3d()[1] != roi[1] ||
+     data->size3d()[2] != roi[2]);
+  if (fake) {
     // Keep track of very coarse statistics and histogram, by using just
     // the first sample of each brick and pretending this is const value.
     // This gets rid of 99.99% of the overhead but leaves enough to avoid
     // some corner cases. NOTE that the bogus statistics should be removed
     // as soon as genlod finishes. See GenLodImpl::GenLodImpl() for whether
     // we can ever get here.
-    hb.add(data->data(), data->data() + 1);
-    hb *= len;
-    _timer_histogram.addBytesRead(sizeof(T));
+    builder->add(data->data(), data->data() + 1);
+    *builder *= len;
+    *written = sizeof(T);
   }
   else if (data->isScalar()) {
-    hb.add(data->data(), data->data() + 1);
-    hb *= len;
-    _timer_histogram.addBytesRead(sizeof(T));
+    builder->add(data->data(), data->data() + 1);
+    *builder *= len;
+    *written = sizeof(T);
+  }
+  else if (numthreads_histogram() > 1 && !use_plan_a && !sparse) {
+    std::mutex m;
+    const int numthreads = numthreads_histogram();
+    // TODO allocate the histogram builders outside the loop
+    // to avoid the need to lock.
+    WorkOrderRunner::parallelFor(numthreads, [&](std::int64_t part)
+      {
+        const std::int64_t len_per_thread = (len + numthreads - 1) / numthreads;
+        const std::int64_t mystart = part * len_per_thread;
+        const std::int64_t myend = std::min((part+1) * len_per_thread, len);
+        HistogramBuilder hb2
+          (builder->gethisto().getsize(),
+            builder->gethisto().getmin(),
+            builder->gethisto().getmax());
+        hb2.add(data->data() + mystart, data->data() + myend);
+        std::lock_guard<std::mutex> lck(m);
+        *builder += hb2;
+      });
+    *written = (sizeof(T) * len);
+  }
+  else if (sparse) {
+    InternalZGY::EdgeBrick<const T> brick(data->data(), data->size3d(), roi);
+    builder->add(brick.begin(), brick.end());
+    *written = (sizeof(T) * len);
   }
   else {
-    hb.add(data->data(), data->data() + len);
-    _timer_histogram.addBytesRead(sizeof(T) * len);
+    builder->add(data->data(), data->data() + len);
+    *written = (sizeof(T) * len);
   }
-  *this->_stats += hb.getstats();
-  *this->_histo += hb.gethisto();
 }
 
 /**
@@ -419,22 +956,58 @@ GenLodImpl::_accumulateT(const std::shared_ptr<const DataBuffer>& data_in)
  * so it might as well not be collected it in the first place.
  */
 void
-GenLodImpl::_accumulate(const std::shared_ptr<const DataBuffer>& data)
+GenLodImpl::_accumulate(
+     const std::shared_ptr<const DataBuffer>& data,
+     const index3_t& roi,
+     std::shared_ptr<HistogramBuilder> builder,
+     bool fake,
+     bool use_plan_a,
+     std::int64_t *written)
 {
   if (!data)
     return;
-  if (_incremental)
-    return;
   switch (data->datatype()) {
-  case RawDataType::SignedInt8:    _accumulateT<std::int8_t>(data); break;
-  case RawDataType::UnsignedInt8:  _accumulateT<std::uint8_t>(data); break;
-  case RawDataType::SignedInt16:   _accumulateT<std::int16_t>(data); break;
-  case RawDataType::UnsignedInt16: _accumulateT<std::uint16_t>(data); break;
-  case RawDataType::SignedInt32:   _accumulateT<std::int32_t>(data); break;
-  case RawDataType::UnsignedInt32: _accumulateT<std::uint32_t>(data); break;
-  case RawDataType::Float32:       _accumulateT<float>(data); break;
+  case RawDataType::SignedInt8:    _accumulateT<std::int8_t>(data, roi, builder, fake, use_plan_a, written); break;
+  case RawDataType::UnsignedInt8:  _accumulateT<std::uint8_t>(data, roi, builder, fake, use_plan_a, written); break;
+  case RawDataType::SignedInt16:   _accumulateT<std::int16_t>(data, roi, builder, fake, use_plan_a, written); break;
+  case RawDataType::UnsignedInt16: _accumulateT<std::uint16_t>(data, roi, builder, fake, use_plan_a, written); break;
+  case RawDataType::SignedInt32:   _accumulateT<std::int32_t>(data, roi, builder, fake, use_plan_a, written); break;
+  case RawDataType::UnsignedInt32: _accumulateT<std::uint32_t>(data, roi, builder, fake, use_plan_a, written); break;
+  case RawDataType::Float32:       _accumulateT<float>(data, roi, builder, fake, use_plan_a, written); break;
   case RawDataType::IbmFloat32:
   default: throw OpenZGY::Errors::ZgyInternalError("Unrecognized type enum");
+  }
+}
+
+/**
+ * This is the old version of _accumulate() that stores its result directly
+ * into the instance. It does not support sparse buffers. It is not thread safe.
+ *
+ * As a very temporary kludge, make it somewhat thread safe by using a private,
+ * static lock.
+ *
+ * TODO-WIP-BrickedAPI: Stats and histo will need to be synchronized if this
+ * is called from multiple threads instead of having _accumulateT doing
+ * multi-threading itself. Does it also need to be synchronized between
+ * readers and writers?
+ */
+void
+GenLodImpl::_accumulateAndStore(
+     const std::shared_ptr<const DataBuffer>& data,
+     const index3_t& used)
+{
+  if (data && _stats && _histo && !_incremental) {
+    SimpleTimerEx tt(_timer_histogram);
+    auto builder = std::make_shared<HistogramBuilder>
+      (256, this->_histogram_range[0], _histogram_range[1]);
+    std::int64_t bytes_written{0};
+    _accumulate(data, used, builder, _skip_histogram, _use_plan_a(), &bytes_written);
+    _timer_histogram.addBytesWritten(bytes_written);
+    // TODO-WIP-BrickedAPI: Dependency between seemingly unrelated files.
+    static std::mutex mut;
+    std::lock_guard<std::mutex> lck(mut);
+    *this->_stats += builder->getstats();
+    *this->_histo += builder->gethisto();
   }
 }
 
@@ -561,7 +1134,8 @@ GenLodImpl::_calculate(const index3_t& readpos_in, const index3_t& readsize_in, 
     // Fullres bricks are always read, not calculated.
     data = this->_read(readlod, readpos, readsize);
     wasread = true;
-    this->_accumulate(data);
+    // When called from here, padding is already stripped off.
+    this->_accumulateAndStore(data, data->size3d());
   }
   else {
     std::array<std::int64_t,3> offsets[4] =
@@ -684,6 +1258,7 @@ GenLodImpl::_decimate(const std::shared_ptr<const DataBuffer>& data, std::int64_
     // c-contiguous buffers, and odd survey size.
     // TODO-Medium missing _wa_defaultstorage.
     createLod(result, data, algorithm,
+              /*linear_output_offset=*/0,
               _wa_histogram->getbins(),
               _wa_histogram->getsize(),
               _wa_histogram->getmin(),
@@ -1140,6 +1715,61 @@ GenLodC::_write(
     _accessor->writeRegion(unconst_data, pos, lod, /*is_storage=*/true, _lodcompressor);
     _report(data.get());
   }
+}
+
+std::vector<std::shared_ptr<DataBuffer>>
+GenLodC::_readbricks(
+     const std::vector<std::array<int64_t,3>>& position,
+     const std::vector<std::shared_ptr<DataBuffer>>& data_in,
+     int lod) const
+{
+  std::vector<std::shared_ptr<DataBuffer>> data(data_in);
+  // TODO-WIP-BrickedAPI: use readBricksToNewBuffers.
+  // Which may get a list of buffer hints.
+  if (!data.empty()) {
+    data = _accessor->readBricksToNewBuffers(position, data, lod, /*as_float=*/false, /*check_constant=*/false);
+    _report(data[0].get(), data.size());
+    // TODO-WIP-BrickedAPI: fix the report if bricks can be nullptr.
+    // This would complicate things with _willneed() etc.
+  }
+  return data;
+}
+
+void
+GenLodC::_writebricks(
+     const std::vector<std::array<int64_t,3>>& position,
+     const std::vector<std::shared_ptr<DataBuffer>>& data,
+     int lod) const
+{
+  if (!data.empty()) {
+    _accessor->writeBricksInternal
+      (position, data, lod,
+       /*is_storage=*/true, _lodcompressor,
+       /*statistics_done=*/false, /*immutable_buffer=*/false);
+    _report(data[0].get(), data.size());
+  }
+}
+
+/**
+ * This is a serious kludge used by the performance work in progress.
+ * TODO-WIP-BrickedAPI: get rid of this.
+ * Return true if we date call the new code. This might depend on
+ * internal details that genlod really shouldn't care about,
+ * and that are only available in the GenLodC class which knows
+ * about the file accessor.
+ */
+bool
+GenLodC::_use_plan_a() const
+{
+  if (plan_a() < 1)
+    return false;
+  if (_lodcompressor && plan_a() < 2)
+    return false;
+  if (_accessor->isCloud() && plan_a() < 2)
+    return false;
+  if (_incremental && plan_a() < 3)
+    return false;
+  return true;
 }
 
 } // namespace

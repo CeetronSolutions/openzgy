@@ -57,9 +57,9 @@ public:
   virtual float32_t      zinc()           const {return 4;}
   virtual std::array<float32_t,2> annotstart() const {return std::array<float32_t,2>{1,1};}
   virtual std::array<float32_t,2> annotinc()   const {return std::array<float32_t,2>{1,1};}
-  virtual const corners_t corners()      const {static corners_t result{0}; return result;}
-  virtual const corners_t indexcorners() const {static corners_t result{0}; return result;}
-  virtual const corners_t annotcorners() const {static corners_t result{0}; return result;}
+  virtual const corners_t corners()      const {static corners_t result{{{0,0},{0,0},{0,0},{0,0}}}; return result;}
+  virtual const corners_t indexcorners() const {static corners_t result{{{0,0},{0,0},{0,0},{0,0}}}; return result;}
+  virtual const corners_t annotcorners() const {static corners_t result{{{0,0},{0,0},{0,0},{0,0}}}; return result;}
   virtual size3i_t       bricksize()      const {return size3i_t{64,64,64};}
   virtual std::vector<size3i_t> brickcount() const {throw std::runtime_error("brickcount() has not been mocked");}
   virtual int32_t        nlods()          const {throw std::runtime_error("nlods() has not been mocked");}

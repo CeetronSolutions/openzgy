@@ -179,7 +179,7 @@ public:
     , zinc(0)
     , annotstart{0,0}
     , annotinc{0,0}
-    , corners{ {{0}} }
+    , corners{{{0,0},{0,0},{0,0},{0,0}}}
     , have_size(false)
     , have_bricksize(false)
     , have_datatype(false)
@@ -218,6 +218,7 @@ class IHistHeaderAccess;
 class IHeaderAccess
 {
 public:
+  virtual ~IHeaderAccess();
   typedef std::vector<std::uint8_t> podbytes_t;
   virtual podbytes_t podbytes() const = 0;
   virtual void dump(std::ostream& out, const std::string& prefix = "") = 0;

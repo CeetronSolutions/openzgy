@@ -260,7 +260,7 @@ random_double_vector(std::size_t size)
  * number of milliseconds but varying between half and double the
  * specified time.
  */
-void
+int
 random_delay(int ms)
 {
   static auto seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -268,6 +268,7 @@ random_delay(int ms)
   std::uniform_int_distribution<int> distribution(ms/2, ms*2);
   int sleeptime = distribution(generator);
   std::this_thread::sleep_for(std::chrono::milliseconds(sleeptime));
+  return sleeptime;
 }
 
 #ifdef HAVE_SD

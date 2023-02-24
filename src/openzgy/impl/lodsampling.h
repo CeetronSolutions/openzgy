@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include "../declspec.h"
+
 namespace InternalZGY {
 #if 0
 }
@@ -30,7 +32,7 @@ namespace InternalZGY {
  * \brief Static methods for downsampling. Used by lodalgo.cpp only.
  * \details Thread safety: Safe because this is a static class with no data.
  */
-class LodSampling
+class OPENZGY_TEST_API LodSampling
 {
   LodSampling() = delete;
   LodSampling(const LodSampling&) = delete;

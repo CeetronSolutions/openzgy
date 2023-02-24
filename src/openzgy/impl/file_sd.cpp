@@ -175,14 +175,14 @@ public:
   void xx_read(void *data, std::int64_t offset, std::int64_t size, UsageHint usagehint=UsageHint::Unknown) override;
   void xx_readv(const ReadList& requests, bool parallel_ok=false, bool immutable_ok=false, bool transient_ok=false, UsageHint usagehint=UsageHint::Unknown) override;
   void xx_write(const void* data, std::int64_t offset, std::int64_t size, UsageHint usagehint=UsageHint::Unknown) override;
-  void xx_close();
-  std::int64_t xx_eof() const;
+  void xx_close() override;
+  std::int64_t xx_eof() const override;
   std::vector<std::int64_t> xx_segments(bool complete) const override;
   bool xx_iscloud() const override;
   // Functions from IFileBase
-  virtual void deleteFile(const std::string& filename, bool missing_ok) const;
-  virtual std::string altUrl(const std::string& filename) const;
-  virtual std::string idToken() const;
+  void deleteFile(const std::string& filename, bool missing_ok) const override;
+  std::string altUrl(const std::string& filename) const override;
+  std::string idToken() const override;
 private:
   void do_write_one(const void*  const data, const std::int64_t blocknum, const std::int64_t size, const bool overwrite);
   void do_write_many(const void*  const data, const std::int64_t blocknum, const std::int64_t size, const std::int64_t blobsize, const bool overwrite);
@@ -1116,7 +1116,7 @@ SDGenericDatasetWrapper::~SDGenericDatasetWrapper()
   // never need to refresh the token after this->dataset_ has been
   // closed. But, better to be safe.
   if (tokenrefresh2_ && manager_) {
-    if (!manager_.unique() && logger_(0, ""))
+    if (manager_.use_count() != 1 && logger_(0, ""))
       logger_(0, "Manager not unique! Disable the auth callback");
     else if (logger_(1, ""))
       logger_(1, "Routinely disable the auth callback");

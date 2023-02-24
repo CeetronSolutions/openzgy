@@ -79,6 +79,10 @@ private: // non-inlined versions of operations
   long long getNativeTime();
   long long getNativeFrequency();
 
+private:
+  struct TimerInfoTag {};
+  Timer(const TimerInfoTag&);
+
 public:
   Timer(bool enable = true, const char* name = 0, int skip = 0, bool startrunning = true);
 

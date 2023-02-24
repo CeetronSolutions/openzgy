@@ -35,7 +35,14 @@ include Make.packages
 
 OPTIMIZE     = -O3
 CXXFLAGS     =
-CXXFLAGS    += -Wall -std=c++11 -fPIC -Wno-deprecated -Wno-unknown-pragmas -fopenmp -DLINUX -g
+ifeq ($(strip $(LINUXDISTRO)),clang)
+CC           = clang
+CXX          = clang++
+CXXFLAGS    += -std=c++20 -fopenmp=libomp
+else
+CXXFLAGS    += -std=c++11 -fopenmp
+endif
+CXXFLAGS    += -Wall -fPIC -Wno-deprecated -Wno-unknown-pragmas -DLINUX -g
 CXXFLAGS    += $(OPTIMIZE)
 #CXXFLAGS    += -fno-strict-aliasing -fno-tree-vectorize
 
@@ -46,6 +53,9 @@ TESTDATARW   = $(BUILDROOT)/build/testdata
 
 LIB =
 LIB += $(ORIGIN)
+ifeq ($(strip $(LINUXDISTRO)),clang)
+LIB += -fuse-ld=lld -latomic
+endif
 
 CXXFLAGS += $(SD_CXXFLAGS) $(ZFP_CXXFLAGS)
 
@@ -224,8 +234,8 @@ $(BIN_DIR)/test_all: $(TEST_OBJ) $(LIBDSO) $(SD_SENTINEL) $(ZFP_SENTINEL)
 # which would need several hacks to work. Because there are object
 # files that register with various factories when the code is loaded.
 # Those won't be pulled in from the archive.
-$(BIN_DIR)/zgycopyc: $(OBJ_DIR)/tools/zgycopyc.o $(OBJ_DIR)/test/mock.o $(LIBDSO)
-	$(CXX) -o $@ $(CXXFLAGS) -fopenmp $(OBJ_DIR)/tools/zgycopyc.o $(OBJ_DIR)/test/mock.o $(MAIN_OBJ) $(SD_LIBRARY) $(ZFP_LIBRARY) $(LIB)
+$(BIN_DIR)/zgycopyc: $(OBJ_DIR)/tools/zgycopyc.o $(OBJ_DIR)/tools/readwritemirror.o $(OBJ_DIR)/tools/readlodcrop.o $(OBJ_DIR)/test/mock.o $(LIBDSO)
+	$(CXX) -o $@ $(CXXFLAGS) $(OBJ_DIR)/tools/zgycopyc.o $(OBJ_DIR)/tools/readwritemirror.o $(OBJ_DIR)/tools/readlodcrop.o $(OBJ_DIR)/test/mock.o $(MAIN_OBJ) $(SD_LIBRARY) $(ZFP_LIBRARY) $(LIB)
 	@echo Tool $(@F) has been built.
 
 $(BIN_DIR)/zgydumpc: $(OBJ_DIR)/tools/zgydumpc.o $(LIBDSO)
@@ -275,14 +285,16 @@ $(OBJ_DIR)/impl/compress_zfp.o: $(ZFP_SENTINEL)
 # Note: If gcc finds that foo.o depends on inc.h, I will make foo.o, */foo.o
 # depend on inc.h. Yes this is messy but it works and you probably wouldn't
 # have noticed it without my confession.
+# If a build is only housekeeping or documentation, then no compiler
+# generated depenencies are needed.
+REALGOALS = $(filter-out clean clobber doxygen doxyint,$(MAKECMDGOALS))
+$(info Real goals are "$(REALGOALS)")
+ifneq (,$(strip $(REALGOALS)))
 .PHONY: depends
 depends: $(OBJ_DIR)/depends.make
-$(OBJ_DIR)/depends.make: $(ALL_SRC) | $(OBJ_DIR)
+$(OBJ_DIR)/depends.make: $(ALL_SRC) $(SD_SENTINEL) $(ZFP_SENTINEL) | $(OBJ_DIR)
 	$(CXX) -MM $(CXXFLAGS) $(ALL_SRC) > $@
 	sed -i -e 's; [a-zA-Z0-9_-][a-zA-Z0-9_-]*/\.\./; ;g' $@
 	sed -i -e 's;^[a-zA-Z0-9_-][a-zA-Z0-9_-]*\.o;$$(wildcard $$(OBJ_DIR)/& $$(OBJ_DIR)/*/&);' $@
-ifneq ($(MAKECMDGOALS),clean)
-ifneq ($(MAKECMDGOALS),clobber)
 include $(OBJ_DIR)/depends.make
-endif
 endif

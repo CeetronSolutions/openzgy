@@ -122,6 +122,35 @@ public:
       int32_t lod, bool is_storage,
       const compressor_t& compressor);
 
+  std::vector<std::shared_ptr<DataBuffer>>
+  readBricksToNewBuffers(
+      const std::vector<std::array<std::int64_t, 3>>& position_in,
+      const std::vector<std::shared_ptr<DataBuffer>>& data_in,
+      int lod, bool as_float, bool check_constant) const;
+
+  void readBricksInternal(
+       const std::vector<std::array<std::int64_t,3>>& position,
+       const std::vector<std::shared_ptr<DataBuffer>>& data,
+       int lod, bool as_float) const;
+
+  std::vector<std::pair<bool, double>>
+    readConstValueBricks(
+      const std::vector<std::array<std::int64_t, 3>>& position,
+      int32_t lod, bool as_float) const;
+
+  void writeBricksInternal(
+       const std::vector<std::array<std::int64_t,3>>& position,
+       const std::vector<std::shared_ptr<DataBuffer>>& data,
+       int lod, bool is_storage, const compressor_t& compressor,
+       bool statistics_done, bool immutable_buffer);
+
+  void writeConstInternal(
+       const std::vector<std::array<int64_t,3>>& position,
+       const std::shared_ptr<InternalZGY::DataBuffer>& value,
+       bool is_storage);
+
+  bool isCloud() const;
+
 public: // actually internal
 
   bool errorflag() const        { return _is_bad.load(); }
@@ -161,6 +190,11 @@ private:
       const std::array<std::int64_t,3>& start,
       const std::array<std::int64_t,3>& size,
       int32_t lod) const;
+
+  bool _singleBrickOutsideSurvey(
+    const std::array<std::int64_t,3>& start,
+    const std::array<std::int64_t,3>& size,
+    int32_t lod) const;
 
   std::shared_ptr<DataBuffer> _scaleDataToFloat(
       const std::shared_ptr<DataBuffer>& data) const;
@@ -231,6 +265,12 @@ private:
       const std::array<std::int64_t,3>& start,
       std::int32_t lod,
       const compressor_t& compressor);
+
+  void
+  checkBricksInternal(
+       const std::vector<std::array<int64_t,3>>& position,
+       const std::vector<std::shared_ptr<DataBuffer>>& data,
+       bool as_float) const;
 };
 
 } // namespace

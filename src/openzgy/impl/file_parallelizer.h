@@ -33,7 +33,7 @@ public:
   FileParallelizer(const FileParallelizer&)            = delete;
   FileParallelizer& operator=(const FileParallelizer&) = delete;
   virtual ~FileParallelizer();
-  virtual void xx_readv(const ReadList& requests,
+  void xx_readv(const ReadList& requests,
                         bool parallel_ok,
                         bool immutable_ok,
                         bool transient_ok,

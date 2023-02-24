@@ -261,8 +261,8 @@ public:
   std::int64_t itemsize() const override;
   std::array<std::int64_t,3> size3d() const override;
   std::array<std::int64_t,3> stride3d() const override;
-  const ndsize_t& safesize() const {return _size;}
-  const ndsize_t& safestride() const {return _stride;}
+  const ndsize_t& safesize() const {return _size;} // TODO: is nonvirtual deliberate?
+  const ndsize_t& safestride() const {return _stride;} // TODO: is nonvirtual deliberate?
   std::shared_ptr<DataBuffer> clone() const override;
   std::shared_ptr<DataBuffer> scaleToFloat(const std::array<double,2>&) override;
   std::shared_ptr<DataBuffer> scaleToStorage(const std::array<double,2>&, RawDataType) override;

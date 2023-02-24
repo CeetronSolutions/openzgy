@@ -29,6 +29,8 @@
 #include "../impl/environment.h"
 #include "../impl/mtguard.h"
 #include "../iocontext.h"
+#include "readwritemirror.h"
+#include "readlodcrop.h"
 
 #include <iostream>
 #include <sstream>
@@ -43,11 +45,15 @@
 #include <atomic>
 #include <cstring>
 #include <mutex>
+#include <thread>
+#include <chrono>
 #ifndef _WIN32
 #include <signal.h>
 #endif
 
 #ifndef _WIN32
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <getopt.h>
 #define HAVE_GETOPT
@@ -77,6 +83,9 @@ using InternalZGY::SimpleTimerEx;
 using InternalZGY::Environment;
 using InternalZGY::MTGuardWithProgress;
 using OpenZGY::SeismicStoreIOContext;
+using OpenZGY::Tools::ZgyReaderMirror;
+using OpenZGY::Tools::ZgyWriterMirror;
+using OpenZGY::Tools::ZgyReadLodCrop;
 
 /*=========================================================================*/
 /*   OPTION PROCESSING   ==================================================*/
@@ -94,6 +103,103 @@ using OpenZGY::SeismicStoreIOContext;
 #endif
 
 /**
+ * This is for token stored in a file, which is a kludge for testing.
+ *
+ * Assume the token that was written to the file had at least 40
+ * minutes till expiry. If the file is more than 40 minutes old then
+ * assume the token has expired. Actually checking the token would be
+ * a serious pain. Wait for the file to be updated with a new token.
+ * recheck every 30 seconds. Print a reminder every 5 minutes.
+ *
+ * The caller must *either* ensure that it holds a lock causing all
+ * threads in this file descriptor (or alternatively in all files)
+ * to block when this methods sleeps. *Or* uncomment the mutex in the
+ * code below. Using both will increase the risk of deadlocks.
+ * Especially if caller has a per-file mutes while this method has
+ * a global one.
+ *
+ * Note that specifying a token file in a local to local copy is a
+ * bad idea, because the code here will still demand that the file
+ * should be updated regularly. Unless waitForFreshToken() is called
+ * from inside the SDAPI callback.
+ *
+ * Caveats if calling from inside the SDAPI callback:
+ *  - Higher risk of deadlocks because we cannot know what SDAPI is doing.
+ *  - Risk of timeouts if SDAPI expects token callbacks to be quick.
+ *  - Multiple scenarios are possible, depending on timing. All need testing.
+ *     - Both the reader and the writer might be blocked waiting on the file.
+ *     - The reader might block here, with the writer starving for missing data,
+ *     - Probably other scenarios.
+ *
+ * The code assumes that a call to ::time() is a lot cheaper than
+ * ::stat(), and will not check more often that every minute.
+ * Except when waiting for the file to be updated.
+ */
+static void
+waitForFreshToken(const std::string& token, std::int64_t *last_check)
+{
+#ifndef _WIN32
+  static const auto isfile = [](const std::string& s) {
+    return !s.empty() && (s.front() == '/' || s.front() == '\\');
+  };
+  if (isfile(token)) {
+    const std::string filename = token;
+
+    std::int64_t now = (std::int64_t)::time(nullptr);
+    if (now - *last_check < 60)
+      return;
+
+    struct stat st{};
+    for (int loops = 0;; ++loops) {
+      if (::stat(filename.c_str(), &st) >= 0) {
+        now = (std::int64_t)::time(nullptr);
+        std::int64_t age = now - (std::int64_t)st.st_mtime;
+        if (age < 40*60) {
+          if (loops != 0)
+          std::cerr << "Token in \"" << filename << "\""
+                    << " Age is " << age / 60 << " minutes." << std::endl;
+          *last_check = now;
+          return;
+        }
+        if (loops == 0)
+          std::cerr << "\n"; // There is probably a progress bar.
+        if ((loops % 10) == 0)
+          std::cerr << "Waiting for new token in \"" << filename << "\"."
+                    << " Age is " << age / 60 << " minutes." << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(30));
+      }
+      else {
+        // File not found. Treat this the same way as a too old file.
+        if ((loops % 10) == 0)
+          std::cerr << "Waiting for \"" << filename << "\""
+                    << " to be cratated." << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(30));
+      }
+    }
+  }
+  #endif
+}
+
+static void
+waitForTokenInTokenCallback(
+     const std::string& token, std::int64_t *last_check)
+{
+  // NOTE: Only one of waitForTokenInTokenCallback and
+  // waitForTokenInCopyLoop should be enabled.
+  // NOTE, a mutex is held in SDTokenUpdater::operator(). None here.
+  waitForFreshToken(token, last_check);
+}
+
+static void
+waitForTokenInCopyLoop(
+     const std::string& token, std::int64_t *last_check)
+{
+  //static std::mutex mutex;
+  //std::lock_guard<std::mutex> lk(mutex);
+  //waitForFreshToken(token, last_check);
+}
+
+/**
  * Static methods needed for option processing.
  * The entire class cam probably be re-used in other command line
  * applications that copies from some format to ZGY.
@@ -106,7 +212,9 @@ public:
 protected:
   OptionsTools();
   static int geti(const char *str);
+  static double getd(const char *str);
   static std::vector<int> getlist(const char *str);
+  static std::vector<double> getdoublelist(const char *str);
   static std::vector<std::pair<OpenZGY::DecimationType, const char*>> decimationTypes();
   static OpenZGY::DecimationType getDecimationType(const char *name);
   static std::vector<OpenZGY::DecimationType> getDecimationTypes(const char *names);
@@ -152,6 +260,39 @@ OptionsTools::getlist(const char *str)
   return result;
 }
 
+double
+OptionsTools::getd(const char *str)
+{
+  char *end;
+  double result = (strtod(str, &end));
+  if (end == str || *end != '\0')
+    throw std::runtime_error("command line: expected a decimal number, found \"" + std::string(str) + "\"");
+  return result;
+}
+
+/**
+ * Parse a list of decimal numbers separated by comma or x
+ */
+std::vector<double>
+OptionsTools::getdoublelist(const char *str)
+{
+  std::vector<double> result;
+  if (str && *str) {
+    for (;;) {
+      char *end;
+      result.push_back(strtod(str, &end));
+      if (end == str)
+        throw std::runtime_error("command line: expected a decimal number, found \"" + std::string(str) + "\"");
+      if (*end != '\0' && *end != 'x' && *end != ',')
+        throw std::runtime_error("command line: numbers should be separated by comma or x, not '" + std::string(end).substr(0,1) + "'");
+      if (*end == '\0')
+        break;
+      str = end + 1;
+    }
+  }
+  return result;
+}
+
 std::vector<std::pair<OpenZGY::DecimationType, const char*>>
 OptionsTools::decimationTypes()
 {
@@ -159,6 +300,7 @@ OptionsTools::decimationTypes()
   static std::vector<std::pair<DecimationType, const char*>> result
     {
      {DecimationType::LowPass,"LowPass"},
+     {DecimationType::LowPassNew,"LowPassNew"},
      {DecimationType::WeightedAverage,"WeightedAverage"},
      {DecimationType::Average,"Average"},
      {DecimationType::Median,"Median"},
@@ -258,7 +400,8 @@ OptionsTools::showFinalizeAction(const finalize_t& finalize)
  * Specific to zgycopyc, used for testing OpenZGY itself.
  *   --alpha, --lod, --dumpsqnr (actually not implemented yet)
  *   --update, --size, --noise
- * Specific to zgycopyc because it uded OpenMP.
+ *   --lod, --cropstart, --cropsize, --mirror, (--upsample)
+ * Specific to zgycopyc because it uses OpenMP.
  *   --omp-nest
  * Features specific to zgycopyc, no explicit option.
  *   (Allow updating token during a long copy)
@@ -301,6 +444,10 @@ public:
   std::array<std::int64_t,3> chunksize;
   std::array<std::int64_t,3> obricksize;
   OpenZGY::SampleDataType osamplesize;
+  std::array<int,3>       mirror;
+  std::array<float,3>     upsample;
+  std::array<std::int64_t,3> cropstart;
+  std::array<std::int64_t,3> cropsize;
   std::vector<OpenZGY::DecimationType> algorithm;
   finalize_t finalize;
   int lod;                      // Still unused. Maybe not useful.
@@ -350,6 +497,10 @@ Options::Options(int argc, char **argv)
   , chunksize(std::array<std::int64_t,3>{64,256,0})
   , obricksize(std::array<std::int64_t,3>{64,64,64})
   , osamplesize(OpenZGY::SampleDataType::unknown)
+  , mirror(std::array<int,3>{1,1,1})
+  , upsample(std::array<float,3>{1,1,1})
+  , cropstart(std::array<std::int64_t,3>{-1,-1,-1})
+  , cropsize(std::array<std::int64_t,3>{-1,-1,-1})
   , algorithm()
   , finalize(std::make_pair(OpenZGY::FinalizeAction::BuildDefault, false))
   , lod()
@@ -397,9 +548,13 @@ Options::help(const std::string& myname)
      "-b, --bricksize  I,J,K:    Chunk size when copying. E.g. 64x64x64 samples.",
      "-B, --obricksize I,J,K     Brick size in output. E.g. 64x64x64 samples.",
      "-O, --osamplesize type     Output float int16, or int8.",
+     "-M, --mirror     I,J,K     Fake a larger survey by mirroring.",
+     "-S, --upsample   I,J,K     Fake a larger survey by upsampling with sinc.",
+     "-c, --cropstart  I,J,K     Crop from this position. Default center.",
+     "-C, --cropsize   I,J,K     Crop to this size.",
      "-g, --algorithm  1,2,N:    LOD algorithms as 3 int: lod1,lod2,lodN.",
      "-f, --finalize   type      full, incremental, keep, etc.",
-     //"-l, --lod        N:       *Level of detail, 0 = full resolution.",
+     "-l, --lod        N:       *Level of detail, 0 = full resolution.",
      "-t, --threads    N:        Number of threads to use for reading.",
      "-T, --uthreads   N:        As -t but writes may be unordered",
      "-n, --brickcount N:        Only copy the first N bricks.",
@@ -463,6 +618,30 @@ Options::show(std::ostream& os) const
        << obricksize[1] << "x"
        << obricksize[2] << " ";
 
+  if (mirror[0] != 1 || mirror[1] != 1 || mirror[2] != 1)
+    os << "--mirror "
+       << mirror[0] << "x"
+       << mirror[1] << "x"
+       << mirror[2] << " ";
+
+  if (upsample[0] != 1 || upsample[1] != 1 || upsample[2] != 1)
+    os << "--upsample "
+       << upsample[0] << "x"
+       << upsample[1] << "x"
+       << upsample[2] << " ";
+
+  if (cropstart[0] >= 0 || cropstart[1] >= 0 || cropstart[2] >= 0)
+    os << "--cropstart "
+       << cropstart[0] << "x"
+       << cropstart[1] << "x"
+       << cropstart[2] << " ";
+
+  if (cropsize[0] >= 0 || cropsize[1] >= 0 || cropsize[2] >= 0)
+    os << "--cropsize "
+       << cropsize[0] << "x"
+       << cropsize[1] << "x"
+       << cropsize[2] << " ";
+
   switch (osamplesize) {
   default:
   case OpenZGY::SampleDataType::unknown:
@@ -506,7 +685,7 @@ Options::show(std::ostream& os) const
 const char*
 Options::short_options()
 {
-  return "hvqGuraDNFUp:i:o:s:l:b:B:O:g:t:T:n:Q:";
+  return "hvqGuraDNFUp:i:o:s:l:b:B:O:g:t:T:n:Q:M:S:c:C:";
 }
 
 const struct option *
@@ -533,6 +712,10 @@ Options::long_options()
      {"bricksize",  required_argument, 0,  'b' },
      {"obricksize", required_argument, 0,  'B' },
      {"osamplesize",required_argument, 0,  'O' },
+     {"mirror",     required_argument, 0,  'M' },
+     {"upsample",   required_argument, 0,  'S' },
+     {"cropstart",  required_argument, 0,  'c' },
+     {"cropsize",   required_argument, 0,  'C' },
      {"algorithm",  required_argument, 0,  'g' },
      {"finalize" ,  required_argument, 0,  'f' },
      {"threads",    required_argument, 0,  't' },
@@ -618,6 +801,54 @@ Options::setoptCommon(int ch, const char *optarg)
     }
     break;
 
+  case 'M':
+    {
+      std::vector<int> tmp = getlist(optarg);
+      if (tmp.size() != 3)
+        throw std::runtime_error("command line: -M option needs 3 ints");
+      if (tmp.at(0) < 1 || tmp.at(1) < 1 || tmp.at(2) < 1)
+        throw std::runtime_error("command line: Mirrors must be at least 1");
+      mirror[0] = tmp.at(0);
+      mirror[1] = tmp.at(1);
+      mirror[2] = tmp.at(2);
+    }
+    break;
+
+  case 'S':
+    {
+      std::vector<double> tmp = getdoublelist(optarg);
+      if (tmp.size() != 3)
+        throw std::runtime_error("command line: -S option needs 2 or 3 numbers");
+      if (tmp.at(0) < 1 || tmp.at(1) < 1 || tmp.at(2) < 1)
+        throw std::runtime_error("command line: Upsampling must be at least 1");
+      upsample[0] = (float)tmp.at(0);
+      upsample[1] = (float)tmp.at(1);
+      upsample[2] = (float)tmp.at(2);
+    }
+    break;
+
+  case 'c':
+    {
+      std::vector<int> tmp = getlist(optarg);
+      if (tmp.size() != 3)
+        throw std::runtime_error("command line: -c option needs 3 ints");
+      cropstart[0] = tmp.at(0);
+      cropstart[1] = tmp.at(1);
+      cropstart[2] = tmp.at(2);
+    }
+    break;
+
+  case 'C':
+    {
+      std::vector<int> tmp = getlist(optarg);
+      if (tmp.size() != 3)
+        throw std::runtime_error("command line: -C option needs 3 ints");
+      cropsize[0] = tmp.at(0);
+      cropsize[1] = tmp.at(1);
+      cropsize[2] = tmp.at(2);
+    }
+    break;
+
   case 'O':
     if (0==strcmp(optarg, "float32") || 0==strcmp(optarg, "float"))
       osamplesize = OpenZGY::SampleDataType::float32;
@@ -636,7 +867,7 @@ Options::setoptCommon(int ch, const char *optarg)
 
   case 'g': algorithm  = getDecimationTypes(optarg); break;
   case 'f': finalize   = getFinalizeAction(optarg); break;
-  case 'l': throw std::runtime_error("--lod not supported"); //lod = geti(optarg); break;
+  case 'l': lod        = geti(optarg); break;
   case 't': threads    = geti(optarg); ordered_write = true; break;
   case 'T': threads    = geti(optarg); ordered_write = false; break;
   case 'n': brickcount = geti(optarg); break;
@@ -778,6 +1009,7 @@ class SDTokenUpdater
   std::string filename_;
   std::string token_;
   time_t lastrefresh_;
+  std::int64_t last_file_check_;
   int verbose_;
 public:
   explicit SDTokenUpdater(const std::string& filename, int verbose)
@@ -785,6 +1017,7 @@ public:
     , filename_(filename)
     , token_()
     , lastrefresh_(0)
+    , last_file_check_(0)
     , verbose_(verbose)
   {
   }
@@ -797,12 +1030,13 @@ public:
   }
 
   /**
-   * Return the cached token if it is less then 5 minutes since we cached it.
+   * Return the cached token if it is less then one minute since we cached it.
    * Otherwise read the possibly refreshed token from file.
    */
   std::string operator()() {
     std::lock_guard<std::mutex> lk(mutex_);
-    if (::time(nullptr) - lastrefresh_ > 300) {
+    waitForTokenInTokenCallback(filename_, &last_file_check_);
+    if (::time(nullptr) - lastrefresh_ >= 60) {
       std::ifstream file(filename_);
       if (!file.good())
         throw std::runtime_error("Cannot open token file \"" + filename_ + "\".");
@@ -813,7 +1047,10 @@ public:
       if (file.fail() || file.bad())
         throw std::runtime_error("Cannot read token file \"" + filename_ + "\".");
       lastrefresh_ = time(nullptr);
-      if (verbose_ >= 3 || (verbose_ >= 2 && !old.empty() && token_ != old)) {
+      // Note: No longer skip the verbose logging if the token did not change.
+      // Because, the callback now only gets invoked when the token will soon
+      // expire. Which means there had better be a new one available.
+      if (verbose_ >= 3 || (verbose_ >= 2 && !old.empty())) {
         std::cerr << "\nToken refresh: "
                   << (token_.empty() ? "<empty>" :
                       token_.size() < 20 ? token_ :
@@ -978,12 +1215,12 @@ void signals(const Options& opt)
     ::signal(SIGPIPE, SIG_DFL);
   }
   else if (opt.sigpipe == "report") {
-    struct sigaction act{0};
+    struct sigaction act{{0}};
     act.sa_handler = sigpipe_report;
     ::sigaction(SIGPIPE, &act, NULL);
   }
   else if (opt.sigpipe == "fatal") {
-    struct sigaction act{0};
+    struct sigaction act{{0}};
     act.sa_handler = sigpipe_fatal;
     ::sigaction(SIGPIPE, &act, NULL);
   }
@@ -1214,8 +1451,8 @@ void
 copy(const Options& opt, SummaryPrintingTimerEx& rtimer, SummaryPrintingTimerEx& wtimer, SummaryPrintingTimerEx& rwtimer, SummaryPrintingTimerEx& ftimer, SummaryPrintingTimerEx& stimer)
 {
   using namespace OpenZGY;
-  ProgressWithDots p1(opt.verbose >= 1 ? 51 : 0);
-  ProgressWithDots p2(opt.verbose >= 1 ? 51 : 0);
+  FancyProgressWithDots p1(opt.verbose >= 1 ? 51 : 0);
+  FancyProgressWithDots p2(opt.verbose >= 1 ? 51 : 0);
   ZgyWriterArgs args;
 
   SeismicStoreIOContext rcontext(getContext(opt, true, opt.verbose));
@@ -1223,6 +1460,23 @@ copy(const Options& opt, SummaryPrintingTimerEx& rtimer, SummaryPrintingTimerEx&
   std::shared_ptr<IZgyReader> r = !opt.input.empty() ?
     IZgyReader::open(opt.input, &rcontext):
     Test::ZgyReaderMock::mock(opt.fakesize);
+  if (opt.lod != 0 ||
+      opt.cropstart[0] >= 0 || opt.cropstart[1] >= 0 || opt.cropstart[2] >= 0 ||
+      opt.cropsize[0]  >= 0 || opt.cropsize[1]  >= 0 || opt.cropsize[2] >= 0)
+  {
+    r = std::make_shared<ZgyReadLodCrop>(r, opt.lod, opt.cropstart, opt.cropsize);
+  }
+  if (opt.upsample[0] != 1 || opt.upsample[1] != 1 || opt.upsample[2] != 1)
+    //r = std::make_shared<ZgyReaderUpsample>(r, opt.upsample);
+    throw std::runtime_error("Command line: --upsample not yet implemented");
+  // This is for mirroring; even if there is a crop/lod modifier,
+  // that reader is real enough for our purposes.
+  std::shared_ptr<IZgyReader> real_r = r;
+  if (opt.mirror[0] != 1 || opt.mirror[1] != 1 || opt.mirror[2] != 1)
+    r = std::make_shared<ZgyReaderMirror>(r, opt.mirror);
+  // TODO-MIRROR: See notes below about the zero chunk size.
+  // TODO-MIRROR: Adding upsample might need to be done above
+  // the mirror wrapper, to get the "aligned to chunk size" rule right.
   if (!opt.update) {
     args.metafrom(r);
     if (opt.osamplesize != OpenZGY::SampleDataType::unknown)
@@ -1274,6 +1528,31 @@ copy(const Options& opt, SummaryPrintingTimerEx& rtimer, SummaryPrintingTimerEx&
     opt.output.empty() ? Test::ZgyWriterMock::mock(args) :
     opt.update ? IZgyWriter::reopen(args) :
     IZgyWriter::open(args);
+  std::shared_ptr<IZgyWriter> real_w = w;
+
+  if (true) {
+    // Switch to reading from the real reader and writing to a
+    // virtual one that will replicate data to be mirrored.
+    // Both r and w will now appear to have the original size.
+    // CAVEAT: ZgyWriterMirror is incomplete. It is supposed to
+    // wrap an inflated file such that it appears to be the
+    // small file we started with. Most of the metadata has not
+    // been adjusted. The exception being size(). The bricksize()
+    // and datatype() are also safe to call, since they don't change.
+    //
+    // finalize() should still be called on the underlying file.
+    // Technically most of the lowres handling could also have
+    // been optimized to only be computed once. But that would
+    // become insanely complicated.
+    //
+    // If this code is not enabled, both r and w will have the
+    // inflated size which means the copy loop will process
+    // more data. And the input data will be read more than once.
+    if (r != real_r) {
+      w = std::make_shared<ZgyWriterMirror>(w, opt.mirror);
+      r = real_r;
+    }
+  }
 
   // I normally want to read full bricks as stored on file. So, while
   // I need to ensure that I don't read too far past the survey's edge
@@ -1285,11 +1564,14 @@ copy(const Options& opt, SummaryPrintingTimerEx& rtimer, SummaryPrintingTimerEx&
 
   // chunksize can be passed as zero, meaning as much as possible.
   // Round up to the brick size as this could be more efficient.
+  // If mirroring, the count should be the size from *real source*.
+  // TODO-MIRROR: If changing to use separate read and write wrappers,
+  // this might need to change. Ditto for upsampling.
   const std::array<std::int64_t,3> bs = std::array<std::int64_t,3>
     {
-     opt.chunksize[0] ? opt.chunksize[0] : surveysize[0],
-     opt.chunksize[1] ? opt.chunksize[1] : surveysize[1],
-     opt.chunksize[2] ? opt.chunksize[2] : surveysize[2]
+     opt.chunksize[0] ? opt.chunksize[0] : surveysize[0] / opt.mirror[0],
+     opt.chunksize[1] ? opt.chunksize[1] : surveysize[1] / opt.mirror[1],
+     opt.chunksize[2] ? opt.chunksize[2] : surveysize[2] / opt.mirror[2]
     };
 
   std::vector<std::array<std::int64_t,3>> tasklist;
@@ -1414,17 +1696,22 @@ copy(const Options& opt, SummaryPrintingTimerEx& rtimer, SummaryPrintingTimerEx&
       std::cerr << outstring.str() << std::flush;
     }
     std::shared_ptr<void> buf(malloc(bufbytes), [](void *d){::free(d);});
+    std::int64_t last_file_check_src{0};
+    std::int64_t last_file_check_dst{0};
+
     if (opt.ordered_write) {
 #pragma omp for ordered schedule(dynamic,1)
       for (std::int64_t task = 0; task < total; ++task) {
         guard.run([&]()
                 {
+                  waitForTokenInCopyLoop(opt.src_token, &last_file_check_src);
                   readchunk(r, w, tasklist[task], bs, surveysize,
                             buf.get(), dt, rtimer, opt.noisefactor);
                 });
 #pragma omp ordered
         guard.run([&]()
                 {
+                  waitForTokenInCopyLoop(opt.dst_token, &last_file_check_dst);
                   writechunk(r, w, tasklist[task], bs, surveysize,
                             buf.get(), dt, wtimer);
                 });
@@ -1436,11 +1723,13 @@ copy(const Options& opt, SummaryPrintingTimerEx& rtimer, SummaryPrintingTimerEx&
       for (std::int64_t task = 0; task < total; ++task) {
         guard.run([&]()
                 {
+                  waitForTokenInCopyLoop(opt.src_token, &last_file_check_src);
                   readchunk(r, w, tasklist[task], bs, surveysize,
                             buf.get(), dt, rtimer, opt.noisefactor);
                 });
         guard.run([&]()
                 {
+                  waitForTokenInCopyLoop(opt.dst_token, &last_file_check_dst);
                   writechunk(r, w, tasklist[task], bs, surveysize,
                             buf.get(), dt, wtimer);
                 });
@@ -1487,7 +1776,7 @@ copy(const Options& opt, SummaryPrintingTimerEx& rtimer, SummaryPrintingTimerEx&
     // Yes it does actually have a (tiny) cost but the user won't
     // expect to see finalize reported at all when discarding the output.
     SimpleTimerEx ft(ftimer);
-    w->finalize(opt.algorithm, std::ref(p2),
+    real_w->finalize(opt.algorithm, std::ref(p2),
                 opt.finalize.first, opt.finalize.second);
     w->close();
     // If Timer logging is also enabled inside OpenZGY there will now

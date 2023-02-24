@@ -16,6 +16,7 @@
 #include "test_utils.h"
 #include "../impl/timer.h"
 #include "../impl/fancy_timers.h"
+#include "../impl/workorder.h"
 
 #include <iostream>
 #include <sstream>
@@ -126,6 +127,71 @@ test_timer_nicesize()
   //TEST_CHECK(SummaryPrintingTimerEx::niceSize(7*256*K) == "1.75 MB");
 }
 
+static void
+test_stimer_overhead()
+{
+  if (verbose())
+    std::cerr << "\n";
+
+  // Measure overhead in SimpleTimer, by using SimpleTimer.
+  // Note! This test triggers a false positive in a
+  // WorkOrder consistency check about the thread pool not
+  // being idle. This is because the actual work in "C"
+  // is neglible. The message is harmless but annoying.
+  SummaryPrintingTimer stimer_a("A"), stimer_b("B"), stimer_c("C");
+  for (int ii = 0; ii < 10 * 1000; ++ii) {
+    WorkOrderRunner::parallelFor(10, [&]
+    (std::int64_t num)
+      {
+        SimpleTimer ta(stimer_a);
+        SimpleTimer tb(stimer_b);
+        SimpleTimer tc(stimer_c);
+      });
+  }
+  TEST_CHECK(stimer_a.getTotal() <= 0.1);
+  if (!verbose()) {
+    stimer_c.reset();
+    stimer_b.reset();
+    stimer_a.reset();
+  }
+}
+
+static void
+test_timer_overhead()
+{
+  if (verbose())
+    std::cerr << "\n";
+
+  // Measure overhead creating 3 regular timers
+  // and doing 10 start/stop in each.
+  // Measure it using another regular timer.
+  // A better test might be to copy/paste getNativeTime()
+  // and getNativeFrequency() from class Timer. Because
+  // it is questionable to trust Timer when testing Timer.
+  PrintingTimer mytimer("Plain timers");
+  Timer tx(true, "SomeName");
+  Timer ty(true, "SomeName");
+  Timer tz(true, "SomeName");
+  for (int ii = 0; ii < 100*1000; ++ii)
+  {
+    tz.start();
+    ty.start();
+    tz.start();
+    tz.stop();
+    ty.stop();
+    tx.stop();
+  }
+  tz.reset();
+  ty.reset();
+  tx.reset();
+
+  mytimer.stop();
+  TEST_CHECK(mytimer.getTotal() <= 0.1);
+  if (!verbose()) {
+    mytimer.reset();
+  }
+}
+
 } // namespace for tests
 
 namespace {
@@ -138,6 +204,9 @@ namespace {
       register_test("timer.summary",           test_timer_summary);
       register_test("timer.printing",          test_timer_printing);
       register_test("timer.nicesize",          test_timer_nicesize);
+      // Too noisy
+      //register_test("timer.stimeroh",          test_stimer_overhead);
+      register_test("timer.overhead",          test_timer_overhead);
     }
   } dummy;
 } // namespace for registration

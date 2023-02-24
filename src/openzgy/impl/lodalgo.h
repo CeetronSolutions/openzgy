@@ -45,6 +45,7 @@ template<typename T, int NDim> class DataBufferNd;
 enum class LodAlgorithm
 {
   LowPass          =  0, ///< Lowpass Z / decimate XY
+  LowPassNew       =  15, ///< Lowpass Z / decimate XY
   WeightedAverage  =  1, ///< Weighted averaging (depends on global stats)
   Average          =  2, ///< Simple averaging
   Median           =  3, ///< Somewhat more expensive averaging
@@ -64,6 +65,7 @@ enum class LodAlgorithm
 void OPENZGY_TEST_API createLod(const std::shared_ptr<DataBuffer>& result,
                const std::shared_ptr<const DataBuffer>& input,
                LodAlgorithm algorithm,
+               std::int64_t linear_output_offset,
                const std::int64_t* hist,
                std::int32_t bincount,
                double histogram_min,

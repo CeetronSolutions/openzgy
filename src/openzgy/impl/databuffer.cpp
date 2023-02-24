@@ -146,7 +146,7 @@ namespace {
   };
 }
 
-#if 0
+#if 1
 /**
  * The default for OPENZGY_COPYSUBSET_SHORTCUT is 0 i.e. off, because
  * it hasn't been shown that it gives a measurable speedup and it
@@ -155,7 +155,7 @@ namespace {
 static int
 copysubset_shortcut()
 {
-  static int enable = Environment::getNumericEnv("OPENZGY_COPYSUBSET_SHORTCUT", 0);
+  static int enable = Environment::getNumericEnv("OPENZGY_COPYSUBSET_SHORTCUT", 1);
   return enable;
 }
 #endif
@@ -234,9 +234,11 @@ CopySubset(std::int32_t ndim,
     cpysize = srcsize;
   }
 
-#if 0
+#if 1 // TODO-WIP-BrickedAPI: Disable this again when the new bricked API is ready.
   static std::atomic<std::int64_t> totalcall{0}, fastcall{0};
-  ++totalcall;
+  std::int64_t my_totalcall = (ndim != 3) ? 0 : totalcall.fetch_add(1) + 1;
+  std::int64_t my_fastcall = fastcall.load();
+
   if (ndim==3 && copysubset_shortcut() > 1) {
     static auto three= [](const std::int64_t *a) -> std::string {
                          if (!a)
@@ -245,8 +247,8 @@ CopySubset(std::int32_t ndim,
                          ss << "(" << a[0] << "," << a[1] << "," << a[2] << ")";
                          return ss.str();
                        };
-    if (totalcall > 0 && (totalcall % 1000) == 0 && copysubset_shortcut() > 1) {
-      std::cerr << "Fast CopySubset " << fastcall << "/" << totalcall
+    if (my_totalcall > 0 && (my_totalcall % 10000) == 0 && copysubset_shortcut() > 1) {
+      std::cerr << "Fast CopySubset " << my_fastcall << "/" << my_totalcall
                 << " " << three(srcsize) << " * " << sizeof(T)
                 << " lockfree " << totalcall.is_lock_free()
                 << std::endl;
@@ -279,28 +281,24 @@ CopySubset(std::int32_t ndim,
       srcstride[2] == 1 &&
       srcstride[1] == srcsize[0] &&
       srcstride[0] == srcsize[0] * srcsize[1] &&
-      // Neither source nor destination has any offset?
-      srcorig[0] == 0 &&
-      srcorig[1] == 0 &&
-      srcorig[2] == 0 &&
-      dstorig[0] == 0 &&
-      dstorig[1] == 0 &&
-      dstorig[2] == 0 &&
+      // Same start, as described by survey origin
+      srcorig[0] == dstorig[0] &&
+      srcorig[1] == dstorig[1] &&
+      srcorig[2] == dstorig[2] &&
       // Same size?
       srcsize[0] == dstsize[0] &&
       srcsize[1] == dstsize[1] &&
       srcsize[2] == dstsize[2] &&
       // Same stride?
+      srcstride[0] == dststride[0] &&
       srcstride[1] == dststride[1] &&
       srcstride[2] == dststride[2] &&
-      srcstride[0] == dststride[0] &&
-      // At this point, target must also be C-Contiguous.
-      // Not clipped by survey?
-      cpyorig[0] <= srcorig[0] && cpysize[0] >= srcsize[0] + cpyorig[0] &&
-      cpyorig[1] <= srcorig[1] && cpysize[1] >= srcsize[1] + cpyorig[1] &&
-      cpyorig[2] <= srcorig[2] && cpysize[2] >= srcsize[2] + cpyorig[2])
+      // Not clipped by survey boundaries
+      cpyorig[0] <= srcorig[0] && cpysize[0] >= srcorig[0] - cpyorig[0] + srcsize[0] &&
+      cpyorig[1] <= srcorig[1] && cpysize[1] >= srcorig[1] - cpyorig[1] + srcsize[1] &&
+      cpyorig[2] <= srcorig[2] && cpysize[2] >= srcorig[2] - cpyorig[2] + srcsize[2])
   {
-    ++fastcall;
+    my_fastcall = fastcall.fetch_add(1) + 1;
     memcpy(dstbuf, srcbuf, dstsize[0] * dstsize[1] * dstsize[2] * sizeof(T));
     return;
   }
@@ -439,6 +437,7 @@ _makeDataBufferT(const std::shared_ptr<void>& raw, std::int64_t rawsize,
                  const std::array<std::int64_t,NDim> bricksize, bool make_scalar)
 {
   const std::int64_t nsamples = bricksize[0] * bricksize[1] * bricksize[2];
+  // TODO-Worry: Questionable type punning.
   if ((reinterpret_cast<std::intptr_t>(raw.get()) % sizeof(T)) != 0)
     throw OpenZGY::Errors::ZgyInternalError("Misaligned buffer.");
   std::shared_ptr<T> rawdata = std::static_pointer_cast<T>(raw);

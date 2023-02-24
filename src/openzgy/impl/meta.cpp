@@ -385,6 +385,10 @@ _fix_codingrange(float *lo, float *hi, std::uint8_t datatype)
 
 } // namespace
 
+IHeaderAccess::~IHeaderAccess()
+{
+}
+
 /////////////////////////////////////////////////////////////////////////////
 //    FileHeader   //////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
@@ -879,11 +883,11 @@ public:
   double                     sssq() const override { return 0; }
   float                      smin() const override { return align(_cached_file_sample_min); }
   float                      smax() const override { return align(_cached_file_sample_max); }
-  //unused: virtual std::array<float,3>        srvorig() const override { throw OpenZGY::Errors::ZgyInternalError("Not implemented"); }
-  //unused: virtual std::array<float,3>        srvsize() const override { throw OpenZGY::Errors::ZgyInternalError("Not implemented"); }
-  //unused: virtual std::uint8_t               gdef() const override { throw OpenZGY::Errors::ZgyInternalError("Not implemented"); }
-  //unused: virtual std::array<double,2>       gazim() const override { throw OpenZGY::Errors::ZgyInternalError("Not implemented"); }
-  //unused: virtual std::array<double,2>       gbinsz() const override { throw OpenZGY::Errors::ZgyInternalError("Not implemented"); }
+  //unused: std::array<float,3>        srvorig() const override { throw OpenZGY::Errors::ZgyInternalError("Not implemented"); }
+  //unused: std::array<float,3>        srvsize() const override { throw OpenZGY::Errors::ZgyInternalError("Not implemented"); }
+  //unused: std::uint8_t               gdef() const override { throw OpenZGY::Errors::ZgyInternalError("Not implemented"); }
+  //unused: std::array<double,2>       gazim() const override { throw OpenZGY::Errors::ZgyInternalError("Not implemented"); }
+  //unused: std::array<double,2>       gbinsz() const override { throw OpenZGY::Errors::ZgyInternalError("Not implemented"); }
   std::string                hprjsys() const override { return std::string(); }
   RawHorizontalDimension     hdim() const override {
     switch (DecodeCoordType(_pod._coordtype)) {
@@ -1055,18 +1059,18 @@ public:
   std::array<float,3>        orig() const override { return ptr_to_array<float,3>(_pod._orig); }
   std::array<float,3>        inc()  const override { return ptr_to_array<float,3>(_pod._inc); }
   std::array<std::int64_t,3> size() const override { return array_cast<std::int64_t,std::int32_t,3>(ptr_to_array<std::int32_t,3>(_pod._size)); }
-  //unused: virtual std::array<std::int32_t,3> curorig() const override { return ptr_to_array<std::int32_t,3>(_pod._curorig); }
-  //unused: virtual std::array<std::int32_t,3> cursize() const override { return ptr_to_array<std::int32_t,3>(_pod._cursize); }
+  //unused: std::array<std::int32_t,3> curorig() const override { return ptr_to_array<std::int32_t,3>(_pod._curorig); }
+  //unused: std::array<std::int32_t,3> cursize() const override { return ptr_to_array<std::int32_t,3>(_pod._cursize); }
   std::int64_t               scnt() const override { return align(_pod._scnt); }
   double                     ssum() const override { return align(_pod._ssum); }
   double                     sssq() const override { return align(_pod._sssq); }
   float                      smin() const override { return align(_pod._smin); }
   float                      smax() const override { return align(_pod._smax); }
-  //unused: virtual std::array<float,3> srvorig() const override { return ptr_to_array<float,3>(_pod._srvorig); }
-  //unused: virtual std::array<float,3> srvsize() const override { return ptr_to_array<float,3>(_pod._srvsize); }
-  //unused: virtual std::uint8_t gdef() const override { return _pod._gdef; }
-  //unused: virtual std::array<double,2> gazim() const override { return ptr_to_array<double,2>(_pod._gazim); }
-  //unused: virtual std::array<double,2> gbinsz() const override { return ptr_to_array<double,2>(_pod._gbinsz); }
+  //unused: std::array<float,3> srvorig() const override { return ptr_to_array<float,3>(_pod._srvorig); }
+  //unused: std::array<float,3> srvsize() const override { return ptr_to_array<float,3>(_pod._srvsize); }
+  //unused: std::uint8_t gdef() const override { return _pod._gdef; }
+  //unused: std::array<double,2> gazim() const override { return ptr_to_array<double,2>(_pod._gazim); }
+  //unused: std::array<double,2> gbinsz() const override { return ptr_to_array<double,2>(_pod._gbinsz); }
   std::array<float,4>        gpiline() const override { return ptr_to_array<float,4>(_pod._gpiline); }
   std::array<float,4>        gpxline() const override { return ptr_to_array<float,4>(_pod._gpxline); }
   std::array<double,4>       gpx() const override { return ptr_to_array<double,4>(_pod._gpx); }

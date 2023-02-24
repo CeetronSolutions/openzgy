@@ -25,7 +25,6 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <mutex>
 
 #include "declspec.h"
 
@@ -264,6 +263,7 @@ namespace Formatters {
 enum class OPENZGY_API DecimationType
 {
   LowPass          = 100, ///< \brief Lowpass Z / decimate XY
+  LowPassNew       = 115, ///< \brief Lowpass Z / decimate XY
   WeightedAverage  = 101, ///< \brief Weighted averaging (depends on global stats)
   Average          = 102, ///< \brief Simple averaging
   Median           = 103, ///< \brief Somewhat more expensive averaging
@@ -673,7 +673,7 @@ FileStatistics()
  *     .xlinc(0)
  *     .zstart(0)
  *     .zinc(0)
- *     .corners(ZgyWriterArgs::corners_t{0,0,0,0,0,0,0,0});
+ *     .corners(ZgyWriterArgs::corners_t{{{0,0},{0,0},{0,0},{0,0}});
  * \endcode
  *
  * Thread safety:
@@ -747,7 +747,7 @@ public:
     , _zinc(0)
     , _annotstart{0,0}
     , _annotinc{0,0}
-      , _corners{ {{0,0}} }
+    , _corners{{{0,0},{0,0},{0,0},{0,0}}}
     , _have_size(false)
     , _have_bricksize(false)
     , _have_datatype(false)
@@ -1224,21 +1224,18 @@ public:
  *
  * Thread safety:
  * Protected by a mutex.
- *
- * TODO-Low: Add a pimpl pattern to avoid needing the <mutex> header.
- * I really want to keep the include count low in this main header file.
  */
 class OPENZGY_API ProgressWithDots
 {
 private:
-  int _dots_printed;
-  int _length;
-  std::ostream& _outfile;
-  std::mutex _mutex;
+  class Impl;
+  std::shared_ptr<Impl> pimpl_;
 
 private:
   ProgressWithDots(const ProgressWithDots&) = delete;
+  ProgressWithDots(const ProgressWithDots&&) = delete;
   ProgressWithDots& operator=(const ProgressWithDots&) = delete;
+  ProgressWithDots& operator=(const ProgressWithDots&&) = delete;
 
 public:
   /**
@@ -1262,6 +1259,29 @@ public:
    * This particular callback will always return true,
    * meaning that the operation is not to be aborted.
    */
+  bool operator()(std::int64_t done, std::int64_t total);
+};
+
+/**
+ * ASCII progress bar with more features.
+ */
+class OPENZGY_API FancyProgressWithDots
+{
+private:
+  class Impl;
+  std::shared_ptr<Impl> pimpl_;
+
+private:
+  FancyProgressWithDots(const FancyProgressWithDots&) = delete;
+  FancyProgressWithDots(const FancyProgressWithDots&&) = delete;
+  FancyProgressWithDots& operator=(const FancyProgressWithDots&) = delete;
+  FancyProgressWithDots& operator=(const FancyProgressWithDots&&) = delete;
+
+private:
+  static double timestamp();
+
+public:
+  FancyProgressWithDots(int length=51, std::ostream& outfile = std::cerr);
   bool operator()(std::int64_t done, std::int64_t total);
 };
 

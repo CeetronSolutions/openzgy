@@ -16,11 +16,12 @@
 
 #include "lodalgo.h"
 #include "lodsampling.h"
+#include "lodfilters.h"
 #include "roundandclip.h"
 #include "databuffer.h"
 #include "fancy_timers.h"
 #include "environment.h"
-#include "mtguard.h"
+#include "workorder.h"
 #include "../exception.h"
 
 #include <memory.h>
@@ -30,7 +31,8 @@
 #include <typeinfo>
 #include <memory>
 #include <atomic>
-#include <omp.h>
+#include <iostream>
+#include <sstream>
 
 namespace InternalZGY {
 #if 0
@@ -41,18 +43,11 @@ namespace {
   /**
    * For testing only; might be removed.
    * Change the number of threads to be used for parallelizing the LOD compute.
-   * CAVEAT: Leaving the variable unset could still get different results
-   * from not specifying the thread count. I am not sure that leaving out
-   * num_threads() is equivalent to num_threads(omp_get_max_threads()).
-   * Set to 0 to disable, 1 to enable with default number of threads, and
-   * a negative number to use exactly -number threads. Yes this is a bit
-   * backwards. It is done to make the setting similar to
-   * OPENZGY_ENABLE_COMPRESS_MT which only has enable and disable.
    */
   static int enable_lodalgo_mt()
   {
-    static int enable = Environment::getNumericEnv("OPENZGY_ENABLE_LODALGO_MT", 0);
-    return enable == 0 ? 1 : enable >= 1 ? omp_get_max_threads() : -enable;
+    static int threads = Environment::getNumericEnv("OPENZGY_NUMTHREADS_LODALGO", 1);
+    return std::max(1, std::min(100, threads));
   }
 }
 
@@ -68,21 +63,22 @@ namespace {
   class AdHocLodTimers
   {
   public:
-    SummaryPrintingTimerEx timerST;
-    SummaryPrintingTimerEx timerMT;
-    SummaryPrintingTimerEx timerOT;
-    SummaryPrintingTimerEx timerLP;
-    SummaryPrintingTimerEx timerWA;
-    SummaryPrintingTimerEx timerInside;
-    SummaryPrintingTimerEx timerLL;
+    typedef std::shared_ptr<SummaryPrintingTimerEx> stimer_t;
+    stimer_t timerST;
+    stimer_t timerMT;
+    stimer_t timerOT;
+    stimer_t timerLP;
+    stimer_t timerWA;
+    stimer_t timerInside;
+    stimer_t timerLL;
     AdHocLodTimers()
-      : timerST("createLod[ST]") // Seen from app, forced single threaded.
-      , timerMT("createlod[MT]") // Seen from app, possibly multithreded.
-      , timerOT("createlod-ot") // As [MT] but for "other" algorithms.
-      , timerLP("createlod-lp") // As [MT] but only records LowPass algo.
-      , timerWA("createlod-wa") // As [MT] but only WeightedAverage.
-      , timerInside("createlod[I]") // Sum of timers in all threads.
-      , timerLL("createlod[LL]") // As [I], measured aty a lower level.
+      : timerST(std::make_shared<SummaryPrintingTimerEx>("createLod[ST]")) // Seen from app, forced single threaded.
+      , timerMT(std::make_shared<SummaryPrintingTimerEx>("createlod[MT]")) // Seen from app, possibly multithreded.
+      , timerOT(std::make_shared<SummaryPrintingTimerEx>("createlod-ot")) // As [MT] but for "other" algorithms.
+      , timerLP(std::make_shared<SummaryPrintingTimerEx>("createlod-lp")) // As [MT] but only records LowPass algo.
+      , timerWA(std::make_shared<SummaryPrintingTimerEx>("createlod-wa")) // As [MT] but only WeightedAverage.
+      , timerInside(std::make_shared<SummaryPrintingTimerEx>("createlod[I]")) // Sum of timers in all threads.
+      , timerLL(std::make_shared<SummaryPrintingTimerEx>("createlod[LL]")) // As [I], measured aty a lower level.
     {
     }
     static AdHocLodTimers& instance()
@@ -92,22 +88,22 @@ namespace {
     }
     void cleartimers(bool show) {
       if (show) {
-        timerLL.print();
-        timerInside.print();
-        timerWA.print();
-        timerLP.print();
-        timerOT.print();
-        timerMT.print();
-        timerST.print();
+        timerLL->print();
+        timerInside->print();
+        timerWA->print();
+        timerLP->print();
+        timerOT->print();
+        timerMT->print();
+        timerST->print();
       }
       else {
-        timerLL.reset();
-        timerInside.reset();
-        timerWA.reset();
-        timerLP.reset();
-        timerOT.reset();
-        timerMT.reset();
-        timerST.reset();
+        timerLL->reset();
+        timerInside->reset();
+        timerWA->reset();
+        timerLP->reset();
+        timerOT->reset();
+        timerMT->reset();
+        timerST->reset();
       }
     }
   };
@@ -852,6 +848,26 @@ createGenericLevelOfDetail(
   }
 }
 
+template <typename T>
+static void
+fakeLevelOfDetail(
+  T* dst,
+  const std::array<std::int64_t, 3>& dsize,
+  const std::array<std::int64_t, 3>& dstride,
+  double scalar_in)
+{
+  // Cast safe because int8, int16, float are all narrower than double.
+  const T scalar = static_cast<T>(scalar_in);
+  for (std::int64_t ii = 0; ii < dsize[0]; ++ii) {
+    for (std::int64_t jj = 0; jj < dsize[1]; ++jj) {
+      T* curdst = dst + ii * dstride[0] + jj * dstride[1];
+      for (std::int64_t kk = 0; kk < dsize[2]; ++kk, curdst += dstride[2]) {
+        *curdst = scalar;
+      }
+    }
+  }
+}
+
 /**
  * \brief Lowpass decimation vertically, simple decimation horizontally.
  *
@@ -914,6 +930,35 @@ createGenericLevelOfDetailLoPass(
 }
 
 /**
+ * New and hopefully faster version.
+ */
+template <typename T>
+static void
+createGenericLevelOfDetailLoPassNew(
+    T* dst,
+    const std::array<std::int64_t,3>&dsize,
+    const std::array<std::int64_t,3>&dstride,
+    const T* src,
+    const std::array<std::int64_t,3>&ssize,
+    const std::array<std::int64_t,3>&sstride)
+{
+  for (int ii=0; ii<3; ++ii)
+    if ((ssize[ii]+1) / 2 != dsize[ii])
+      throw OpenZGY::Errors::ZgyInternalError("LowPass buffer size mismatch.");
+  if (sstride[2] != 1 || dstride[2] != 1)
+    throw OpenZGY::Errors::ZgyInternalError("LowPass Z increment must be 1");
+  for (std::int64_t ii = 0; ii < dsize[0]; ++ii) {
+    for (std::int64_t jj = 0; jj < dsize[1]; ++jj) {
+      LodFilters::downSample1D(
+        dst +   ii*dstride[0] +   jj*dstride[1],
+        static_cast<int>(dsize[2]),
+        src + 2*ii*sstride[0] + 2*jj*sstride[1],
+        static_cast<int>(ssize[2]));
+    }
+  }
+}
+
+/**
  * Create a single LOD brick based on the data from one LOD level below.
  * The valuetype of the source and target must be the same, but can be almost
  * any scalar type.
@@ -949,6 +994,10 @@ createLevelOfDetail(
     switch (algorithm) {
     case LodAlgorithm::LowPass:
       createGenericLevelOfDetailLoPass(dst, dsize, dstride, src, ssize, sstride);
+      break;
+
+    case LodAlgorithm::LowPassNew:
+      createGenericLevelOfDetailLoPassNew(dst, dsize, dstride, src, ssize, sstride);
       break;
 
     case LodAlgorithm::WeightedAverage:
@@ -1021,6 +1070,7 @@ static void
 createLodT(const std::shared_ptr<DataBuffer>& result,
            const std::shared_ptr<const DataBuffer>& input,
            LodAlgorithm algorithm,
+           std::int64_t linear_output_offset,
            const std::int64_t* hist,
            std::int32_t bincount,
            double histogram_min,
@@ -1038,10 +1088,43 @@ createLodT(const std::shared_ptr<DataBuffer>& result,
     throw OpenZGY::Errors::ZgyInternalError("createLodT wrong result data type.");
   if (inputT == nullptr)
     throw OpenZGY::Errors::ZgyInternalError("createLodT wrong input data type.");
-  createLevelOfDetail(resultT->data(), resultT->size3d(), resultT->stride3d(),
-                      inputT->data(), inputT->size3d(), inputT->stride3d(),
-                      algorithm,
-                      hist, bincount, histogram_min, histogram_max);
+
+  const std::array<std::int64_t,3> halfsize
+    {(inputT->size3d()[0]+1)/2,
+     (inputT->size3d()[1]+1)/2,
+     (inputT->size3d()[2]+1)/2};
+  if (resultT->size3d() == halfsize && linear_output_offset == 0)
+  {
+    // Old usage. Decimate an arbitrary region to a smaller output.
+    createLevelOfDetail(resultT->data(), resultT->size3d(), resultT->stride3d(),
+                        inputT->data(), inputT->size3d(), inputT->stride3d(),
+                        algorithm,
+                        hist, bincount, histogram_min, histogram_max);
+  }
+  else if (resultT->size3d() == inputT->size3d() &&
+           (resultT->stride3d() == inputT->stride3d() || inputT->isScalar()) &&
+           (inputT->size3d()[0] % 2) == 0 &&
+           (inputT->size3d()[1] % 2) == 0 &&
+           (inputT->size3d()[2] % 2) == 0)
+  {
+    // New usage. Input and output buffers are the same size.
+    // Only 1/8th of the samples in the output are written to,
+    // and the touched samples are usually not contiguous.
+    if (inputT->isScalar()) {
+      fakeLevelOfDetail(resultT->data() + linear_output_offset, halfsize, resultT->stride3d(),
+                        inputT->scalarAsDouble());
+    }
+    else {
+      createLevelOfDetail(resultT->data() + linear_output_offset, halfsize, resultT->stride3d(),
+                          inputT->data(), inputT->size3d(), inputT->stride3d(),
+                          algorithm,
+                          hist, bincount, histogram_min, histogram_max);
+      }
+  }
+  else
+  {
+    throw OpenZGY::Errors::ZgyInternalError("createLodT unexpected usage.");
+  }
 }
 
 /**
@@ -1054,25 +1137,26 @@ static void
 createLodST(const std::shared_ptr<DataBuffer>& result,
             const std::shared_ptr<const DataBuffer>& input,
             LodAlgorithm algorithm,
+            std::int64_t linear_output_offset,
             const std::int64_t* hist,
             std::int32_t bincount,
             double histogram_min,
             double histogram_max)
 {
-  SimpleTimerEx tt(AdHocLodTimers::instance().timerLL);
+  SimpleTimerEx tt(*AdHocLodTimers::instance().timerLL);
   switch (result->datatype()) {
-  case RawDataType::SignedInt8:    createLodT<std::int8_t>  (result, input, algorithm, hist, bincount, histogram_min, histogram_max); break;
-  case RawDataType::UnsignedInt8:  createLodT<std::uint8_t> (result, input, algorithm, hist, bincount, histogram_min, histogram_max); break;
-  case RawDataType::SignedInt16:   createLodT<std::int16_t> (result, input, algorithm, hist, bincount, histogram_min, histogram_max); break;
-  case RawDataType::UnsignedInt16: createLodT<std::uint16_t>(result, input, algorithm, hist, bincount, histogram_min, histogram_max); break;
-  case RawDataType::SignedInt32:   createLodT<std::int32_t> (result, input, algorithm, hist, bincount, histogram_min, histogram_max); break;
-  case RawDataType::UnsignedInt32: createLodT<std::uint32_t>(result, input, algorithm, hist, bincount, histogram_min, histogram_max); break;
-  case RawDataType::Float32:       createLodT<float>        (result, input, algorithm, hist, bincount, histogram_min, histogram_max); break;
+  case RawDataType::SignedInt8:    createLodT<std::int8_t>  (result, input, algorithm, linear_output_offset, hist, bincount, histogram_min, histogram_max); break;
+  case RawDataType::UnsignedInt8:  createLodT<std::uint8_t> (result, input, algorithm, linear_output_offset, hist, bincount, histogram_min, histogram_max); break;
+  case RawDataType::SignedInt16:   createLodT<std::int16_t> (result, input, algorithm, linear_output_offset, hist, bincount, histogram_min, histogram_max); break;
+  case RawDataType::UnsignedInt16: createLodT<std::uint16_t>(result, input, algorithm, linear_output_offset, hist, bincount, histogram_min, histogram_max); break;
+  case RawDataType::SignedInt32:   createLodT<std::int32_t> (result, input, algorithm, linear_output_offset, hist, bincount, histogram_min, histogram_max); break;
+  case RawDataType::UnsignedInt32: createLodT<std::uint32_t>(result, input, algorithm, linear_output_offset, hist, bincount, histogram_min, histogram_max); break;
+  case RawDataType::Float32:       createLodT<float>        (result, input, algorithm, linear_output_offset, hist, bincount, histogram_min, histogram_max); break;
   case RawDataType::IbmFloat32:
   default: throw OpenZGY::Errors::ZgyInternalError("Unrecognized type enum");
   }
-  AdHocLodTimers::instance().timerLL.addBytesRead(input->totalsize() * input->itemsize());
-  AdHocLodTimers::instance().timerLL.addBytesWritten(result->totalsize() * result->itemsize());
+  AdHocLodTimers::instance().timerLL->addBytesRead(input->totalsize() * input->itemsize());
+  AdHocLodTimers::instance().timerLL->addBytesWritten(result->totalsize() * result->itemsize());
 }
 
 /**
@@ -1080,11 +1164,17 @@ createLodST(const std::shared_ptr<DataBuffer>& result,
  * data buffer. The part will be one of more slices in the slowest
  * changing direction. If passing the last 3 parameters as "entire survey"
  * then this is equivalent to calling createLodST() directly.
+ *
+ * DO NOT USE for the new code that processes one brick at a time
+ * and outputs to 1/8 or the provided output buffer.
+ * It probably would not work. And in this mode, the caller is
+ * in a much better position to do multi-threading.
  */
 static void
 createLodPart(const std::shared_ptr<DataBuffer>& result,
               const std::shared_ptr<const DataBuffer>& input,
               LodAlgorithm algorithm,
+              std::int64_t linear_output_offset,
               const std::int64_t* hist,
               std::int32_t bincount,
               double histogram_min,
@@ -1108,12 +1198,17 @@ createLodPart(const std::shared_ptr<DataBuffer>& result,
   // thinks we start at zero.
   auto ibuf = input->slice1(slice_dim, slice_beg, slice_count);
   auto obuf = result->slice1(slice_dim, slice_beg/2, (slice_count+1)/2);
-  createLodST(obuf, ibuf, algorithm,
+  createLodST(obuf, ibuf, algorithm, linear_output_offset,
               hist, bincount, histogram_min, histogram_max);
 }
 
 /**
  * \brief Main entry point for low resolution compute.
+ *
+ * DO NOT USE for the new code that processes one brick at a time
+ * and outputs to 1/8 or the provided output buffer.
+ * It probably would not work. And in this mode, the caller is
+ * in a much better position to do multi-threading.
  *
  * Create a single low resolution brick 1/8th the size of the input.
  * This is the multi-threaded version.
@@ -1156,6 +1251,7 @@ static void
 createLodMT(const std::shared_ptr<DataBuffer>& result,
             const std::shared_ptr<const DataBuffer>& input,
             LodAlgorithm algorithm,
+            std::int64_t linear_output_offset,
             const std::int64_t* hist,
             std::int32_t bincount,
             double histogram_min,
@@ -1169,8 +1265,8 @@ createLodMT(const std::shared_ptr<DataBuffer>& result,
   // TODO-Performance: If numthreads == 1 this version could also
   // have been called. Saving some instructions.
   if (isize[0] == 1 || isize[1] == 1 || isize[2] == 1) {
-    SimpleTimerEx tt(AdHocLodTimers::instance().timerST);
-    createLodST(result, input, algorithm,
+    SimpleTimerEx tt(*AdHocLodTimers::instance().timerST);
+    createLodST(result, input, algorithm, linear_output_offset,
                 hist, bincount, histogram_min, histogram_max);
     return;
   }
@@ -1182,46 +1278,81 @@ createLodMT(const std::shared_ptr<DataBuffer>& result,
   // means a lot of extra testing, less efficiency, and caveats such
   // as updating a byte might be implemented as read/modify/write of
   // 4 or 8 bytes. So, always slice the slowest dim.
-  int numthreads = enable_lodalgo_mt();
-  // We cannot make use of more than (isize[slowest_dim]+1) / 2 threads.
-  // With default brick size this usually means 64 threads.
-  numthreads = std::min(numthreads, (int)(isize[slowest_dim]+1) / 2);
-  MTGuard guard("lod", numthreads);
-  SimpleTimerEx tt(AdHocLodTimers::instance().timerMT);
-  SimpleTimerEx tt2(algorithm==LodAlgorithm::LowPass ?
-                    AdHocLodTimers::instance().timerLP :
-                    algorithm==LodAlgorithm::WeightedAverage ?
-                    AdHocLodTimers::instance().timerWA :
-                    AdHocLodTimers::instance().timerOT);
-#pragma omp parallel num_threads(numthreads) if (numthreads > 1)
-  {
-    std::int64_t slices_per_thread = (isize[slowest_dim]-1) / omp_get_num_threads() + 1;
-    if (slices_per_thread % 2 == 1)
-      ++slices_per_thread;
-    const std::int64_t bytes_per_thread =
-      ((isize[0]*isize[1]*isize[2]) / isize[slowest_dim]) * slices_per_thread * input->itemsize();
 #if 0
-    if (omp_get_thread_num() == 0)
-      std::cout << "LOD compute " << isize[slowest_dim]
-                << " slices using " << omp_get_num_threads()
-                << " threads with " << slices_per_thread
-                << " slices of " << bytes_per_thread << " bytes per thread."
-                << std::endl;
+  const int maxthreads = (int)((isize[slowest_dim] + 1) / 2); // usually 32
+  const int numthreads = std::min(enable_lodalgo_mt(), maxthreads);
+  const std::int64_t slices_per_thread = 2 * (maxthreads / numthreads);
+  const std::int64_t bytes_per_thread =
+    ((isize[0]*isize[1]*isize[2]) / isize[slowest_dim]) * slices_per_thread * input->itemsize();
+#else
+
+  // Number of iterations if doing as little as possible in each. Usually 32.
+  const int numiters = (int)((isize[slowest_dim] + 1) / 2);
+  // Account for max number of threads imposed from outside.
+  const int maxthreads = std::min(enable_lodalgo_mt(), numiters);
+
+  // The finest possible granularity is to process 2 slices in each
+  // thread. This might be too little. Especially if processing one
+  // brick at a time instead of one brick-column at a time. Allow
+  // configuring the max number of threads to use. Could additionally
+  // have set a minimum bytes processed per thread, but that is not
+  // implemented. parallelFor() has an overload that specifies the
+  // thread count and implicitly the chunking factor. But it should be
+  // slightly more performant to do the chunking here. Calling
+  // createLodPart() with more than 2 slices per thread. The drawback is
+  // that the code gets more complex and thus has a higher risk of bugs.
+  const std::int64_t slices_per_thread =
+    2 * ((numiters + maxthreads - 1) / maxthreads);
+  // Just in case the last few threads have nothing to do.
+  // E.g. isize:64, numiters:32, maxthreads:13 => s_per_thread 6 =>
+  // There is only enough work for 10 threads doing 6 slices and 1 thread
+  // doing the last 4. Asking for 13 threads would leave 2 of them idle.
+  // Cast is safe. If we try to create 2^21 threads we have other problems.
+  const int numthreads = static_cast<int>((isize[slowest_dim] + slices_per_thread - 1) / slices_per_thread);
+  const std::int64_t bytes_per_slice =
+    ((isize[0]*isize[1]*isize[2]) / isize[slowest_dim]) * input->itemsize();
+  const std::int64_t bytes_per_thread = bytes_per_slice * slices_per_thread;
+  // Thread count can be limited by setting OPENZGY_ENABLE_LODALGO_MT=-n
+  // Note the minus sign. Yuck.
+  // Note: Thread count can also be limited by thread pool size.
+  // $OPENZGY_NUMTHREADS_POOL=n or $OPENZGY_MT_PROVIDER=SERIAL.
+  // But in that case the code will not do fewer iteratons and
+  // more slices_per_thread. Does this matter? If not, might as
+  // well simplify this logic considerably and hard code
+  // slices_per_thread=2.
 #endif
-    guard.run([&](){
+#if 0
+  std::cerr << "GenLod "
+            << " numiters " << numiters
+            << " enable " << enable_lodalgo_mt()
+            << " maxthreads " << maxthreads
+            << " actual threads " << numthreads
+            << " size " << isize[0] << "," << isize[1] << "," << isize[2]
+            << " s.p.t " << slices_per_thread << std::endl;
+#endif
+  SimpleTimerEx tt(*AdHocLodTimers::instance().timerMT);
+  SimpleTimerEx tt2(*(algorithm==LodAlgorithm::LowPass ?
+                      AdHocLodTimers::instance().timerLP :
+                      algorithm==LodAlgorithm::WeightedAverage ?
+                      AdHocLodTimers::instance().timerWA :
+                      AdHocLodTimers::instance().timerOT));
+  // Note: parallelFor has an overload that specifies the thread count and
+  // implicitly the chunking factor. But it is slightly more performant
+  // to do this here, allowing createLodPart more than 2 slices per thread
+  // when there are few threads.
+  WorkOrderRunner::parallelFor(numthreads, [&](std::int64_t num)
+    {
       // Accumulated time here should be just slightly more than the timer
       // in createLodST(), confusingly named just "createlod"
       // Bulk size might be reported too high by including padding.
-      SimpleTimerEx uu(AdHocLodTimers::instance().timerInside);
-      createLodPart(result, input, algorithm,
+      SimpleTimerEx uu(*AdHocLodTimers::instance().timerInside);
+      createLodPart(result, input, algorithm, linear_output_offset,
                     hist, bincount, histogram_min, histogram_max,
                     slowest_dim,
-                    omp_get_thread_num() * slices_per_thread,
+                    num * slices_per_thread,
                     slices_per_thread);
-      AdHocLodTimers::instance().timerInside.addBytesRead(bytes_per_thread);
+      AdHocLodTimers::instance().timerInside->addBytesRead(bytes_per_thread);
     });
-  }
-  guard.finished();
 }
 
 /**
@@ -1234,6 +1365,7 @@ void
 createLod(const std::shared_ptr<DataBuffer>& result,
           const std::shared_ptr<const DataBuffer>& input,
           LodAlgorithm algorithm,
+          std::int64_t linear_output_offset,
           const std::int64_t* hist,
           std::int32_t bincount,
           double histogram_min,
@@ -1244,10 +1376,18 @@ createLod(const std::shared_ptr<DataBuffer>& result,
   if (algorithm == LodAlgorithm::LowPass && input->size3d()[2] < 5)
     algorithm = LodAlgorithm::Decimate;
 
-  // TODO-Worry: A lot more can go wrong in the MT case.
-  // Have I tested this enough?
-  createLodMT(result, input, algorithm,
-              hist, bincount, histogram_min, histogram_max);
+  if (result->size3d() == input->size3d()) {
+    // Caller needs to do parallelizing in this case.
+    SimpleTimerEx tt(*AdHocLodTimers::instance().timerST);
+    createLodST(result, input, algorithm, linear_output_offset,
+                hist, bincount, histogram_min, histogram_max);
+  }
+  else {
+    // TODO-Worry: A lot more can go wrong in the MT case.
+    // Have I tested this enough?
+    createLodMT(result, input, algorithm, linear_output_offset,
+                hist, bincount, histogram_min, histogram_max);
+  }
 }
 
 } // namespace

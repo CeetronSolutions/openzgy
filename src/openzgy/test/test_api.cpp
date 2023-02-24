@@ -20,6 +20,7 @@
 #include "../exception.h"
 #include "../impl/environment.h"
 #include "../impl/mtguard.h"
+#include "../impl/timer.h"
 
 #include <iostream>
 #include <iomanip>
@@ -34,6 +35,7 @@
 #include <chrono>
 #include <algorithm>
 #include <functional>
+#include <cstring>
 
 using namespace OpenZGY;
 using namespace OpenZGY::Formatters;
@@ -76,6 +78,23 @@ namespace Test_API {
 #if 0
 }
 #endif
+
+/**
+ * This is a messy hack to see if we are running under valgring and must
+ * expect tests to take a lot longer than usual. Possibly so long that
+ * the tests aren't feasible to run.
+ *
+ * The official way of doing this is RUNNING_ON_VALGRIND macro,
+ * but I don't want a dependency on <valgrind.h>, and making a local
+ * copy of that file is just as messy.
+ */
+static bool
+is_running_on_valgrind()
+{
+  std::string p = InternalZGY::Environment::getStringEnv("LD_LIBRARY_PATH", "");
+  return (strstr (p.c_str(), "/valgrind/") != nullptr ||
+          strstr (p.c_str(), "/vgpreload") != nullptr);
+}
 
 static std::string
 get_testdata(const std::string& name)
@@ -489,9 +508,9 @@ test_readbadpos()
   must_throw("lod 3 is outside the valid range", [&](){
     reader->read(size3i_t{0,0,0}, size3i_t{1,1,1}, buf.get(), 3);});
   // Repeat the tests using readconst.
-  must_throw("outside the valid range", [&](){
+  must_throw("region is empty", [&](){
     reader->readconst(size3i_t{0,0,0}, size3i_t{1,-1,1}, 0, true);});
-  must_throw("empty or outside the valid range", [&](){
+  must_throw("region is empty", [&](){
     reader->readconst(size3i_t{0,0,0}, size3i_t{0,0,0}, 0, true);});
   must_throw("outside the valid range", [&](){
     reader->readconst(size3i_t{0,0,0}, size3i_t{1,1,1000}, 0, true);});
@@ -807,6 +826,199 @@ test_finalize()
   do_test_finalize(MODE);
 }
 
+/*
+ * Testing the behavior of constant-value bricks and low resolution computation.
+ *
+ * Consider this survey seen from above:
+ *      0    32    64    96    128
+ *  0   +--+--+--+--+--+--+--+--+-+
+ *      |  |  |  |  |  |  |  |  |C|
+ * 16   +--+--+--+--+--+--+--+--+-+
+ *      |  |  |  |  |  |  |  |  | |
+ * 32   +--+--+--+--+--+--+--+--+-+
+ *      |  |  |AA|AA|BB|  |  |  |D|      A/B: (32-3,32-2)..(80+1,64+4)
+ * 48   +--+--+--+--+--+--+--+--+-+      C:   (128-2,0)..(136,16+4)
+ *      |  |  |AA|AA|BB|  |  |  |D|      D:   (128,32)..(136,64)
+ * 64   +--+--+--+--+--+--+--+--+-+
+ *      |  |  |  |  |  |  |  |  | |
+ * 80   +--+--+--+--+--+--+--+--+-+
+ *
+ * bricksize  = (16,16,16) * char
+ * surveysize = (136,80,28)
+ * surveysize in bricks: 8.5,5,1.75
+ *
+ * Bricks A,B,C,D are all explicitly set to all const, with a value
+ * that is not the same as the default value for missing bricks.
+ * Actually the region of all-const will be slightly larger than
+ * shown.
+ *
+ * Bricks not labeled are all set to some generated pattern.
+ *
+ * Case A sees 4 brick-columns with all dead traces. The lod1
+ * brick-column will all have dead traces. The decimation algorithm
+ * should not be called at all. For performance reasons it is not
+ * acceptable to first create regular bricks filled with a single
+ * value, and later have the code in the writer turn that into a
+ * scalar brick.
+ *
+ * CAVEAT: This test cannot actually verify the behavior above,
+ * because if the brick was inflated then it would get deflated again
+ * by write(). After having caused a performance problem that can't be
+ * seen in this tiny test. Check it manually by examining the log
+ * output and/or temporarily disable calls to isAllSame() in
+ * ZgyInternalBulk::readToNewBuffer[s] and GenLodImpl::_calculate().
+ * I think that will prevent the automatic deflation.
+ *
+ * Case B sees only some of the 4 input brick-columns being dead. For
+ * performance reasons it is not acceptable to run decimation on the
+ * constant value bricks.
+ *
+ * Also in this case the automated test will not be able to spot
+ * problems, because it cannot see whether half of the samples were
+ * written by a flood fill instead of running the decimation.
+ *
+ * Case C sees 4 brick columns where two are outside the survey and
+ * one is dead. There will be real lowres data from the remaining
+ * column. No automatic verification.
+ *
+ * Case D sees 4 brick columns where two are outside the survey and
+ * two are dead. The low resolution brick should be all-const with the
+ * same scalar value as D. Take care that the "D" bricks and the
+ * "outside" bricks don't end up with different scalars and that this
+ * leads to the brick above becoming non-const. This is critical for
+ * cloud access where we can only write each brick once.
+ *
+ * Finally, here is something the automated test can actually check.
+ * If the lod1 brick for area D isn't constant then it probably
+ * ended up as a mix of our novalue (42) and the system's (0).
+ *
+ * It is also possible to verify the number of normal vs. scalar
+ * bricks on the file. Lod0 has 9 * 5 brick columns total, 9 of them
+ * scalar. So, 36 normal. lod1 has 5 * 3 brick columns total, 2 scalar
+ * (A and D) and 13 normal. lod2 has 3 * 2 brick columns, all normal.
+ * lod3 has 2 * 1 normal brick columns and the final lod4 has 1
+ * normal. Grand total 36+13+6+2+1=58 normal, 9+2=11 scalar. Each
+ * brick column in lod0 has 2 vertical bricks. Bringing the brick count up to
+ * 2*36+13+6+2+1=94 normal, 2*9+2=20 scalar.
+ */
+static void
+test_genlod()
+{
+  LocalFileAutoDelete lad("testgenlod.zgy");
+  std::vector<std::int8_t> dead(28, 42);
+  std::vector<std::int8_t> live(28, 0);
+  int ii{0};
+  for (auto& it : live)
+    it = ++ii;
+  const std::array<std::int64_t,3> size{136,80,28};
+  const std::array<std::int64_t,3> bricksize{16,16,16};
+  const std::array<std::int64_t,3> zero3d{0,0,0};
+  std::vector<std::int8_t> survey(size[0] * size[1] * size[2]);
+  for (std::size_t ii = 0; ii < survey.size(); ii += size[2])
+    std::copy(live.data(), live.data() + size[2], &survey.data()[ii]);
+  // Region A and B
+  for (std::int64_t ii=29; ii<81; ++ii)
+    for (std::int64_t jj=30; jj<68; ++jj)
+      std::copy(dead.data(), dead.data() + size[2],
+                &survey.data()[ii*size[1]*size[2] + jj*size[2]]);
+  // Region C
+  for (std::int64_t ii=126; ii<136; ++ii)
+    for (std::int64_t jj=0; jj<20; ++jj)
+      std::copy(dead.data(), dead.data() + size[2],
+                &survey.data()[ii*size[1]*size[2] + jj*size[2]]);
+  // Region D
+  for (std::int64_t ii=128; ii<136; ++ii)
+    for (std::int64_t jj=32; jj<64; ++jj)
+      std::copy(dead.data(), dead.data() + size[2],
+                &survey.data()[ii*size[1]*size[2] + jj*size[2]]);
+  ZgyWriterArgs args = ZgyWriterArgs()
+    .filename(lad.name())
+    .datatype(SampleDataType::int8)
+    .datarange(-128, +127)
+    .bricksize(bricksize[0], bricksize[1], bricksize[2])
+    .size(size[0], size[1], size[2]);
+  std::shared_ptr<OpenZGY::IZgyWriter> writer =
+    OpenZGY::IZgyWriter::open(args);
+  const std::int8_t fortytwo{42};
+  writer->writeconst(zero3d, size, &fortytwo);
+  writer->write(zero3d, size, survey.data());
+  writer->finalize(std::vector<OpenZGY::DecimationType>{OpenZGY::DecimationType::Average}, nullptr);
+  writer->close();
+
+  std::shared_ptr<OpenZGY::IZgyReader> reader =
+    OpenZGY::IZgyReader::open(lad.name());
+  for (std::int64_t ii=0; ii<(size[0]+1)/2; ii += bricksize[0]) {
+    for (std::int64_t jj=0; jj<(size[1]+1)/2; jj += bricksize[1]) {
+      std::pair<bool,double> c = reader->readconst
+        (std::array<std::int64_t,3>{ii, jj, 0}, reader->bricksize(), 1, false);
+      if (verbose()) {
+        std::cout << std::boolalpha
+                  << "(" << ii/bricksize[0] << ", " << jj/bricksize[1] << ")"
+                  << " -> " << c.first << " " << c.second << std::endl
+                  << std::noboolalpha;
+      }
+      if (ii/bricksize[0] == 1 && jj/bricksize[1] == 1) {
+        TEST_CHECK(c.first);
+      }
+      else if (ii/bricksize[0] == 4 && jj/bricksize[1] == 1) {
+        TEST_CHECK(c.first);
+      }
+      else  {
+        TEST_CHECK(!c.first);
+      }
+    }
+  }
+  std::shared_ptr<const FileStatistics> stats = reader->filestats();
+  TEST_EQUAL(stats->brickNormalCount(), 94);
+  TEST_EQUAL(stats->brickCompressedCount(), 0);
+  TEST_EQUAL(stats->brickMissingCount(), 0);
+  TEST_EQUAL(stats->brickConstantCount(), 20);
+}
+
+/**
+ * Write a huge survey consisting almost exclusively of empty bricks.
+ * On finalize, a shortcut should ensure that the genlod algorithm
+ * isn't run for all bricks. If it is, the test will take a very
+ * long time.
+ *
+ * See also test_ambig2 which also creates a huge file.
+ */
+static void
+test_genlod2()
+{
+  // The test depends on measuring elapsed time, so valgrind is out.
+  if (is_running_on_valgrind()) {
+    if (verbose())
+      std::cout << "\nSkipping api.genlod2 when running under valgrind.\n";
+    return;
+  }
+  InternalZGY::Timer timer(true, "test_genlod2");
+
+  LocalFileAutoDelete lad("genlod2.zgy");
+  ZgyWriterArgs args = ZgyWriterArgs()
+    .size(131313,131,1313) // 2052 x 3 x 21 = 129276 bricks ~= 63 GB
+    .datatype(SampleDataType::int16)
+    .datarange(-32768, +32767)
+    .filename(lad.name());
+  std::shared_ptr<OpenZGY::IZgyWriter> writer = IZgyWriter::open(args);
+  const std::array<std::int64_t,3> zero{0,0,0};
+  const std::int16_t fillvalue{1962};
+  const std::int16_t fortytwo{42};
+  writer->writeconst(zero, writer->size(), &fillvalue);
+  writer->writeconst(zero, IZgyWriter::size3i_t{1,1,32}, &fortytwo);
+  writer->finalize();
+  writer->close();
+  timer.stop();
+  // A single test run on a powerful machine took 0.7 seconds with the
+  // old code, and 66 seconds with buggy code that did not have the
+  // shortcut. 6 seconds should be a safe value to test for.
+  // Not on Windows, though.
+  // Not on GitLab builds either. Maybe just drop it.
+  //#ifndef _WIN32
+  //TEST_CHECK(timer.getTotal() <= 6);
+  //#endif
+}
+
 #ifdef HAVE_SD
 
 static bool
@@ -987,7 +1199,7 @@ do_write_once(const std::string& filename, const IOContext *context = nullptr)
     .zstart(100).zinc(4)
     .hunit(UnitDimension::length, "m", 1)
     .zunit(UnitDimension::time, "ms", 1000)
-    .corners(ZgyWriterArgs::corners_t{5,7,5,107,205,7,205,107});
+    .corners(ZgyWriterArgs::corners_t{{{5,7},{5,107},{205,7},{205,107}}});
   std::shared_ptr<OpenZGY::IZgyWriter> writer = OpenZGY::IZgyWriter::open(args);
   std::vector<float> data(2*3*4, -1000);
   const OpenZGY::IZgyWriter::size3i_t origin{0,0,0};
@@ -1400,7 +1612,14 @@ test_lod(OpenZGY::DecimationType decimation)
     TEST_EQUAL_FLOAT(value, 146.73, 0.02);
     break;
   case OpenZGY::DecimationType::WeightedAverage:
-    TEST_EQUAL_FLOAT(value, 199.5, 0.02);
+    // WeightedAverage as lod 1 isn't really supported.
+    // With the new plan A the result will not be deterministic,
+    // because bricks are processed in parallel in an arbitrary
+    // order, and "histogram so far" will vary. The same problem
+    // occurs even for lod 2 if we implement incremental compute.
+    // But at least that will only depend on the order of writes
+    // from the application. So, slightly more deterministic.
+    TEST_EQUAL_FLOAT(value, 199.5, 1.20);
     break;
   case OpenZGY::DecimationType::Average:
     TEST_EQUAL_FLOAT(value, 125.0, 0.02);
@@ -2077,6 +2296,14 @@ test_ambig1()
   writer->close();
 }
 
+/**
+ * In this test the ambiguity occurs because 4*short = 8 bytes are written,
+ * which is the size of a double. This makes it look like a scalar.
+ *
+ * This test will create a huge file with almost all constant values.
+ * If it starts running very slowly, this is a regression.
+ * See also test_genlod2(), which is more focused on that problem.
+ */
 static void
 test_ambig2()
 {
@@ -3033,6 +3260,8 @@ public:
     register_test("api.finalize_5",          test_finalize<5>);
     register_test("api.finalize_6",          test_finalize<6>);
     register_test("api.finalize_7",          test_finalize<7>);
+    register_test("api.genlod",              test_genlod);
+    register_test("api.genlod2",             test_genlod2);
     register_test("api.write",               test_write);
     register_test("api.compress_noop",       test_compress_noop);
     register_test("api.compress_zfp",        test_compress_zfp);

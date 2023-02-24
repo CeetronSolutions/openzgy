@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "timer.h"
+#include "workorder.h"
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -33,7 +34,6 @@
 #endif
 
 #include <atomic>
-#include <omp.h>
 
 namespace {
   int sprintf_s(char *buffer, int size, const char *format, ...)
@@ -106,6 +106,55 @@ namespace InternalZGY {
 
 
 /**
+ * Create a singleton Timer that fills in frequency_ and overhead_
+ * and doesn't do anything else. It will be instanciated the first
+ * time an enabled timer is created. Or possibly  on app startup,
+ * but that is ok. It will be used in the regular constructor to
+ * set those two members instead of computing them again.
+ *
+ * Technical details: The TimerInfoTag is only there to force this
+ * particular constructor to be invoked.
+ *
+ * For explicit use of class Timer the overhead is not a big deal.
+ * When using SimpleTimer to measure very many iterations of very
+ * short duration the overhead can be significant. This is because
+ * instead of starting and stopping the Timer instance multiple
+ * times, each iteration is measured with its own temporary Timer.
+ */
+Timer::Timer(const TimerInfoTag&)
+  : enabled_(true), skip_(0), frequency_(1), overhead_(0),
+  laps_(0), last_(0), total_(0), adjusted_(0), begin_(0), end_(0),
+  running_(false), verbose_(0)
+{
+  name_[0] = '\0';
+  buff_[0] = '\0';
+
+  frequency_ = getNativeFrequency();
+  frequency_ = getNativeFrequency();
+  if (frequency_ == 0) frequency_ = 1; // prevent divide-by-zero
+
+  // Start and stop a couple of times to remove artifacts from JITting and cache
+  // This is mostly relevant for C++/CLI, but shouldn't harm native.
+  long long a[6]{};
+  start(); a[0] = begin_;
+  stop();  a[1] = end_;
+  start(); a[2] = begin_;
+  stop();  a[3] = end_;
+  start(); a[4] = begin_;
+  stop();  a[5] = end_;
+  if (a[0] + a[1] + a[2] + a[3] + a[4] + a[5] == 0xffffffffffffLL)
+    ++overhead_; // Silly test to avoid optimizing out, never succeeds
+
+  // The time for the last lap should be 0, but will probably be a small
+  // number of microseconds representing the overhead of these calls.
+  // Fudge subsequent numbers by 90% of this amount.
+  overhead_ += (last_ * 9) / 10;
+
+  // This isn't a real timer and the destructor shouldn't print it.
+  doReset();
+}
+
+/**
  * Create a new Timer instance, optionally giving it a name.
  * Optionally pass enabled=false to create a low overhead stub.
  * Optionally pass an initial count not to be included in statistics.
@@ -126,26 +175,9 @@ Timer::Timer(bool enabled, const char* name, int skip, bool startrunning)
 #endif
       name_[sizeof(name_)-1] = '\0';
     }
-    frequency_ = getNativeFrequency();
-    frequency_ = getNativeFrequency();
-    if (frequency_ == 0) frequency_ = 1; // prevent divide-by-zero
-
-    // Start and stop a couple of times to remove artifacts from JITting and cache
-    start();
-    stop();
-    start();
-    stop();
-    start();
-    stop();
-
-    // The time for the last lap should be 0, but will probably be a small
-    // number of microseconds representing the overhead of these calls.
-    // Fudge subsequent numbers by 90% of this amount.
-    overhead_ += (last_ * 9) / 10;
-
-    // Reset the counters again, and then start them for real.
-    // If the application does a start also, this first one is ignored.
-    doReset();
+    static Timer info(TimerInfoTag{});
+    frequency_ = info.frequency_;
+    overhead_ = info.overhead_;
     if (startrunning)
       doStart();
   }
@@ -212,7 +244,8 @@ Timer::doStop()
       last_ = end_ - begin_ - overhead_;
       if (laps_ >= skip_) {
         total_ += last_;
-        adjusted_ += last_ / omp_get_num_threads();
+        int mt = WorkOrderRunner::debugThreadsInUse();
+        adjusted_ += last_ / mt;
       }
       ++laps_;
       running_ = false;

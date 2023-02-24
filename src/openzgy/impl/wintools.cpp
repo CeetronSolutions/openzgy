@@ -42,6 +42,16 @@ namespace InternalZGY {
  */
 static std::atomic<int>threada{}, threadd{};
 
+std::string
+omp_engine()
+{
+#ifdef _OPENMP_LLVM_RUNTIME
+  return "LLVM";
+#else
+  return "Legacy";
+#endif
+}
+
 std::pair<int, int>
 threadReportPair()
 {
@@ -57,7 +67,8 @@ threadReportString()
 {
   std::pair<int, int> info = threadReportPair();
   return ("+" + std::to_string(info.first) +
-    " -" + std::to_string(info.second));
+    " -" + std::to_string(info.second) +
+    " (" + omp_engine() + " OpenMP)");
 }
 
 std::atomic<int> noop_called(0);
@@ -70,7 +81,8 @@ void threadTimeTest(int count)
 {
   std::cerr << "Start creating " << count << " threads" << std::endl;
   InternalZGY::WindowsTools::threadReportString();
-  InternalZGY::SummaryPrintingTimerEx timer("CreateThreads");
+  std::string timername = "OpenMP." + omp_engine();
+  InternalZGY::SummaryPrintingTimerEx timer(timername.c_str());
   for (int ii = 0; ii < count; ++ii) {
     InternalZGY::SimpleTimer tt(timer);
     std::thread t(noop);

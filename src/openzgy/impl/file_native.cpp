@@ -1,4 +1,4 @@
-// Copyright 2017-2021, Schlumberger
+// Copyright 2017-2022, Schlumberger
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -106,13 +106,13 @@ static int use_windows_fileaccess()
  * Not that the users could easily copy it anyway, as the class should
  * always be used via the IFileADT interface.
  */
-class LocalFileWindows : public FileCommon
+class LocalFileNativeWindows : public FileCommon
 {
-  LocalFileWindows(const LocalFileWindows&) = delete;
-  LocalFileWindows& operator=(const LocalFileWindows&) = delete;
+  LocalFileNativeWindows(const LocalFileNativeWindows&) = delete;
+  LocalFileNativeWindows& operator=(const LocalFileNativeWindows&) = delete;
 public:
-  LocalFileWindows(const std::string& filename, OpenMode mode, const OpenZGY::IOContext *iocontext);
-  virtual ~LocalFileWindows();
+  LocalFileNativeWindows(const std::string& filename, OpenMode mode, const OpenZGY::IOContext *iocontext);
+  virtual ~LocalFileNativeWindows();
   static std::shared_ptr<IFileADT> xx_make_instance(const std::string& filename, OpenMode mode, const OpenZGY::IOContext *iocontext);
   // Methods from IFileBase
   void deleteFile(const std::string& name, bool missing_ok) const override;
@@ -126,52 +126,86 @@ public:
   void xx_read(void *data, std::int64_t offset, std::int64_t size, UsageHint usagehint=UsageHint::Unknown) override;
   void xx_readv(const ReadList& requests, bool parallel_ok=false, bool immutable_ok=false, bool transient_ok=false, UsageHint usagehint=UsageHint::Unknown) override;
   void xx_write(const void* data, std::int64_t offset, std::int64_t size, UsageHint usagehint=UsageHint::Unknown) override;
-  virtual std::int64_t _real_eof() const;
+  std::int64_t _real_eof() const override;
 private:
   std::int64_t _get_filesize() const;
 private:
-  int _fd;
+  HANDLE _handle;
   mutable std::mutex _mutex;
 };
 
 /////////////////////////////////////////////////////////////////////////////
-//    FileADT -> FileCommon -> LocalFileWindows   ///////////////////////////
+//    FileADT -> FileCommon -> LocalFileNativeWindows   ///////////////////////////
 /////////////////////////////////////////////////////////////////////////////
 
-LocalFileWindows::LocalFileWindows(const std::string& filename, OpenMode mode, const IOContext*)
+LocalFileNativeWindows::LocalFileNativeWindows(const std::string& filename, OpenMode mode, const IOContext*)
   : FileCommon(filename, mode)
-  , _fd(-1)
+  , _handle(INVALID_HANDLE_VALUE)
   , _mutex()
 {
   // Function specific to native vs. posix version.
+  ::SetLastError(ERROR_SUCCESS);
+  _handle = INVALID_HANDLE_VALUE;
   switch (mode) {
   case OpenMode::ReadOnly:
-    _fd = _open(filename.c_str(), O_RDONLY | _O_BINARY, 0666);
+    // If opening for read, we don't mind that some other process
+    // opens it for write later. Thus the FILE_SHARE_WRITE in that case.
+    _handle = ::CreateFileA(filename.c_str(),
+      GENERIC_READ,
+      FILE_SHARE_READ | FILE_SHARE_WRITE,
+      NULL,
+      OPEN_EXISTING,
+      FILE_ATTRIBUTE_NORMAL,
+      NULL);
     break;
+
   case OpenMode::ReadWrite:
-    _fd = _open(filename.c_str(), O_RDWR | _O_BINARY, 0666);
+    // If we are opening it for write, we specify FILE_SHARE_READ
+    // meaning we allow others to open it for reading but not writing.
+    _handle = ::CreateFileA(filename.c_str(),
+      GENERIC_READ | GENERIC_WRITE,
+      FILE_SHARE_READ,
+      NULL,
+      OPEN_EXISTING,
+      FILE_ATTRIBUTE_NORMAL,
+      NULL);
     break;
+
   case OpenMode::Truncate:
-    _fd = _open(filename.c_str(), O_RDWR | _O_BINARY | O_CREAT | O_TRUNC, 0666);
+    _handle = ::CreateFileA(filename.c_str(),
+      GENERIC_READ | GENERIC_WRITE,
+      FILE_SHARE_READ,
+      NULL,
+      CREATE_ALWAYS,
+      FILE_ATTRIBUTE_NORMAL,
+      NULL);
     break;
+
   case OpenMode::Closed:
   default:
-    _fd = -2;
+    _handle = INVALID_HANDLE_VALUE;
     break;
   }
-  if (_fd == -1)
-    throw OpenZGY::Errors::ZgyIoError(filename, errno);
 
-  if (_fd >= 0) {
-    _eof = static_cast<std::int64_t>(_lseeki64(_fd, 0, SEEK_END));
-    (void)_lseeki64(_fd, 0, SEEK_SET);
-    if (false)
-      std::cout << "Opened file \"" << filename
-      << "\" size " << std::hex << _eof << std::dec << "\n";
-  }
+  DWORD err = ::GetLastError();
+  // This result from CREATE_ALWAYS or OPEN_ALWAYS
+  // is informational, not an actual error.
+  //if (err == ERROR_ALREADY_EXISTS)
+  //  std::cerr << "Opened existing ZGY file\n";
+
+  if (mode != OpenMode::Closed && _handle == INVALID_HANDLE_VALUE)
+    throw OpenZGY::Errors::ZgyWindowsError(filename, err);
+
+  _eof = _get_filesize();
+
+  if (false)
+    std::cerr << "Opened "
+    << (err == ERROR_ALREADY_EXISTS ? "existing" : "new")
+    << " file \"" << filename
+    << "\" size " << std::hex << _eof << std::dec << "\n";
 }
 
-LocalFileWindows::~LocalFileWindows()
+LocalFileNativeWindows::~LocalFileNativeWindows()
 {
   if (_mode != OpenMode::Closed) {
     try {
@@ -187,10 +221,11 @@ LocalFileWindows::~LocalFileWindows()
 }
 
 std::shared_ptr<IFileADT>
-LocalFileWindows::xx_make_instance(const std::string& filename, OpenMode mode, const IOContext *iocontext)
+LocalFileNativeWindows::xx_make_instance(const std::string& filename, OpenMode mode, const IOContext *iocontext)
 {
-  if (filename.find("://") == std::string::npos && !use_windows_fileaccess()) {
-    auto file = std::shared_ptr<IFileADT>(new LocalFileWindows(filename, mode, iocontext));
+  if (filename.find("://") == std::string::npos && use_windows_fileaccess()) {
+    std::cerr << "Using LocalFileNativeWindows to access \"" << filename << "\"\n";
+    auto file = std::shared_ptr<IFileADT>(new LocalFileNativeWindows(filename, mode, iocontext));
 
     // This is a no-op unless enabled by enviroment variables
     file = FileWithPerformanceLogger::inject(file, filename);
@@ -212,21 +247,21 @@ LocalFileWindows::xx_make_instance(const std::string& filename, OpenMode mode, c
 }
 
 void
-LocalFileWindows::deleteFile(const std::string& name, bool missing_ok) const
+LocalFileNativeWindows::deleteFile(const std::string& name, bool missing_ok) const
 {
   // Function specific to native vs. posix version.
-  if (_unlink(name.c_str()) < 0 && errno != ENOENT)
-    throw std::runtime_error("Cannot delete \"" + name + "\"");
+  if (0 == ::DeleteFileA(name.c_str()))
+    throw OpenZGY::Errors::ZgyWindowsError(name, ::GetLastError());
 }
 
 std::string
-LocalFileWindows::altUrl(const std::string& name) const
+LocalFileNativeWindows::altUrl(const std::string& name) const
 {
   return name;
 }
 
 std::string
-LocalFileWindows::idToken() const
+LocalFileNativeWindows::idToken() const
 {
   return std::string();
 }
@@ -235,7 +270,7 @@ LocalFileWindows::idToken() const
  * \details: Thread safety: No. All other operations must be completed first.
  */
 void
-LocalFileWindows::xx_close()
+LocalFileNativeWindows::xx_close()
 {
   if (_mode == OpenMode::Closed) {
     // Note: I might "be nice" to the application and simply ignore a duplicate
@@ -262,19 +297,20 @@ LocalFileWindows::xx_close()
   case OpenMode::Truncate:
     if (mode != OpenMode::ReadOnly && enable_fsync() > 0) {
       SimpleTimerEx mm(*_synctimer);
-      (void)_commit(_fd); // errors are not fatal.
+      (void)::FlushFileBuffers(_handle); // errors are not fatal.
     }
-    if (_close(_fd) < 0)
-      throw OpenZGY::Errors::ZgyIoError(_name, errno);
-    _fd = -2;
+    if (0 == ::CloseHandle(_handle)) {
+      _handle = INVALID_HANDLE_VALUE;
+      throw OpenZGY::Errors::ZgyWindowsError(_name, ::GetLastError());
+    }
     break;
   }
-  _fd = -2;
+  _handle = INVALID_HANDLE_VALUE;
   // End specific to native vs. posix version.
 
   _name = std::string();
-  _synctimer.reset();
   _sync3timer.reset();
+  _synctimer.reset();
   _rtimer.reset();
   _wtimer.reset();
   _mtimer.reset();
@@ -284,7 +320,7 @@ LocalFileWindows::xx_close()
  * \details: Thread safety: Yes, by locking.
  */
 std::int64_t
-LocalFileWindows::xx_eof() const
+LocalFileNativeWindows::xx_eof() const
 {
   SimpleTimerEx mm(*_mtimer);
   std::lock_guard<std::mutex> lk(_mutex); // protect _eof
@@ -296,7 +332,7 @@ LocalFileWindows::xx_eof() const
  * \details: Thread safety: Yes, called method is thread safe.
  */
 std::vector<std::int64_t>
-LocalFileWindows::xx_segments(bool /*complete*/) const
+LocalFileNativeWindows::xx_segments(bool /*complete*/) const
 {
   return std::vector<std::int64_t>{this->xx_eof()};
 }
@@ -305,7 +341,7 @@ LocalFileWindows::xx_segments(bool /*complete*/) const
  * \details: Thread safety: Yes.
  */
 bool
-LocalFileWindows::xx_iscloud() const
+LocalFileNativeWindows::xx_iscloud() const
 {
   return false;
 }
@@ -314,7 +350,7 @@ LocalFileWindows::xx_iscloud() const
  * \details: Thread safety: Yes, by setting a lock.
  */
 void
-LocalFileWindows::xx_read(void *data, std::int64_t offset, std::int64_t size, UsageHint usagehint)
+LocalFileNativeWindows::xx_read(void *data, std::int64_t offset, std::int64_t size, UsageHint usagehint)
 {
 #if XXX_DISABLE_ALL_IO
   memset(data, 0, size);
@@ -330,11 +366,14 @@ LocalFileWindows::xx_read(void *data, std::int64_t offset, std::int64_t size, Us
   if (size <= 0)
     throw OpenZGY::Errors::ZgyInternalError(_name + ": Bytes to write must be > 0");
   // Begin specific to native vs. posix version.
-  SimpleTimerEx mm(*_mtimer);
-  std::lock_guard<std::mutex> lk(_mutex); // make seek + read atomic
-  mm.stop();
-  _lseeki64(_fd, offset, SEEK_SET);
-  std::int64_t nbytes = static_cast<std::int64_t>(_read(_fd, data, static_cast<int>(size)));
+  OVERLAPPED ovlp;
+  memset(&ovlp, 0, sizeof(ovlp));
+  ovlp.Offset = (DWORD)(offset % (std::int64_t(1) << 32));
+  ovlp.OffsetHigh = (DWORD)(offset >> 32);
+  DWORD nRead(0);
+  if (!::ReadFile(_handle, data, (DWORD)size, &nRead, &ovlp))
+    throw OpenZGY::Errors::ZgyWindowsError(_name, ::GetLastError());
+  std::int64_t nbytes = static_cast<std::int64_t>(nRead);
   // End specific to native vs. posix version.
   _check_short_read(offset, size, nbytes);
 }
@@ -343,7 +382,7 @@ LocalFileWindows::xx_read(void *data, std::int64_t offset, std::int64_t size, Us
  * \details: Thread safety: Yes, by setting locks.
  */
 void
-LocalFileWindows::xx_readv(const ReadList& requests, bool parallel_ok, bool immutable_ok, bool transient_ok, UsageHint usagehint)
+LocalFileNativeWindows::xx_readv(const ReadList& requests, bool parallel_ok, bool immutable_ok, bool transient_ok, UsageHint usagehint)
 {
 #if XXX_DISABLE_ALL_IO
   static std::shared_ptr<char> spare_buffer;
@@ -353,7 +392,7 @@ LocalFileWindows::xx_readv(const ReadList& requests, bool parallel_ok, bool immu
     if (!spare_buffer || spare_size < r.size) {
       spare_buffer.reset(new char[r.size], std::default_delete<char[]>());
     }
-    this->LocalFileWindows::xx_read(spare_buffer.get(), r.offset, r.size, usagehint);
+    this->LocalFileNativeWindows::xx_read(spare_buffer.get(), r.offset, r.size, usagehint);
     _deliver(r.delivery, spare_buffer, 0, r.size, transient_ok);
   }
   // TODO, who is holding on to the buffers?
@@ -369,7 +408,7 @@ LocalFileWindows::xx_readv(const ReadList& requests, bool parallel_ok, bool immu
   for (const ReadRequest& r : requests) {
     std::shared_ptr<char> data(new char[r.size], std::default_delete<char[]>());
     // Next line specific to native vs. posix version.
-    this->LocalFileWindows::xx_read(data.get(), r.offset, r.size, usagehint);
+    this->LocalFileNativeWindows::xx_read(data.get(), r.offset, r.size, usagehint);
     _deliver(r.delivery, data, 0, r.size, transient_ok);
   }
 }
@@ -381,7 +420,7 @@ LocalFileWindows::xx_readv(const ReadList& requests, bool parallel_ok, bool immu
  * both here and the places it is read.
  */
 void
-LocalFileWindows::xx_write(const void* data, std::int64_t offset, std::int64_t size, UsageHint usagehint)
+LocalFileNativeWindows::xx_write(const void* data, std::int64_t offset, std::int64_t size, UsageHint usagehint)
 {
   SimpleTimerEx tt(*_wtimer);
 #if XXX_DISABLE_ALL_IO
@@ -400,29 +439,44 @@ LocalFileWindows::xx_write(const void* data, std::int64_t offset, std::int64_t s
               << offset << ", " << size << ", hint=" << (int)usagehint
               << std::dec << ")\n";
   // Begin specific to native vs. posix version.
-  SimpleTimerEx mm(*_mtimer);
-  std::lock_guard<std::mutex> lk(_mutex); // make seek + write + _eof atomic
-  mm.stop();
-  _lseeki64(_fd, offset, SEEK_SET);
-  std::int64_t nbytes = static_cast<std::int64_t>(_write(_fd, data, static_cast<int>(size)));
-  if (nbytes < 0)
-    throw OpenZGY::Errors::ZgyIoError(_name, errno);
-  _eof = std::max(_eof, offset + nbytes);
+  OVERLAPPED ovlp;
+  memset(&ovlp, 0, sizeof(ovlp));
+  ovlp.Offset = (DWORD)(offset % (std::int64_t(1) << 32));
+  ovlp.OffsetHigh = (DWORD)(offset >> 32);
+  DWORD nWritten(0);
+  if (!::WriteFile(_handle, data, static_cast<DWORD>(size), &nWritten, &ovlp))
+    throw OpenZGY::Errors::ZgyWindowsError(_name, ::GetLastError());
+  std::int64_t nbytes = static_cast<std::int64_t>(nWritten);
+  {
+    // Unlike _write, no need to lock the write call itself.
+    // But _eof may still need protection.
+    SimpleTimerEx mm(*_mtimer);
+    std::lock_guard<std::mutex> lk(_mutex); // protect _eof
+    mm.stop();
+    _eof = std::max(_eof, offset + nbytes);
+  }
   // End specific to native vs. posix version.
   if (nbytes != size)
     throw OpenZGY::Errors::ZgyInternalError(_name + ": Short write");
-  if (enable_fsync() >= 3) {
-    SimpleTimerEx tt(*_sync3timer);
+  static int periodical{ 1 };
+  if (enable_fsync() >= 3 && (periodical%1000) == 0) {
+    tt.stop();
+    SimpleTimerEx uu(*_sync3timer);
     // Next line specific to native vs. posix version.
-    _commit(_fd);
+    ::FlushFileBuffers(_handle);
+    _rtimer->print();
+    _wtimer->print();
+    _synctimer->print();
+    _sync3timer->print();
   }
+  ++periodical;
 }
 
 /**
  * \details: Thread safety: Yes.
  */
 std::int64_t
-LocalFileWindows::_real_eof() const
+LocalFileNativeWindows::_real_eof() const
 {
   return _get_filesize();
 }
@@ -433,13 +487,18 @@ LocalFileWindows::_real_eof() const
  * Thread safety: Yes.
  */
 std::int64_t 
-LocalFileWindows::_get_filesize() const
+LocalFileNativeWindows::_get_filesize() const
 {
   // Function specific to native vs. posix version.
-  struct _stat64 st;
-  if (::_fstat64(_fd, &st) < 0)
+  if (_handle == INVALID_HANDLE_VALUE)
     return -1;
-  return static_cast<std::int64_t>(st.st_size);
+  DWORD dwHigh(0), dwLow(0);
+  ::SetLastError(ERROR_SUCCESS);
+  dwLow = ::GetFileSize(_handle, &dwHigh);
+  DWORD err = ::GetLastError();
+  if (err != ERROR_SUCCESS)
+    return -1;
+  return (std::int64_t(dwHigh) << 32) + dwLow;
 }
 
 namespace {
@@ -451,7 +510,7 @@ namespace {
   public:
     Register()
     {
-      FileFactory::instance().add_factory(LocalFileWindows::xx_make_instance);
+      FileFactory::instance().add_factory(LocalFileNativeWindows::xx_make_instance);
     }
   } dummy;
 } // anonymous namespace for registration

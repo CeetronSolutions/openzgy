@@ -41,7 +41,7 @@ namespace Test_Utils {
 // Free functions
 std::vector<float> random_vector(std::size_t size);
 std::vector<double> random_double_vector(std::size_t size);
-void random_delay(int ms);
+int random_delay(int ms);
 #ifdef HAVE_SD
 const OpenZGY::SeismicStoreIOContext* default_sd_context();
 #endif

@@ -347,6 +347,7 @@ protected:
    */
   std::int64_t _eof;
   std::shared_ptr<SummaryPrintingTimerEx> _synctimer; // Access is thread safe
+  std::shared_ptr<SummaryPrintingTimerEx> _sync3timer; // Access is thread safe
   std::shared_ptr<SummaryPrintingTimerEx> _rtimer; // Access is thread safe
   std::shared_ptr<SummaryPrintingTimerEx> _wtimer; // Access is thread safe
   std::shared_ptr<SummaryPrintingTimerEx> _mtimer; // Access is thread safe

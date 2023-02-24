@@ -211,7 +211,7 @@ public:
 
   // Methods from ISDGenericDataset that are always passed thru
 
-  virtual void open(
+  void open(
        seismicdrive::SDDatasetDisposition disposition,
        const std::unordered_map<std::string, std::string> &args) override
   {

@@ -98,8 +98,20 @@ protected:
   virtual void _write(
       std::int32_t lod, const index3_t& pos,
       const std::shared_ptr<const DataBuffer>& data) const;
-  index3_t _clipsizetosurvey(std::int32_t lod, const index3_t& pos, const index3_t& size) const;
-  void _report(const DataBuffer* data) const;
+  virtual std::vector<std::shared_ptr<DataBuffer>>
+  _readbricks(
+       const std::vector<std::array<int64_t,3>>& position,
+       const std::vector<std::shared_ptr<DataBuffer>>& data,
+       int lod) const;
+  virtual void
+  _writebricks(
+       const std::vector<std::array<int64_t,3>>& position,
+       const std::vector<std::shared_ptr<DataBuffer>>& data,
+       int lod) const;
+  virtual bool _use_plan_a() const;
+
+index3_t _clipsizetosurvey(std::int32_t lod, const index3_t& pos, const index3_t& size) const;
+  void _report(const DataBuffer* data, std::int64_t factor = 1) const;
   void _reporttotal(std::int64_t total) { _total = total; }
   std::string _prefix(std::int32_t lod) const;
   static std::string _format_result(const std::shared_ptr<DataBuffer>& data);
@@ -133,10 +145,54 @@ public:
              LoggerFn logger);
   std::tuple<std::shared_ptr<StatisticData>, std::shared_ptr<HistogramData>>
   call();
+  std::tuple<std::shared_ptr<StatisticData>, std::shared_ptr<HistogramData>>
+  callNewVersion();
+  std::tuple<std::shared_ptr<StatisticData>, std::shared_ptr<HistogramData>>
+  callSingleBrick();
 protected:
+  static bool areAllEightSameConst(
+       const std::vector<std::shared_ptr<DataBuffer>>& indata,
+       std::int64_t ipos);
+  void processFourInputColumnsOneLod(
+       const int out_lod,
+       const std::int64_t pos0,
+       const std::int64_t pos1,
+       const std::int64_t zcount,
+       const LodAlgorithm algorithm,
+       const std::vector<std::shared_ptr<DataBuffer>>& all_buffers);
+  void decimateOneInputBrick(
+       const std::vector<std::shared_ptr<DataBuffer>>& outbuffer,
+       const std::vector<std::shared_ptr<DataBuffer>>& indata,
+       std::int64_t part,
+       LodAlgorithm algorithm);
+  static std::array<std::int64_t, 3> _usedPartOfBrick(
+       const std::array<std::int64_t, 3>& bricksize,
+       const std::array<std::int64_t, 3>& surveysize,
+       const std::array<std::int64_t, 3>& brickpos,
+       std::int32_t lod);
+  void accumulateOneInputBrick(
+       const std::vector<std::shared_ptr<DataBuffer>>& indata,
+       const std::vector<index3_t>& inpos,
+       std::int64_t input_buffer_num);
   template <typename T>
-  void _accumulateT(const std::shared_ptr<const DataBuffer>& data_in);
-  void _accumulate(const std::shared_ptr<const DataBuffer>& data);
+  static void
+  _accumulateT(
+       const std::shared_ptr<const DataBuffer>&,
+       const index3_t& roi,
+       std::shared_ptr<HistogramBuilder>,
+       bool fake,
+       bool use_plan_a,
+       std::int64_t *written);
+  static void _accumulate(
+       const std::shared_ptr<const DataBuffer>&,
+       const index3_t& roi,
+       std::shared_ptr<HistogramBuilder>,
+       bool fake,
+       bool use_plan_a,
+       std::int64_t *written);
+  void _accumulateAndStore(
+       const std::shared_ptr<const DataBuffer>& data,
+       const index3_t& used);
   std::shared_ptr<DataBuffer>
   _calculate(const index3_t& readpos, const index3_t& readsize, std::int32_t readlod);
   std::shared_ptr<DataBuffer>
@@ -183,6 +239,20 @@ protected:
   void _write(
       std::int32_t lod, const index3_t& pos,
       const std::shared_ptr<const DataBuffer>& data) const override;
+
+  std::vector<std::shared_ptr<DataBuffer>>
+  _readbricks(
+       const std::vector<std::array<int64_t,3>>& position,
+       const std::vector<std::shared_ptr<DataBuffer>>& data,
+       int lod) const override;
+
+  void
+  _writebricks(
+       const std::vector<std::array<int64_t,3>>& position,
+       const std::vector<std::shared_ptr<DataBuffer>>& data,
+       int lod) const override;
+
+  virtual bool _use_plan_a() const override;
 };
 
 } // namespace

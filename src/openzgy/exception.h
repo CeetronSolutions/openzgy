@@ -250,6 +250,20 @@ public:
 };
 
 /**
+ * \brief Exception from the Windows I/O layer.
+ *
+ * Some error was received from a Windows syscall acting on a file.
+ *
+ * Thread safety: Exceptions defined in this module are safe.
+ */
+class OPENZGY_API ZgyWindowsError : public ZgyError
+{
+public:
+  /** \copybrief OpenZGY::Errors::ZgyWindowsError */
+  ZgyWindowsError(const std::string& filename, unsigned long windows_errno);
+};
+
+/**
  * \brief Data must be read-only.
  *
  * Some operations such as alturl require that the data is flagged

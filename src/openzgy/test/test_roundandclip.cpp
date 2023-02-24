@@ -55,11 +55,10 @@ void testIntegral()
   const double nan      = std::numeric_limits<double>::quiet_NaN();
   const double abithigh = 42.1; // should be rounded down
   const double abitlow  = 41.9; // should be rounded up
-  const double toohigh  = static_cast<double>(std::numeric_limits<T>::max() + 42.0);
-  const double toolow   = static_cast<double>(std::numeric_limits<T>::min() - 42.0);
-  double zero = 0; // trick the compiler to not see the division by zero.
-  const double veryhigh = 1 / zero; // positive infinity
-  const double verylow  = -1 / zero; // negative infinity
+  const double toohigh  = static_cast<double>(std::numeric_limits<T>::max()) + 42.0;
+  const double toolow   = static_cast<double>(std::numeric_limits<T>::min()) - 42.0;
+  const double veryhigh = std::numeric_limits<double>::infinity();
+  const double verylow  = -std::numeric_limits<double>::infinity();
   const double nearhigh = static_cast<double>(std::numeric_limits<T>::max() - 1);
   const double nearlow  = static_cast<double>(std::numeric_limits<T>::min() + 1);
 

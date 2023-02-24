@@ -761,8 +761,7 @@ TestHistogramBuilderArithmetic()
   CPPUNIT_ASSERT_DOUBLES_EQUAL(c.getstats().getssq(), foreign.getstats().getssq(), 1e-6);
 
   // Check that infinites do not affect statistics except for being counted.
-  float zero = 0.0;
-  float trouble[2] = { 1.0f/zero, std::numeric_limits<float>::quiet_NaN() };
+  const float trouble[2] = { std::numeric_limits<float>::infinity(), std::numeric_limits<float>::quiet_NaN()};
   HistogramBuilder withnan = c;
   withnan.add(&trouble[0], &trouble[2]);
 

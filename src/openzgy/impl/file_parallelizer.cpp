@@ -13,9 +13,8 @@
 // limitations under the License.
 
 #include "file_parallelizer.h"
-#include "mtguard.h"
+#include "workorder.h"
 #include "../exception.h"
-#include <omp.h>
 #include <string.h>
 #include <iostream>
 
@@ -75,7 +74,7 @@ FileParallelizer::xx_readv(
      bool transient_ok, // usually true
      UsageHint hint)
 {
-  const bool shortcut = false; // Set false only for debugging.
+  const bool shortcut = true; // Set false only for debugging.
   const std::int64_t requestcount = requests.size();
 
   // Shortcut if no parallelizing possible.
@@ -116,17 +115,11 @@ FileParallelizer::xx_readv(
   relay().xx_readv(newrequests, true, immutable_ok, false, hint);
 
   // Deliver the buffers that we cached to the caller.
-  const std::int64_t threadcount = std::min(std::min(requestcount, (std::int64_t)omp_get_max_threads()), _cputhreads);
-  MTGuard guard("paralellizer", (int)threadcount);
-#pragma omp parallel for num_threads((int)threadcount)
-  for (std::int64_t ii = 0; ii < requestcount; ++ii) {
-    guard.run([&](){
-      //std::cerr << "0123456789"[omp_get_thread_num() % 10];
+  const std::int64_t threadcount = std::min(requestcount, _cputhreads);
+  WorkOrderRunner::parallelFor(requestcount, threadcount, [&](std::int64_t ii)
+    {
       _deliver(requests[ii].delivery, buffers[ii].first, 0, buffers[ii].second, transient_ok);
     });
-  }
-  guard.finished();
-  //std::cerr << "$\n";
 }
 
 /**

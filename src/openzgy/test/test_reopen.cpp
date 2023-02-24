@@ -37,6 +37,7 @@
 #include <numeric>
 #include <limits>
 #include <algorithm>
+#include <mutex>
 
 using namespace OpenZGY;
 //using namespace OpenZGY::Formatters;
@@ -48,6 +49,16 @@ namespace Test_API {
 #if 0
 }
 #endif
+
+namespace {
+  // Duplicated from genlod.cpp.
+  // Remeber to keep the default in sync.
+  static bool plan_a()
+  {
+    static int result = InternalZGY::Environment::getNumericEnv("OPENZGY_PLAN_A", 1);
+    return result > 0;
+  }
+}
 
 namespace {
   // All methods in this file that might be testing SD
@@ -162,7 +173,7 @@ do_write_twice(const std::string& filename, const IOContext* context = nullptr)
     .zstart(100).zinc(4)
     //.hunit(UnitDimension::length, "m", 1)
     //.zunit(UnitDimension::time, "ms", 1000)
-    .corners(ZgyWriterArgs::corners_t{5,7,5,107,205,7,205,107});
+    .corners(ZgyWriterArgs::corners_t{{{5,7},{5,107},{205,7},{205,107}}});
 
   ZgyWriterArgs thirdargs = ZgyWriterArgs()
     .iocontext(context)
@@ -470,11 +481,18 @@ do_test_reopen(const std::string& filename, TestTwiceFlags flags)
      flagset(TestTwiceFlags::step2_finalize) &&
      flagset(TestTwiceFlags::step2_fin_incr)) ? 42 :
     (expect_41 + expect_42 == 0 ? 0 : 42);
-
-  // Even if asking for incremental build, might not get it.
-  // TODO-@@@ Verify by hand the expected block count.
-  // Not useful right now because the algorithms are still
-  // under development.
+  // The number of I/O operations needed to finalize is an implemention detail
+  // that is subject to change. The size of the test file is 9*4*2 = 72 bricks.
+  // Total low resolution data is 5*2+3+2+1 = 16 bricks. Plan C reads each full
+  // resolution brick once, and writes each low res brick once. Total I/O is 88.
+  // Plan A reads a multiple of 2 bricks, so it sees a lod0 size of 10*4*2 = 80,
+  // and 6*2*2 + 4*2*2 + 2*2*2 + 0 = 48 bricks of low resolution bricks which it
+  // will read back, not counting the last single-brick level. Plus Plan A will
+  // write the same number of lowres bricks as plan C, 16. Sum 80+48+16 = 144.
+  // Oh, and remember that incremental finalize is currently not handled by
+  // plan A. Sigh. I wonder if I should just remove this test. But it is a good
+  // indicator of accidentally reading too much.
+  // For now, expected=88 actually means "88 or 144".
   SilentProgress p;
   const bool any_step2_write =
     ((flags & (TestTwiceFlags::step2_write |
@@ -513,7 +531,7 @@ do_test_reopen(const std::string& filename, TestTwiceFlags flags)
 
   if ((flags & TestTwiceFlags::step2_nometa) == TestTwiceFlags::nothing)
     secondargs
-      .corners(ZgyWriterArgs::corners_t{5,7,5,107,205,7,205,107})
+      .corners(ZgyWriterArgs::corners_t{{{5,7},{5,107},{205,7},{205,107}}})
       .zinc(7);
 
   if (flagset(TestTwiceFlags::step2_compress))
@@ -682,7 +700,14 @@ do_test_reopen(const std::string& filename, TestTwiceFlags flags)
   ok = TEST_EQUAL_FLOAT(actual_stat.ssq,   expect_stat_ssq, 0.1)   && ok;
   ok = TEST_EQUAL(actual_stat.min,   expect_stat_min)   && ok;
   ok = TEST_EQUAL(actual_stat.max,   expect_stat_max)   && ok;
-  if (expect_brickrw >= 0) {
+  if (expect_brickrw == 88 && p.total() == 144) {
+    // Treat as Ok.
+    // As explained above, plan A will affect the amount of I/O.
+    // A full rebuild is 88 bricks in plan C and 144 in plan A.
+    // Figuring out which plan will be used is too complex
+    // and the rules will frequently change.
+  }
+  else if (expect_brickrw >= 0) {
     ok = (TEST_EQUAL(p.total(), expect_brickrw)) && ok;
   }
   else {
@@ -1424,7 +1449,23 @@ test_reopen_track_changes()
   //   LOD5:  1 x  1 x 1     9 x  18 x   7
   //
   // Sum 2142 fullres and 388 lowres = 2530 total.
-
+  //
+  // The number of I/O operations needed to finalize is an
+  // implemention detail that is subject to change.
+  //
+  // For plan A there will be more reads. Partly because nunber
+  // of bricks is rounded up to become even, and patrtly because
+  // all lowres levels except the last one will be re-read.
+  // The number of writes should be unchanged.
+  //
+  //   LOD0: 18 x 18 x 8 = 2592
+  //   LOD1: 10 x 10 x 4 = 400 read, 324 write
+  //   LOD2:  6 x  6 x 2 = 72 read, 50 write
+  //   LOD3:  4 x  4 x 2 = 32 read, 9 write
+  //   LOD4:  2 x  2 x 2 = 8 read, 4 write
+  //   Final LOD:          0 read, 1 write
+  //   Sum 2592 fullres, 512 read lowres, 388 writes
+  //   Grand total 3492.
   {
     // Create empty file with 6 lod levels
     SilentProgress p;
@@ -1448,8 +1489,13 @@ test_reopen_track_changes()
     writer->finalize(std::vector<OpenZGY::DecimationType>
                      {OpenZGY::DecimationType::Average}, std::ref(p));
     writer->close();
-    TEST_EQUAL(p.total(), 2142 + 388);
     TEST_EQUAL(p.done(), p.total());
+    if (plan_a()) {
+      TEST_EQUAL(p.total(), 2592 + 512 + 388);
+    }
+    else {
+      TEST_EQUAL(p.total(), 2142 + 388);
+    }
   }
 
   {
@@ -1760,7 +1806,7 @@ test_reopen_rwlod()
   TEST_EQUAL(writer->nlods(), 1); // Not yet finalized.
   writer->finalize(std::vector<DecimationType>{DecimationType::Average},
                    std::ref(p), FinalizeAction::BuildFull);
-  TEST_EQUAL(p.total(), 88);
+  TEST_EQUAL(p.total(), plan_a() ? 144 : 88);
   p.reset();
   writer->close();
   writer = IZgyWriter::reopen

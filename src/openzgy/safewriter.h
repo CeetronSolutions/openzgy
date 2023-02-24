@@ -16,6 +16,7 @@
 
 #include "api.h"
 #include "impl/fancy_timers.h"
+#include <mutex>
 
 namespace OpenZGY { namespace Impl {
 #if 0
@@ -227,7 +228,7 @@ public:
   }
 
   // Currently not needed by any client.
-  //virtual std::string dataid() const override
+  //std::string dataid() const override
   //{
   //  // Not allowed to change after file is opened.
   //  // std::lock_guard<std::mutex> lk(mutex_);
@@ -242,7 +243,7 @@ public:
   }
 
   // Currently not needed by any client.
-  //virtual std::string previd() const override
+  //std::string previd() const override
   //{
   //  // Not allowed to change after file is opened.
   //  // std::lock_guard<std::mutex> lk(mutex_);
