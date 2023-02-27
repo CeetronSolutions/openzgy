@@ -17,14 +17,14 @@ TEST(reader_tests, testOpenFile)
 {
     ZGYAccess::ZGYReader reader;
 
-    ASSERT_TRUE(reader.Open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+    ASSERT_TRUE(reader.open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
 
-    auto metadata = reader.MetaData();
+    auto metadata = reader.metaData();
 
     ASSERT_EQ(metadata.size(), 21);
 
 
-    reader.Close();
+    reader.close();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -34,7 +34,28 @@ TEST(reader_tests, testFailOpenFile)
 {
     ZGYAccess::ZGYReader reader;
 
-    ASSERT_FALSE(reader.Open(std::string(TEST_DATA_DIR) + "does_not_exist.zgy"));
+    ASSERT_FALSE(reader.open(std::string(TEST_DATA_DIR) + "does_not_exist.zgy"));
+
+    ASSERT_EQ(reader.inlineSize(), 0);
+    ASSERT_EQ(reader.xlineSize(), 0);
+    ASSERT_EQ(reader.zSize(), 0);
+
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+TEST(reader_tests, testSeismicSize)
+{
+    ZGYAccess::ZGYReader reader;
+
+    ASSERT_TRUE(reader.open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+
+    ASSERT_EQ(reader.inlineSize(), 112);
+    ASSERT_EQ(reader.xlineSize(), 64);
+    ASSERT_EQ(reader.zSize(), 192);
+
+    reader.close();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -44,14 +65,14 @@ TEST(reader_tests, testHistogram)
 {
     ZGYAccess::ZGYReader reader;
 
-    ASSERT_TRUE(reader.Open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+    ASSERT_TRUE(reader.open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
 
     ZGYAccess::HistogramData* hist = reader.histogram();
 
     ASSERT_EQ(hist->Xvalues.size(), 256);
     ASSERT_EQ(hist->Xvalues.size(), hist->Yvalues.size());
 
-    reader.Close();
+    reader.close();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -61,14 +82,14 @@ TEST(reader_tests, testMinMaxDataValue)
 {
     ZGYAccess::ZGYReader reader;
 
-    ASSERT_TRUE(reader.Open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+    ASSERT_TRUE(reader.open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
 
-    auto [minval, maxval] = reader.DataRange();
+    auto [minval, maxval] = reader.dataRange();
 
     ASSERT_DOUBLE_EQ(minval, -28);
     ASSERT_DOUBLE_EQ(maxval, 227);
 
-    reader.Close();
+    reader.close();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -78,7 +99,7 @@ TEST(reader_tests, testSeismicOutline)
 {
     ZGYAccess::ZGYReader reader;
 
-    ASSERT_TRUE(reader.Open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+    ASSERT_TRUE(reader.open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
 
     ZGYAccess::Outline outline = reader.seismicWorldOutline();
 
@@ -90,7 +111,7 @@ TEST(reader_tests, testSeismicOutline)
 
     ASSERT_TRUE(outline.points()[3] == ZGYAccess::Point2d(3775.0, 2890.0));
 
-    reader.Close();
+    reader.close();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -100,17 +121,17 @@ TEST(reader_tests, testZRange)
 {
     ZGYAccess::ZGYReader reader;
 
-    ASSERT_TRUE(reader.Open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+    ASSERT_TRUE(reader.open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
 
-    auto [zmin, zmax] = reader.ZRange();
-    double ztep = reader.ZStep();
+    auto [zmin, zmax] = reader.zRange();
+    double ztep = reader.zStep();
 
     ASSERT_DOUBLE_EQ(ztep, 4.125);
     ASSERT_DOUBLE_EQ(zmin, 2500);
     ASSERT_DOUBLE_EQ(zmax, 3292);
 
 
-    reader.Close();
+    reader.close();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -120,12 +141,12 @@ TEST(reader_tests, testWorldCoord)
 {
     ZGYAccess::ZGYReader reader;
 
-    ASSERT_TRUE(reader.Open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+    ASSERT_TRUE(reader.open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
 
     auto [inlineFrom, inlineTo] = reader.inlineRange();
     int inlineStep = reader.inlineStep();
-    auto [xlineFrom, xlineTo] = reader.crosslineRange();
-    int xlineStep = reader.crosslineStep();
+    auto [xlineFrom, xlineTo] = reader.xlineRange();
+    int xlineStep = reader.xlineStep();
 
     auto [wX, wY] = reader.toWorldCoordinate(inlineFrom, xlineFrom);
     auto [w2X, w2Y] = reader.toWorldCoordinate(inlineTo, xlineFrom);
@@ -145,6 +166,74 @@ TEST(reader_tests, testWorldCoord)
     ASSERT_DOUBLE_EQ(w2Y, 1000.0);
 
 
-    reader.Close();
+    reader.close();
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+TEST(reader_tests, testReadInlineSlice)
+{
+    ZGYAccess::ZGYReader reader;
+
+    ASSERT_TRUE(reader.open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+
+    auto data = reader.inlineSlice(50);
+
+    double value = 0.0;
+
+    float* values = data->values();
+
+    for (int i = 0; i < data->size(); i++)
+    {
+        if (values[i] != 0.0) value = values[i];
+    }
+
+    ASSERT_NE(value, 0.0);
+
+    reader.close();
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+TEST(reader_tests, testReadInlineSliceFail)
+{
+    ZGYAccess::ZGYReader reader;
+
+    ASSERT_TRUE(reader.open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+
+    auto data = reader.inlineSlice(500);
+
+    float* values = data->values();
+
+    ASSERT_EQ(data->size(), 0);
+    ASSERT_EQ(values, nullptr);
+
+    reader.close();
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+TEST(reader_tests, testReadXlineSlice)
+{
+    ZGYAccess::ZGYReader reader;
+
+    ASSERT_TRUE(reader.open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+
+    auto data = reader.xlineSlice(20);
+
+    double value = 0.0;
+
+    float* values = data->values();
+
+    for (int i = 0; i < data->size(); i++)
+    {
+        if (values[i] != 0.0) value = values[i];
+    }
+
+    ASSERT_NE(value, 0.0);
+
+    reader.close();
+}

@@ -17,7 +17,7 @@ ZGYReader::~ZGYReader()
 
 }
 
-bool ZGYReader::Open(std::string filename)
+bool ZGYReader::open(std::string filename)
 {
     if (m_reader != nullptr) return false;
 
@@ -34,7 +34,7 @@ bool ZGYReader::Open(std::string filename)
     return true;
 }
 
-void ZGYReader::Close()
+void ZGYReader::close()
 {
     if (m_reader == nullptr) return;
 
@@ -51,7 +51,7 @@ void ZGYReader::Close()
     return;
 }
 
-std::vector<std::pair<std::string, std::string>> ZGYReader::MetaData()
+std::vector<std::pair<std::string, std::string>> ZGYReader::metaData()
 {
     std::vector<std::pair<std::string, std::string>> retValues;
 
@@ -102,7 +102,7 @@ std::vector<std::pair<std::string, std::string>> ZGYReader::MetaData()
     const auto& datarange = m_reader->datarange();
     retValues.push_back(std::make_pair("Data range", std::to_string(datarange[0]) + " to " + std::to_string(datarange[1])));
 
-    const auto [zmin, zmax] = ZRange();
+    const auto [zmin, zmax] = zRange();
     retValues.push_back(std::make_pair("Depth unit", m_reader->zunitname()));
     retValues.push_back(std::make_pair("Depth range", std::to_string(zmin) + " to " + std::to_string(zmax)));
     retValues.push_back(std::make_pair("Depth increment", std::to_string(m_reader->zinc())));
@@ -189,7 +189,15 @@ int ZGYReader::inlineStep() const
     return (int) annotinc[0];
 }
 
-std::pair<int, int> ZGYReader::crosslineRange() const
+int ZGYReader::inlineSize() const
+{
+    if (m_reader == nullptr) return 0;
+
+    const auto& annotsize = m_reader->size();
+    return (int)annotsize[0];
+}
+
+std::pair<int, int> ZGYReader::xlineRange() const
 {
     if (m_reader == nullptr) return { 0, 0 };
 
@@ -202,7 +210,7 @@ std::pair<int, int> ZGYReader::crosslineRange() const
     return std::make_pair((int)annotstart[1], (int)stop);
 }
 
-int ZGYReader::crosslineStep() const
+int ZGYReader::xlineStep() const
 {
     if (m_reader == nullptr) return 0;
 
@@ -210,53 +218,44 @@ int ZGYReader::crosslineStep() const
     return (int)annotinc[1];
 }
 
+int ZGYReader::xlineSize() const
+{
+    if (m_reader == nullptr) return 0;
 
-//std::array<int, 2> ZGYReader::Origin()
-//{
-//    if (m_reader == nullptr) return { 0, 0 };
-//
-//    const auto& annotstart = m_reader->annotstart();
-//    return { int(annotstart[0]), int(annotstart[1]) };
-//}
-//
-//std::array<int, 2> ZGYReader::Size()
-//{
-//    if (m_reader == nullptr) return { 0, 0 };
-//
-//    const auto& annotsize = m_reader->size();
-//    return { int(annotsize[0]), int(annotsize[1]) };
-//}
-//
-//std::array<int, 2> ZGYReader::Step()
-//{
-//    if (m_reader == nullptr) return { 0, 0 };
-//
-//    const auto& annotinc = m_reader->annotinc();
-//    return { int(annotinc[0]), int(annotinc[1]) };
-//}
+    const auto& annotsize = m_reader->size();
+    return (int)annotsize[1];
+}
 
-std::pair<double, double> ZGYReader::ZRange() const
+std::pair<double, double> ZGYReader::zRange() const
 {
     if (m_reader == nullptr) return { 0.0, 0.0 };
 
     double zmin = m_reader->zstart();
     double zmax = zmin;
 
-    const auto bricksize = m_reader->bricksize()[2];
-    const auto brickcount = m_reader->brickcount()[0][2];
-    zmax += m_reader->zinc() * bricksize * brickcount;
+    zmax += m_reader->zinc() * zSize();
     
     return std::make_pair(zmin, zmax);
 }
 
-double ZGYReader::ZStep() const
+double ZGYReader::zStep() const
 {
     if (m_reader == nullptr) return 0.0;
 
     return 1.0 * m_reader->zinc();
 }
 
-std::pair<double, double> ZGYReader::DataRange() const
+int ZGYReader::zSize() const
+{
+    if (m_reader == nullptr) return 0;
+
+    const auto bricksize = m_reader->bricksize()[2];
+    const auto brickcount = m_reader->brickcount()[0][2];
+    return bricksize * brickcount;
+}
+
+
+std::pair<double, double> ZGYReader::dataRange() const
 {
     if (m_reader == nullptr) return { 0.0, 0.0 };
 
@@ -326,6 +325,73 @@ std::shared_ptr<SeismicSliceData> ZGYReader::seismicSlice(std::array<double, 3> 
     return retval;
 }
 
+
+std::shared_ptr<SeismicSliceData> ZGYReader::inlineSlice(int inlineIndex)
+{
+    if (m_reader == nullptr) return std::make_shared<SeismicSliceData>(0, 0);
+
+    int width = xlineSize();
+    int depth = zSize();
+
+    std::shared_ptr<SeismicSliceData> retData = std::make_shared<SeismicSliceData>(width, depth);
+
+    OpenZGY::IZgyMeta::size3i_t sliceStart;
+    OpenZGY::IZgyMeta::size3i_t sliceSize;
+
+    sliceStart[0] = inlineIndex;
+    sliceSize[0] = 1;
+
+    sliceStart[1] = 0;
+    sliceSize[1] = width;
+
+    sliceStart[2] = 0;
+    sliceSize[2] = depth;
+
+    try
+    {
+        m_reader->read(sliceStart, sliceSize, retData->values(), 0);
+    }
+    catch (OpenZGY::Errors::ZgyError err)
+    {
+        retData->reset();
+    }
+
+    return retData;
+}
+
+
+std::shared_ptr<SeismicSliceData> ZGYReader::xlineSlice(int xlineIndex)
+{
+    if (m_reader == nullptr) return std::make_shared<SeismicSliceData>(0, 0);
+
+    int width = inlineSize();
+    int depth = zSize();
+
+    std::shared_ptr<SeismicSliceData> retData = std::make_shared<SeismicSliceData>(width, depth);
+
+    OpenZGY::IZgyMeta::size3i_t sliceStart;
+    OpenZGY::IZgyMeta::size3i_t sliceSize;
+
+    sliceStart[0] = 0;
+    sliceSize[0] = width;
+
+    sliceStart[1] = xlineIndex;
+    sliceSize[1] = 1;
+
+    sliceStart[2] = 0;
+    sliceSize[2] = depth;
+
+    try
+    {
+        m_reader->read(sliceStart, sliceSize, retData->values(), 0);
+    }
+    catch (OpenZGY::Errors::ZgyError err)
+    {
+        retData->reset();
+    }
+
+    return retData;
+}
 
 
 

@@ -37,25 +37,31 @@ namespace ZGYAccess
         ZGYReader();
         ~ZGYReader();
 
-        bool Open(std::string filename);
-        void Close();
+        bool open(std::string filename);
+        void close();
 
-        std::vector<std::pair<std::string, std::string>> MetaData();
+        std::vector<std::pair<std::string, std::string>> metaData();
 
-        std::pair<double, double> ZRange() const;
-        double ZStep() const;
+        std::pair<double, double> zRange() const;
+        double zStep() const;
+        int zSize() const;
 
         std::pair<int, int> inlineRange() const;
         int inlineStep() const;
+        int inlineSize() const;
 
-        std::pair<int, int> crosslineRange() const;
-        int crosslineStep() const;
+        std::pair<int, int> xlineRange() const;
+        int xlineStep() const;
+        int xlineSize() const;
 
-        std::pair<double, double> DataRange() const;
+        std::pair<double, double> dataRange() const;
 
         std::pair<double, double> toWorldCoordinate(int inLine, int crossLine) const;
 
         std::shared_ptr<SeismicSliceData> seismicSlice(std::array<double, 3> worldStart, std::array<double, 3> worldStop);
+
+        std::shared_ptr<SeismicSliceData> inlineSlice(int inlineIndex);
+        std::shared_ptr<SeismicSliceData> xlineSlice(int xlineIndex);
 
         HistogramData* histogram();
 
