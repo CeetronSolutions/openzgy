@@ -30,6 +30,16 @@ int SeismicSliceData::size() const
     return m_width * m_depth;
 }
 
+int SeismicSliceData::width() const
+{
+    return m_width;
+}
+
+int SeismicSliceData::depth() const
+{
+    return m_depth;
+}
+
 float* SeismicSliceData::values()
 {
     return m_values.get();

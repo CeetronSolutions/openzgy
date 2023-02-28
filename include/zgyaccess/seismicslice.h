@@ -19,6 +19,8 @@ public:
 
     float* values();
     int size() const;
+    int depth() const;
+    int width() const;
 
     void reset();
 
