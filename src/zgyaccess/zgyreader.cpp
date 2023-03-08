@@ -1,4 +1,19 @@
-
+/////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright 2023 Equinor ASA
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http ://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/////////////////////////////////////////////////////////////////////////////////
 
 #include "zgyreader.h"
 #include "exception.h"
@@ -7,16 +22,25 @@
 namespace ZGYAccess
 {
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 ZGYReader::ZGYReader()
 {
 
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 ZGYReader::~ZGYReader()
 {
 
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 bool ZGYReader::open(std::string filename)
 {
     if (m_reader != nullptr) return false;
@@ -34,6 +58,9 @@ bool ZGYReader::open(std::string filename)
     return true;
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 void ZGYReader::close()
 {
     if (m_reader == nullptr) return;
@@ -51,6 +78,9 @@ void ZGYReader::close()
     return;
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 std::vector<std::pair<std::string, std::string>> ZGYReader::metaData()
 {
     std::vector<std::pair<std::string, std::string>> retValues;
@@ -146,6 +176,9 @@ std::vector<std::pair<std::string, std::string>> ZGYReader::metaData()
     return retValues;
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 std::string ZGYReader::cornerToString(std::array<double, 2> corner)
 {
     std::string retval;
@@ -157,6 +190,9 @@ std::string ZGYReader::cornerToString(std::array<double, 2> corner)
     return retval;
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 std::string ZGYReader::sizeToString(std::array<std::int64_t, 3> size)
 {
     std::string retval;
@@ -168,6 +204,9 @@ std::string ZGYReader::sizeToString(std::array<std::int64_t, 3> size)
     return retval;
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 std::pair<int, int> ZGYReader::inlineRange() const
 {
     if (m_reader == nullptr) return { 0, 0 };
@@ -181,6 +220,9 @@ std::pair<int, int> ZGYReader::inlineRange() const
     return std::make_pair((int)annotstart[0], (int)stop);
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 int ZGYReader::inlineStep() const
 {
     if (m_reader == nullptr) return 0;
@@ -189,6 +231,9 @@ int ZGYReader::inlineStep() const
     return (int) annotinc[0];
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 int ZGYReader::inlineSize() const
 {
     if (m_reader == nullptr) return 0;
@@ -197,6 +242,9 @@ int ZGYReader::inlineSize() const
     return (int)annotsize[0];
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 std::pair<int, int> ZGYReader::xlineRange() const
 {
     if (m_reader == nullptr) return { 0, 0 };
@@ -210,6 +258,9 @@ std::pair<int, int> ZGYReader::xlineRange() const
     return std::make_pair((int)annotstart[1], (int)stop);
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 int ZGYReader::xlineStep() const
 {
     if (m_reader == nullptr) return 0;
@@ -218,6 +269,9 @@ int ZGYReader::xlineStep() const
     return (int)annotinc[1];
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 int ZGYReader::xlineSize() const
 {
     if (m_reader == nullptr) return 0;
@@ -226,6 +280,9 @@ int ZGYReader::xlineSize() const
     return (int)annotsize[1];
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 std::pair<double, double> ZGYReader::zRange() const
 {
     if (m_reader == nullptr) return { 0.0, 0.0 };
@@ -238,6 +295,9 @@ std::pair<double, double> ZGYReader::zRange() const
     return std::make_pair(zmin, zmax);
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 double ZGYReader::zStep() const
 {
     if (m_reader == nullptr) return 0.0;
@@ -245,6 +305,9 @@ double ZGYReader::zStep() const
     return 1.0 * m_reader->zinc();
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 int ZGYReader::zSize() const
 {
     if (m_reader == nullptr) return 0;
@@ -254,7 +317,9 @@ int ZGYReader::zSize() const
     return bricksize * brickcount;
 }
 
-
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 std::pair<double, double> ZGYReader::dataRange() const
 {
     if (m_reader == nullptr) return { 0.0, 0.0 };
@@ -264,6 +329,9 @@ std::pair<double, double> ZGYReader::dataRange() const
     return std::make_pair(datarange[0], datarange[1]);
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 HistogramData* ZGYReader::histogram()
 {
     m_histogram.reset();
@@ -286,6 +354,9 @@ HistogramData* ZGYReader::histogram()
     return &m_histogram;
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 Outline ZGYReader::seismicWorldOutline()
 {
     Outline retval;
@@ -302,6 +373,9 @@ Outline ZGYReader::seismicWorldOutline()
     return retval;
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 std::pair<double, double> ZGYReader::toWorldCoordinate(int inLine, int crossLine) const
 {
     if (m_reader == nullptr) return { 0, 0 };
@@ -313,7 +387,9 @@ std::pair<double, double> ZGYReader::toWorldCoordinate(int inLine, int crossLine
     return std::make_pair(worldCoord[0], worldCoord[1]);
 }
 
-
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 std::shared_ptr<SeismicSliceData> ZGYReader::seismicSlice(std::array<double, 3> worldStart, std::array<double, 3> worldStop)
 {
     std::shared_ptr<SeismicSliceData> retval = std::make_shared<SeismicSliceData>(0, 0);
@@ -325,7 +401,9 @@ std::shared_ptr<SeismicSliceData> ZGYReader::seismicSlice(std::array<double, 3> 
     return retval;
 }
 
-
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 std::shared_ptr<SeismicSliceData> ZGYReader::inlineSlice(int inlineIndex)
 {
     if (m_reader == nullptr) return std::make_shared<SeismicSliceData>(0, 0);
@@ -359,7 +437,9 @@ std::shared_ptr<SeismicSliceData> ZGYReader::inlineSlice(int inlineIndex)
     return retData;
 }
 
-
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 std::shared_ptr<SeismicSliceData> ZGYReader::xlineSlice(int xlineIndex)
 {
     if (m_reader == nullptr) return std::make_shared<SeismicSliceData>(0, 0);
@@ -392,7 +472,5 @@ std::shared_ptr<SeismicSliceData> ZGYReader::xlineSlice(int xlineIndex)
 
     return retData;
 }
-
-
 
 }

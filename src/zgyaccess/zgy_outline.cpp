@@ -1,3 +1,19 @@
+/////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright 2023 Equinor ASA
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http ://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+/////////////////////////////////////////////////////////////////////////////////
 
 #include "zgy_outline.h"
 
@@ -5,45 +21,69 @@
 namespace ZGYAccess
 {
 
-    Outline::Outline()
-    {
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+Outline::Outline()
+{
 
-    }
+}
 
-    Outline::~Outline()
-    {
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+Outline::~Outline()
+{
 
-    }
+}
 
-    void Outline::addPoint(Point2d p)
-    {
-        m_points.push_back(p);
-    }
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+void Outline::addPoint(Point2d p)
+{
+    m_points.push_back(p);
+}
 
-    void Outline::addPoint(double x, double y)
-    {
-        m_points.push_back(Point2d(x, y));
-    }
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+void Outline::addPoint(double x, double y)
+{
+    m_points.push_back(Point2d(x, y));
+}
 
-    std::vector<Point2d> Outline::points() const
-    {
-        return m_points;
-    }
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+std::vector<Point2d> Outline::points() const
+{
+    return m_points;
+}
 
-    void Outline::reset()
-    {
-        m_points.clear();
-    }
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+void Outline::reset()
+{
+    m_points.clear();
+}
 
-    bool Outline::isEmpty() const
-    {
-        return (m_points.size() == 0);
-    }
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+bool Outline::isEmpty() const
+{
+    return (m_points.size() == 0);
+}
 
-    bool Outline::isValid() const
-    {
-        return (m_points.size() > 2);
-    }
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+bool Outline::isValid() const
+{
+    return (m_points.size() > 2);
+}
 
 
 }
