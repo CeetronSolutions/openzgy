@@ -1,3 +1,6 @@
 [submodule "zfp"]
 	path = zfp
 	url = https://github.com/LLNL/zfp.git
+[submodule "open-zgy"]
+	path = open-zgy
+	url = https://community.opengroup.org/osdu/platform/domain-data-mgmt-services/seismic/open-zgy.git
