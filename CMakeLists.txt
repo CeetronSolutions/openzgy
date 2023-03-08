@@ -32,6 +32,7 @@ if(OPENMP_FOUND)
 endif()
 
 # Compiles static library
+include(CMakeLists_open-zgy.txt)
 include(src/CMakeLists.txt)
 
 add_library(${PROJECT_NAME} OBJECT ${HEADER_FILES} ${SOURCE_FILES} )
@@ -39,12 +40,13 @@ add_library(${PROJECT_NAME} OBJECT ${HEADER_FILES} ${SOURCE_FILES} )
 target_include_directories(${PROJECT_NAME}
   PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/zfp/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/openzgy
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/openzgy/impl
+  ${CMAKE_CURRENT_SOURCE_DIR}/open-zgy/native/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/open-zgy/native/src/impl
   ${CMAKE_CURRENT_SOURCE_DIR}/include/zgyaccess
 )
 
 set(BUILD_TESTING "OFF" CACHE BOOL "No testing enabled" FORCE)
+set (BUILD_UTILITIES "OFF" CACHE BOOL "No utilities built" FORCE)
 add_subdirectory(zfp)
 
 target_link_libraries(${PROJECT_NAME} zfp)
