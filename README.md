@@ -9,6 +9,7 @@ A wrapper around the native C++ part of the OpenZGY library from https://communi
 - Supports both clang and gcc on Linux (no tests built with clang)
 - Allows you to build a linux version using Visual Studio 2022 and WSL2 support
 
+WARNING: library is still under construction and will most likely not work as expected, yet.
 
 
 
