@@ -99,11 +99,11 @@ void SeismicSliceData::transpose()
     float* pOut = new float[m_width * m_depth];
     float* pIn = m_values.get();
 
-    for (int i = 0; i < m_width; i++)
+    for (int i = 0; i < m_depth; i++)
     {
-        for (int j = 0; j < m_depth; j++)
+        for (int j = 0; j < m_width; j++)
         {
-            pOut[i +  j * m_width] = *pIn++;
+            pOut[j*m_depth + i] = *pIn++;
         }
     }
 
