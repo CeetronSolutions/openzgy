@@ -38,8 +38,6 @@ public:
     int depth() const;
     int width() const;
 
-    void transpose();
-
     void reset();
 
 private:

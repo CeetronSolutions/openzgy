@@ -419,7 +419,6 @@ std::shared_ptr<SeismicSliceData> ZGYReader::inlineSlice(int inlineIndex)
     try
     {
         m_reader->read(sliceStart, sliceSize, retData->values(), 0);
-        retData->transpose();
     }
     catch (OpenZGY::Errors::ZgyError &err)
     {
@@ -447,7 +446,6 @@ std::shared_ptr<SeismicSliceData> ZGYReader::xlineSlice(int xlineIndex)
     try
     {
         m_reader->read(sliceStart, sliceSize, retData->values(), 0);
-        retData->transpose();
     }
     catch (OpenZGY::Errors::ZgyError &err)
     {
