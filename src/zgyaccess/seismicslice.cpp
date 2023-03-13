@@ -89,5 +89,27 @@ void SeismicSliceData::reset()
     m_values.reset();
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+void SeismicSliceData::transpose()
+{
+    if (m_values.get() == nullptr) return;
+
+    float* pOut = new float[m_width * m_depth];
+    float* pIn = m_values.get();
+
+    for (int i = 0; i < m_width; i++)
+    {
+        for (int j = 0; j < m_depth; j++)
+        {
+            pOut[i +  j * m_width] = *pIn++;
+        }
+    }
+
+    m_values.reset(pOut);
+}
+
+
 
 }
