@@ -312,9 +312,11 @@ int ZGYReader::zSize() const
 {
     if (m_reader == nullptr) return 0;
 
-    const auto bricksize = m_reader->bricksize()[2];
-    const auto brickcount = m_reader->brickcount()[0][2];
-    return bricksize * brickcount;
+    const auto totalsize = m_reader->size();
+
+    //const auto bricksize = m_reader->bricksize()[2];
+    //const auto brickcount = m_reader->brickcount()[0][2];
+    return totalsize[2];
 }
 
 //--------------------------------------------------------------------------------------------------

@@ -69,7 +69,7 @@ TEST(reader_tests, testSeismicSize)
 
     ASSERT_EQ(reader.inlineSize(), 112);
     ASSERT_EQ(reader.xlineSize(), 64);
-    ASSERT_EQ(reader.zSize(), 192);
+    ASSERT_EQ(reader.zSize(), 176);
 
     reader.close();
 }
@@ -144,7 +144,7 @@ TEST(reader_tests, testZRange)
 
     ASSERT_DOUBLE_EQ(ztep, 4.125);
     ASSERT_DOUBLE_EQ(zmin, 2500);
-    ASSERT_DOUBLE_EQ(zmax, 3292);
+    ASSERT_DOUBLE_EQ(zmax, 3226);
 
 
     reader.close();
