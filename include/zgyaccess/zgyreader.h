@@ -78,6 +78,7 @@ namespace ZGYAccess
 
         std::shared_ptr<SeismicSliceData> inlineSlice(int inlineIndex);
         std::shared_ptr<SeismicSliceData> xlineSlice(int xlineIndex);
+        std::shared_ptr<SeismicSliceData> zSlice(int zIndex);
 
         HistogramData* histogram();
 

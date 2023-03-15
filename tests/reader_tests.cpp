@@ -253,3 +253,28 @@ TEST(reader_tests, testReadXlineSlice)
 
     reader.close();
 }
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+TEST(reader_tests, testReadZSlice)
+{
+    ZGYAccess::ZGYReader reader;
+
+    ASSERT_TRUE(reader.open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+
+    auto data = reader.zSlice(30);
+
+    double value = 0.0;
+
+    float* values = data->values();
+
+    for (int i = 0; i < data->size(); i++)
+    {
+        if (values[i] != 0.0) value = values[i];
+    }
+
+    ASSERT_NE(value, 0.0);
+
+    reader.close();
+}

@@ -457,4 +457,33 @@ std::shared_ptr<SeismicSliceData> ZGYReader::xlineSlice(int xlineIndex)
     return retData;
 }
 
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+std::shared_ptr<SeismicSliceData> ZGYReader::zSlice(int zIndex)
+{
+    if (m_reader == nullptr) return std::make_shared<SeismicSliceData>(0, 0);
+
+    int widthI = inlineSize();
+    int widthX = xlineSize();
+
+    std::shared_ptr<SeismicSliceData> retData = std::make_shared<SeismicSliceData>(widthI, widthX);
+
+    OpenZGY::IZgyMeta::size3i_t sliceStart = { 0, 0, zIndex };
+    OpenZGY::IZgyMeta::size3i_t sliceSize = { widthI, widthX, 1 };
+
+    try
+    {
+        m_reader->read(sliceStart, sliceSize, retData->values(), 0);
+    }
+    catch (OpenZGY::Errors::ZgyError& err)
+    {
+        retData->reset();
+    }
+
+    return retData;
+}
+
+
 }
