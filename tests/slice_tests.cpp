@@ -33,6 +33,7 @@ TEST(slice_tests, testSlice)
     ASSERT_EQ(slice.size(), 200*133);
     ASSERT_EQ(slice.width(), 200);
     ASSERT_EQ(slice.depth(), 133);
+    ASSERT_FALSE(slice.isEmpty());
 
     ASSERT_NE(slice.values(), nullptr);
 
@@ -41,5 +42,7 @@ TEST(slice_tests, testSlice)
     ASSERT_EQ(slice.width(), 0);
     ASSERT_EQ(slice.depth(), 0);
     ASSERT_EQ(slice.values(), nullptr);
+
+    ASSERT_TRUE(slice.isEmpty());
 
 }

@@ -31,14 +31,14 @@ public:
     SeismicSliceData(int width, int depth);
     ~SeismicSliceData();
 
-    //void addSubSliceData(int fromX, int fromY, int fromWidth, const std::vector<float> values, int toX, int toY);
-
     float* values();
     int size() const;
     int depth() const;
     int width() const;
 
     void reset();
+
+    bool isEmpty() const;
 
 private:
     int m_width;
