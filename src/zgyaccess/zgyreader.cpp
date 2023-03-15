@@ -313,9 +313,6 @@ int ZGYReader::zSize() const
     if (m_reader == nullptr) return 0;
 
     const auto totalsize = m_reader->size();
-
-    //const auto bricksize = m_reader->bricksize()[2];
-    //const auto brickcount = m_reader->brickcount()[0][2];
     return totalsize[2];
 }
 
@@ -484,6 +481,33 @@ std::shared_ptr<SeismicSliceData> ZGYReader::zSlice(int zIndex)
 
     return retData;
 }
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+std::shared_ptr<SeismicSliceData> ZGYReader::zTrace(int inlineIndex, int xlineIndex)
+{
+    if (m_reader == nullptr) return std::make_shared<SeismicSliceData>(0, 0);
+
+    int zize = zSize();
+
+    std::shared_ptr<SeismicSliceData> retData = std::make_shared<SeismicSliceData>(1, zize);
+
+    OpenZGY::IZgyMeta::size3i_t sliceStart = { inlineIndex, xlineIndex, 0 };
+    OpenZGY::IZgyMeta::size3i_t sliceSize = { 1, 1, zize };
+
+    try
+    {
+        m_reader->read(sliceStart, sliceSize, retData->values(), 0);
+    }
+    catch (OpenZGY::Errors::ZgyError& err)
+    {
+        retData->reset();
+    }
+
+    return retData;
+}
+
 
 
 }

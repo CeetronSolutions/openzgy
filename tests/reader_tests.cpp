@@ -278,3 +278,32 @@ TEST(reader_tests, testReadZSlice)
 
     reader.close();
 }
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+TEST(reader_tests, testReadZTrace)
+{
+    ZGYAccess::ZGYReader reader;
+
+    ASSERT_TRUE(reader.open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+
+    auto data = reader.zTrace(20,22);
+
+    double value = 0.0;
+
+    float* values = data->values();
+
+    ASSERT_TRUE(values != nullptr);
+
+    ASSERT_EQ(data->size(), reader.zSize());
+
+    for (int i = 0; i < data->size(); i++)
+    {
+        if (values[i] != 0.0) value = values[i];
+    }
+
+    ASSERT_NE(value, 0.0);
+
+    reader.close();
+}
