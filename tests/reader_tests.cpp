@@ -307,3 +307,29 @@ TEST(reader_tests, testReadZTrace)
 
     reader.close();
 }
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+TEST(reader_tests, testWorldtoIndexCoord)
+{
+    ZGYAccess::ZGYReader reader;
+
+    ASSERT_TRUE(reader.open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+
+    auto [inlineFrom, inlineTo] = reader.inlineRange();
+    auto [xlineFrom, xlineTo] = reader.xlineRange();
+
+    auto [wX, wY] = reader.toWorldCoordinate(inlineFrom, xlineFrom);
+    auto [w2X, w2Y] = reader.toWorldCoordinate(inlineTo, xlineTo);
+
+    auto [convInlineFrom, convXlineFrom] = reader.toInlineXline(wX, wY);
+    auto [convInlineTo, convXlineTo] = reader.toInlineXline(w2X, w2Y);
+
+    ASSERT_EQ(inlineFrom, convInlineFrom);
+    ASSERT_EQ(inlineTo, convInlineTo);
+    ASSERT_EQ(xlineFrom, convXlineFrom);
+    ASSERT_EQ(xlineTo, convXlineTo);
+
+    reader.close();
+}

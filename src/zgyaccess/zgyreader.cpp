@@ -386,18 +386,15 @@ std::pair<double, double> ZGYReader::toWorldCoordinate(int inLine, int crossLine
     return std::make_pair(worldCoord[0], worldCoord[1]);
 }
 
-//--------------------------------------------------------------------------------------------------
-///
-//--------------------------------------------------------------------------------------------------
-std::shared_ptr<SeismicSliceData> ZGYReader::seismicSlice(std::array<double, 3> worldStart, std::array<double, 3> worldStop)
+std::pair<int, int> ZGYReader::toInlineXline(double worldX, double worldY) const
 {
-    std::shared_ptr<SeismicSliceData> retval = std::make_shared<SeismicSliceData>(0, 0);
+    if (m_reader == nullptr) return { 0, 0 };
 
-    if (m_reader == nullptr) return retval;
+    std::array<double, 2> worldCoord{ worldX, worldY };
 
+    auto indexCoord = m_reader->worldToAnnot(worldCoord);
 
-
-    return retval;
+    return std::make_pair((int)std::round(indexCoord[0]), (int)std::round(indexCoord[1]));
 }
 
 //--------------------------------------------------------------------------------------------------

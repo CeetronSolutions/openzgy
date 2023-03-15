@@ -20,6 +20,7 @@
 #include <array>
 #include <utility>
 #include <memory>
+#include <cmath>
 
 #include "seismicslice.h"
 #include "zgy_outline.h"
@@ -73,8 +74,7 @@ namespace ZGYAccess
         std::pair<double, double> dataRange() const;
 
         std::pair<double, double> toWorldCoordinate(int inLine, int crossLine) const;
-
-        std::shared_ptr<SeismicSliceData> seismicSlice(std::array<double, 3> worldStart, std::array<double, 3> worldStop);
+        std::pair<int, int> toInlineXline(double worldX, double worldY) const;
 
         std::shared_ptr<SeismicSliceData> inlineSlice(int inlineIndex);
         std::shared_ptr<SeismicSliceData> xlineSlice(int xlineIndex);
@@ -84,7 +84,6 @@ namespace ZGYAccess
         HistogramData* histogram();
 
         Outline seismicWorldOutline();
-
 
     private:
         std::string cornerToString(std::array<double, 2> corner);
