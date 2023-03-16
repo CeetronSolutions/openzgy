@@ -9,8 +9,11 @@ A wrapper around the native C++ part of the OpenZGY library from https://communi
 - Supports both clang and gcc on Linux (no tests built with clang)
 - Allows you to build a linux version using Visual Studio 2022 and WSL2 support
 
-WARNING: wrapper library is still under construction and will most likely not work as expected, yet.
+Provides a simplified C++ API that is used by the ResInsight software ( https://resinsight.org/ ) to access seismic data:
+- Open/close ZGY files on local or network disk
+- Access file meta information and data histogram
+- Read inline/crossline/z slices
+- Read individual z traces
 
-
-
+The API is provided by the ZGYAccess::ZGYReader class found in include/zgyreader.h
 
