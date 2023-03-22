@@ -213,6 +213,31 @@ TEST(reader_tests, testReadInlineSlice)
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
+TEST(reader_tests, testReadInlineSliceSubset)
+{
+    ZGYAccess::ZGYReader reader;
+
+    ASSERT_TRUE(reader.open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+
+    auto data = reader.inlineSlice(50, 15, 75);
+
+    double value = 0.0;
+
+    float* values = data->values();
+
+    for (int i = 0; i < data->size(); i++)
+    {
+        if (values[i] != 0.0) value = values[i];
+    }
+
+    ASSERT_NE(value, 0.0);
+
+    reader.close();
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 TEST(reader_tests, testReadInlineSliceFail)
 {
     ZGYAccess::ZGYReader reader;
@@ -253,6 +278,32 @@ TEST(reader_tests, testReadXlineSlice)
 
     reader.close();
 }
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+TEST(reader_tests, testReadXlineSliceSubset)
+{
+    ZGYAccess::ZGYReader reader;
+
+    ASSERT_TRUE(reader.open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+
+    auto data = reader.xlineSlice(30, 40, 5);
+
+    double value = 0.0;
+
+    float* values = data->values();
+
+    for (int i = 0; i < data->size(); i++)
+    {
+        if (values[i] != 0.0) value = values[i];
+    }
+
+    ASSERT_NE(value, 0.0);
+
+    reader.close();
+}
+
 
 //--------------------------------------------------------------------------------------------------
 ///
@@ -307,6 +358,36 @@ TEST(reader_tests, testReadZTrace)
 
     reader.close();
 }
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+TEST(reader_tests, testReadZTraceSubset)
+{
+    ZGYAccess::ZGYReader reader;
+
+    ASSERT_TRUE(reader.open(std::string(TEST_DATA_DIR) + "Fancy-int8.zgy"));
+
+    auto data = reader.zTrace(20, 22, 10, 20);
+
+    double value = 0.0;
+
+    float* values = data->values();
+
+    ASSERT_TRUE(values != nullptr);
+
+    ASSERT_EQ(data->size(), 20);
+
+    for (int i = 0; i < data->size(); i++)
+    {
+        if (values[i] != 0.0) value = values[i];
+    }
+
+    ASSERT_NE(value, 0.0);
+
+    reader.close();
+}
+
 
 //--------------------------------------------------------------------------------------------------
 ///

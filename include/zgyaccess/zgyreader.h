@@ -77,9 +77,15 @@ namespace ZGYAccess
         std::pair<int, int> toInlineXline(double worldX, double worldY) const;
 
         std::shared_ptr<SeismicSliceData> inlineSlice(int inlineIndex);
+        std::shared_ptr<SeismicSliceData> inlineSlice(int inlineIndex, int zStartIndex, int zSize);
+
         std::shared_ptr<SeismicSliceData> xlineSlice(int xlineIndex);
+        std::shared_ptr<SeismicSliceData> xlineSlice(int xlineIndex, int zStartIndex, int zSize);
+
         std::shared_ptr<SeismicSliceData> zSlice(int zIndex);
+
         std::shared_ptr<SeismicSliceData> zTrace(int inlineIndex, int xlineIndex);
+        std::shared_ptr<SeismicSliceData> zTrace(int inlineIndex, int xlineIndex, int zStartIndex, int zSize);
 
         HistogramData* histogram();
 
