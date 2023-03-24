@@ -386,6 +386,9 @@ std::pair<double, double> ZGYReader::toWorldCoordinate(int inLine, int crossLine
     return std::make_pair(worldCoord[0], worldCoord[1]);
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 std::pair<int, int> ZGYReader::toInlineXline(double worldX, double worldY) const
 {
     if (m_reader == nullptr) return { 0, 0 };
