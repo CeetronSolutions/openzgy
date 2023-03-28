@@ -32,6 +32,8 @@ public:
     ~SeismicSliceData();
 
     float* values();
+    float valueAt(int width, int depth);
+
     int size() const;
     int depth() const;
     int width() const;

@@ -37,6 +37,15 @@ TEST(slice_tests, testSlice)
 
     ASSERT_NE(slice.values(), nullptr);
 
+    float* pData = slice.values();
+
+    for (int i = 0; i < slice.size(); i++, pData++)
+    {
+        *pData = 1.0f * i;
+    }
+
+    ASSERT_EQ(slice.valueAt(10, 10), 1340.0);
+
     slice.reset();
     ASSERT_EQ(slice.size(), 0);
     ASSERT_EQ(slice.width(), 0);

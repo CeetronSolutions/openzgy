@@ -97,4 +97,17 @@ bool SeismicSliceData::isEmpty() const
     return size() == 0;
 }
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+float SeismicSliceData::valueAt(int width, int depth)
+{
+    if ((width < m_width) && (depth < m_depth))
+    {
+        return m_values.get()[width * m_depth + depth];
+    }
+
+    return 0.0;
+}
+
 }
