@@ -24,6 +24,7 @@
 
 #include "seismicslice.h"
 #include "zgy_outline.h"
+#include "zgy_histogram.h"
 
 namespace OpenZGY
 {
@@ -32,22 +33,6 @@ namespace OpenZGY
 
 namespace ZGYAccess
 {
-
-    class HistogramData
-    {
-    public: 
-        HistogramData() {};
-
-        void reset()
-        {
-            Xvalues.clear();
-            Yvalues.clear();
-        };
-
-        std::vector<double> Xvalues;
-        std::vector<double> Yvalues;
-    };
-
     class ZGYReader
     {
     public:

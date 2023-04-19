@@ -19,7 +19,7 @@ FetchContent_MakeAvailable(googletest)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 # Add executables first
-add_executable(openzgy-tests reader_tests.cpp geometry_tests.cpp slice_tests.cpp main.cpp)
+add_executable(openzgy-tests reader_tests.cpp geometry_tests.cpp slice_tests.cpp histogram_tests.cpp main.cpp)
 
 # location of test data
 CONFIGURE_FILE( ${CMAKE_CURRENT_LIST_DIR}/testdatafolder.h.cmake
