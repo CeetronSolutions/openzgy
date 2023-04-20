@@ -15,7 +15,7 @@
 // limitations under the License.
 /////////////////////////////////////////////////////////////////////////////////
 
-#include "zgy_point.h"
+#include "zgyaccess/zgy_point.h"
 
 #include <cmath>
 

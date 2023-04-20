@@ -15,7 +15,7 @@
 // limitations under the License.
 /////////////////////////////////////////////////////////////////////////////////
 
-#include "zgy_outline.h"
+#include "zgyaccess/zgy_outline.h"
 
 
 namespace ZGYAccess

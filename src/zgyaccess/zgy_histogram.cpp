@@ -15,7 +15,8 @@
 // limitations under the License.
 /////////////////////////////////////////////////////////////////////////////////
 
-#include "zgy_histogram.h"
+#include "zgyaccess/zgy_histogram.h"
+
 #include "exception.h"
 #include "api.h"
 #include "histogramdata.h"

@@ -15,12 +15,12 @@
 // limitations under the License.
 /////////////////////////////////////////////////////////////////////////////////
 
-#include "zgyreader.h"
+#include "zgyaccess/zgyreader.h"
 
 #include "exception.h"
 #include "api.h"
 
-#include "seismicslice.h"
+#include "zgyaccess/seismicslice.h"
 
 namespace ZGYAccess
 {

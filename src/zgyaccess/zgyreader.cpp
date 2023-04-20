@@ -15,7 +15,8 @@
 // limitations under the License.
 /////////////////////////////////////////////////////////////////////////////////
 
-#include "zgyreader.h"
+#include "zgyaccess/zgyreader.h"
+
 #include "exception.h"
 #include "api.h"
 
