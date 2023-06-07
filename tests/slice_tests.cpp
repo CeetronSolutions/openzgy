@@ -55,3 +55,51 @@ TEST(slice_tests, testSlice)
     ASSERT_TRUE(slice.isEmpty());
 
 }
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+TEST(slice_tests, testMute) {
+    ZGYAccess::SeismicSliceData slice(60, 90);
+
+    float *pData = slice.values();
+
+    for (int i = 0; i < slice.size(); i++, pData++) 
+    {
+        *pData = 1.0f * i;
+    }
+
+    slice.mute(100.0);
+
+    pData = slice.values();
+
+    for (int i = 0; i < slice.size(); i++, pData++)
+    {
+        ASSERT_TRUE((*pData == 0.0f) || (*pData >= 100.0f));
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+TEST(slice_tests, testLimiter) {
+    ZGYAccess::SeismicSliceData slice(120, 77);
+
+    float* pData = slice.values();
+
+    int offset = slice.size() / 2;
+
+    for (int i = 0; i < slice.size(); i++, pData++)
+    {
+        *pData = 1.0f * (i - offset);
+    }
+
+    slice.limitTo(-40.f, 50.f);
+
+    pData = slice.values();
+
+    for (int i = 0; i < slice.size(); i++, pData++)
+    {
+        ASSERT_TRUE((*pData >= -40.0f) || (*pData <= 50.0f));
+    }
+}

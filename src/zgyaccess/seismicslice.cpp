@@ -110,4 +110,37 @@ float SeismicSliceData::valueAt(int width, int depth)
     return 0.0;
 }
 
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+void SeismicSliceData::limitTo(float minVal, float maxVal)
+{
+    const int nVals = size();
+    float *pData = m_values.get();
+    for (int i = 0; i < nVals; i++, pData++)
+    {
+        const float tmp = *pData;
+        if (tmp < minVal)
+          *pData = minVal;
+        else if (tmp > maxVal)
+          *pData = maxVal;
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+void SeismicSliceData::mute(float threshold)
+{
+    const int nVals = size();
+    float *pData = m_values.get();
+    for (int i = 0; i < nVals; i++, pData++) 
+    {
+        if (std::abs(*pData) < threshold)
+          *pData = 0.0;
+    }
+}
+
+
 }

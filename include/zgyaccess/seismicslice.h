@@ -23,7 +23,6 @@
 namespace ZGYAccess
 {
 
-
 class SeismicSliceData
 {
 
@@ -42,13 +41,13 @@ public:
 
     bool isEmpty() const;
 
+    void limitTo(float minVal, float maxVal);
+    void mute(float threshold);
+
 private:
     int m_width;
     int m_depth;
     std::unique_ptr<float> m_values;
 };
-
-
-
 
 }
