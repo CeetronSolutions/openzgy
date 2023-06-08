@@ -20,9 +20,14 @@
 #include <memory>
 #include <vector>
 
+
+namespace InternalZGY
+{
+    class HistogramBuilder;
+}
+
 namespace ZGYAccess
 {
-
     class HistogramData
     {
     public:
@@ -42,8 +47,19 @@ namespace ZGYAccess
     class HistogramGenerator
     {
     public:
+        HistogramGenerator(int nBins, float minVal, float maxVal);
+        ~HistogramGenerator();
+
+        void addData(std::vector<float> values);
+
+        std::unique_ptr<HistogramData> getHistogram();
+
         static std::unique_ptr<HistogramData> getHistogram(std::vector<float> values, int nBins, float minVal, float maxVal);
 
+    private:
+        std::unique_ptr< InternalZGY::HistogramBuilder> m_builder;
+        double m_minVal;
+        double m_maxVal;
     };
 
 

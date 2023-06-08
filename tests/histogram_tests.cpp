@@ -21,6 +21,8 @@
 #include <string>
 #include <cmath>
 
+#include <memory>
+
 #include "zgyaccess/zgy_histogram.h"
 
 //--------------------------------------------------------------------------------------------------
@@ -32,6 +34,30 @@ TEST(histogram_tests, testHistogram)
     std::vector<float> testdata = { -1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.75, 1.0, 1.0 };
 
     auto hist = ZGYAccess::HistogramGenerator::getHistogram(testdata, 5, -1.1f, 1.1f);
+
+    ASSERT_EQ(hist->Xvalues.size(), 5);
+    ASSERT_EQ(hist->Yvalues.size(), 5);
+
+    ASSERT_EQ(hist->Yvalues[0], 2);
+    ASSERT_EQ(hist->Yvalues[1], 0);
+    ASSERT_EQ(hist->Yvalues[2], 5);
+    ASSERT_EQ(hist->Yvalues[3], 1);
+    ASSERT_EQ(hist->Yvalues[4], 2);
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+TEST(histogram_tests, testHistogram2)
+{
+    std::vector<float> testdata1 = { -1.0, -1.0, 0.0, 0.0, 0.0 };
+    std::vector<float> testdata2 = { 0.0, 0.0, 0.75, 1.0, 1.0 };
+
+
+    auto generator = std::make_unique<ZGYAccess::HistogramGenerator>(5, -1.1f, 1.1f);
+    generator->addData(testdata1);
+    generator->addData(testdata2);
+    auto hist = generator->getHistogram();
 
     ASSERT_EQ(hist->Xvalues.size(), 5);
     ASSERT_EQ(hist->Yvalues.size(), 5);

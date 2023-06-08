@@ -25,26 +25,61 @@
 namespace ZGYAccess
 {
 
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 std::unique_ptr<HistogramData> HistogramGenerator::getHistogram(std::vector<float> values, int nBins, float minVal, float maxVal)
 {
+    auto generator = std::make_unique<HistogramGenerator>(nBins, minVal, maxVal);
+    generator->addData(values);
+    return generator->getHistogram();
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+HistogramGenerator::HistogramGenerator(int nBins, float minVal, float maxVal)
+    : m_minVal(minVal)
+    , m_maxVal(maxVal)
+{
+    m_builder = std::make_unique<InternalZGY::HistogramBuilder>(nBins, minVal, maxVal);
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+HistogramGenerator::~HistogramGenerator()
+{
+
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+void HistogramGenerator::addData(std::vector<float> values)
+{
+    m_builder->add(values.begin(), values.end());
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+std::unique_ptr<HistogramData> HistogramGenerator::getHistogram()
+{
     auto retData = std::make_unique<HistogramData>();
-
-    InternalZGY::HistogramBuilder builder(nBins, minVal, maxVal);
-    builder.add(values.begin(), values.end());
-
-    auto& tmpHist = builder.gethisto();
+    auto& tmpHist = m_builder->gethisto();
 
     int nVals = (int)tmpHist.getsize();
     if (nVals > 0)
     {
         auto bins = tmpHist.getbins();
 
-        double binsize = (maxVal - minVal) / nVals;
+        double binsize = (m_maxVal - m_minVal) / nVals;
         double offset = binsize / 2;
 
         for (int i = 0; i < nVals; i++)
         {
-            retData->Xvalues.push_back(minVal + binsize * i + offset);
+            retData->Xvalues.push_back(m_minVal + binsize * i + offset);
             retData->Yvalues.push_back(1.0 * bins[i]);
         }
     }
