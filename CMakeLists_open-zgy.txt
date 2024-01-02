@@ -5,6 +5,7 @@ set(HEADER_FILES ${HEADER_FILES}
     open-zgy/native/src/exception.h
     open-zgy/native/src/iocontext.h
     open-zgy/native/src/safewriter.h
+    open-zgy/native/src/writerargs.h
     open-zgy/native/src/impl/arrayops.h
     open-zgy/native/src/impl/bulk.h
     open-zgy/native/src/impl/compression.h
@@ -45,12 +46,18 @@ set(HEADER_FILES ${HEADER_FILES}
     open-zgy/native/src/impl/types.h
     open-zgy/native/src/impl/wintools.h
     open-zgy/native/src/impl/workorder.h
+    open-zgy/native/src/impl/apirecorder.h
+    open-zgy/native/src/impl/expandablebuilder.h
+    open-zgy/native/src/impl/iocontextimpl.h
+    open-zgy/native/src/impl/tracktouched.h
+    open-zgy/native/src/impl/writerargsimpl.h
 )
 
 set(SOURCE_FILES ${SOURCE_FILES}
     open-zgy/native/src/api.cpp
     open-zgy/native/src/exception.cpp
     open-zgy/native/src/iocontext.cpp
+    open-zgy/native/src/writerargs.cpp
     open-zgy/native/src/impl/bulk.cpp
     open-zgy/native/src/impl/compression.cpp
     open-zgy/native/src/impl/compress_null.cpp
@@ -94,5 +101,10 @@ set(SOURCE_FILES ${SOURCE_FILES}
     open-zgy/native/src/impl/types.cpp
     open-zgy/native/src/impl/wintools.cpp
     open-zgy/native/src/impl/workorder.cpp
+    open-zgy/native/src/impl/apirecorder.cpp
+    open-zgy/native/src/impl/expandablebuilder.cpp
+    open-zgy/native/src/impl/iocontextimpl.cpp
+    open-zgy/native/src/impl/tracktouched.cpp
+    open-zgy/native/src/impl/writerargsimpl.cpp
 )
 
