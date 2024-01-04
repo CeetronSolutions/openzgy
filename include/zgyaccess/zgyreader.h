@@ -23,6 +23,7 @@
 #include <utility>
 #include <memory>
 #include <cmath>
+#include <cstdint>
 
 #include "seismicslice.h"
 #include "zgy_outline.h"
