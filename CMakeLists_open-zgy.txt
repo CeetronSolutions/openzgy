@@ -51,6 +51,7 @@ set(HEADER_FILES ${HEADER_FILES}
     open-zgy/native/src/impl/iocontextimpl.h
     open-zgy/native/src/impl/tracktouched.h
     open-zgy/native/src/impl/writerargsimpl.h
+    open-zgy/native/src/impl/enum_mapper.h
 )
 
 set(SOURCE_FILES ${SOURCE_FILES}
@@ -106,5 +107,6 @@ set(SOURCE_FILES ${SOURCE_FILES}
     open-zgy/native/src/impl/iocontextimpl.cpp
     open-zgy/native/src/impl/tracktouched.cpp
     open-zgy/native/src/impl/writerargsimpl.cpp
+    open-zgy/native/src/impl/enum_mapper.cpp
 )
 
