@@ -51,8 +51,9 @@ target_include_directories(${PROJECT_NAME}
 
 set(BUILD_TESTING "OFF" CACHE BOOL "No testing enabled" FORCE)
 set (BUILD_UTILITIES "OFF" CACHE BOOL "No utilities built" FORCE)
-add_subdirectory(zfp)
 
+# Disable install for zfp subdirectory by excluding it from INSTALL_ALL
+add_subdirectory(zfp EXCLUDE_FROM_ALL)
 target_link_libraries(${PROJECT_NAME} zfp)
 
 # no need to run tests with clang
