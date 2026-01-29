@@ -35,7 +35,7 @@ endif()
 include(CMakeLists_open-zgy.txt)
 include(src/CMakeLists.txt)
 
-add_library(${PROJECT_NAME} STATIC ${HEADER_FILES} ${SOURCE_FILES} )
+add_library(${PROJECT_NAME} OBJECT ${HEADER_FILES} ${SOURCE_FILES} )
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC
