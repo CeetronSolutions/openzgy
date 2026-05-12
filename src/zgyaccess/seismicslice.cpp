@@ -17,9 +17,6 @@
 
 #include "zgyaccess/zgyreader.h"
 
-#include "exception.h"
-#include "api.h"
-
 #include "zgyaccess/seismicslice.h"
 
 namespace ZGYAccess
@@ -110,7 +107,6 @@ float SeismicSliceData::valueAt(int width, int depth)
     return 0.0;
 }
 
-
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
@@ -141,6 +137,5 @@ void SeismicSliceData::mute(float threshold)
           *pData = 0.0;
     }
 }
-
 
 }
