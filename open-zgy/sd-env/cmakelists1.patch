@@ -1,0 +1,23 @@
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -239,11 +239,16 @@ if(AZURE_CURL_PROVIDER_ENABLED)
+     find_library( LZMA_LIBRARY lzma )
+     find_library( Z_LIBRARY    z )
+       
+-    find_package( libxml2 CONFIG REQUIRED)
++    #find_package( libxml2 CONFIG REQUIRED )
++    # This is WRONG in several different ways but will at least build on
++    # the 6 Linux configs (all using docker) that I tested. If the
++    # environment has both the system library and the one from vcpkg
++    # installed then it is somewhat undefined which headers and which
++    # binaries are picked up. And whether they match.
++    set( LibXml2_FOUND true )
++    set( LIBXML2_INCLUDE_DIR "/opt/vcpkg/installed/x64-linux/include/libxml" )
++    set( LIBXML2_INCLUDE_DIRS ${LIBXML2_INCLUDE_DIR} )
+     set( LIBXML2_LIBRARY ${XML2_LIBRARY} CACHE FILEPATH "path to libxml2 library" )
+-
+-    find_package(LibXml2 CONFIG REQUIRED )
+-    
+     if(LibXml2_FOUND AND NOT TARGET LibXml2::LibXml2)
+       message( STATUS "manually constructing LibXml2::LibXml2")
+ 

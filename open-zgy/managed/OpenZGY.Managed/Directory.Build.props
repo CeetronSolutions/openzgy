@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <OutputPath>$(SolutionDir)..\..\build\deploy\managed\x64\$(Configuration)</OutputPath>
+    <BaseIntermediateOutputPath>$(SolutionDir)..\..\build\temp\$(AssemblyName)\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+</Project>

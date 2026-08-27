@@ -1,0 +1,53 @@
+# -*- mode: makefile-gmake -*-
+#
+# Copyright 2017-2020, Schlumberger
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Will export the following variables:
+#    HOSTDISTRO LINUXDISTRO (os name), BUILDROOT TESTRUNDIR (paths)
+#    PLATFORM CONFIG (consumed) MYPLATFORM MYCONFIG (produced)
+#    AZURE_BUILDID
+
+export BUILDROOT    := $(realpath $(dir $(lastword $(MAKEFILE_LIST)))/..)
+export HOSTDISTRO   := $(shell $(BUILDROOT)/scripts/getdistro)
+export LINUXDISTRO  ?= $(firstword $(HOSTDISTRO))
+export TESTRUNDIR   := $(BUILDROOT)/build/run
+export AZURE_BUILDID ?= dev0
+
+# Might be done to prevent writable files in the source tree,
+# but it looks like this is a lost cause.
+#export PYTHONDONTWRITEBYTECODE = 1
+
+# PLATFORM and CONFIG are used for libraries consumed by us.
+# MYPLATFORM and MYCONFIG are used for our output. On Linux
+# it is quite valid to build with Debug but consume Release.
+
+# TODO-Low: PLATFORM is troublesome because it has too much
+# detail (patch level) in the gcc version and not enough info
+# (centos, ubuntu) about the environment. This only works
+# as long as no two distros use the exact same compiler.
+
+GCCVERSION := $(shell ($(CXX) -dumpfullversion 2>/dev/null || $(CXX) -dumpversion) | sed -e 's;\.[0-9][0-9][0-9]*;.9;g' -e 's;\.;;g')
+MYGCCVERS  := $(shell echo $(GCCVERSION) | sed -e 's;[0-9]$$;;')
+
+export PLATFORM   := Lin64_gcc$(GCCVERSION)
+export MYPLATFORM := $(LINUXDISTRO)-gcc$(MYGCCVERS)
+export CONFIG     ?= Release
+export MYCONFIG   ?= Release
+
+undefine GCCVERSION
+undefine MYGCCVERS
+
+$(info Source  $(BUILDROOT) built on $(HOSTDISTRO) with label $(AZURE_BUILDID))
+$(info Consume $(PLATFORM)/$(CONFIG), produce $(MYPLATFORM)/$(MYCONFIG))

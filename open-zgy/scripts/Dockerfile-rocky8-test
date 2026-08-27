@@ -1,0 +1,87 @@
+# Copyright 2017-2024, Schlumberger
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Create a minimal docker image containing OpenZGY
+
+FROM rockylinux/rockylinux:8
+ARG CLEAN_BUILD_COUNTER=5
+ENV CLEAN_BUILD_COUNTER=${CLEAN_BUILD_COUNTER}
+RUN dnf -y install libgomp findutils
+RUN set -e; dnf -y install python38-devel python39-devel python3.11-devel; \
+    update-alternatives --set python3 /usr/bin/python3.8; \
+    for pp in python3.8 python3.9 python3.11; do \
+        ${pp} -m ensurepip; \
+        ${pp} -m pip install --upgrade pip; \
+        ${pp} -m pip install wheel numpy cython; \
+    done
+
+# Workaround for a bug in the Azure SDK or one of its dependencies.
+RUN test -r /etc/ssl/cert.pem || ln -s /etc/pki/tls/cert.pem /etc/ssl/cert.pem
+WORKDIR /home/me/oz
+ADD openzgy-install.tgz build/deploy
+
+# Pre-install OpenZGY in each Python environment to make it more
+# convenient to use the :test image for ad hoc experiments. The
+# drawback is that the tests in test_inside.sh and possibly others
+# will need to uninstall them before doing their stuff.
+# TODO, do this in all the disros, or none.
+RUN PYTHONS=$(/bin/ls -1 /usr/bin/python3[.0-9]* | grep '/python3[.0-9]*$'); \
+    for pp in ${PYTHONS}; do \
+        for wheel in build/deploy/wrapper/*-gcc*/OpenZgyBindings-*.whl; do \
+            echo "Try to install $(basename ${wheel}) in ${pp}"; \
+            ${pp} -m pip install ${wheel} || echo "Failure ignored."; \
+        done; \
+    done
+
+# Optional: Prepare for running unit tests
+RUN tar xvf build/deploy/testscripts.tar; \
+    dnf -y install bzip2 curl valgrind cpio diffutils
+
+# Specific to wrapper/test/docker/test_inside.sh
+# Note: Do not install /usr/bin/virtualenv from "virtualenv" in rocky 8.
+# This will download python3-virtualenv-15 which is too old (py3.6).
+# The correct version can be installed by python3 -m pip install virtualenv.
+# But at this point I don't really care. Users ought to use "venv" instead.
+RUN dnf install -y gcc-c++
+
+# Enable these to allow the "test" image to run the copytimes.sh test.
+# Note that the oldtools folder has not been committed to git.
+#COPY oldtools/ oldtools/
+#COPY private/*.sh private/
+#COPY oldtools/dropcache /usr/local/bin/dropcache
+#RUN chmod 4555 /usr/local/bin/dropcache
+
+#  Enable running sdutil for ad-hoc tests.
+#RUN dnf -y install unzip; \
+#    (mkdir /usr/local/sdutil; \
+#    cd /usr/local/sdutil; \
+#    unzip /home/me/oz/oldtools/sdutil-p4d-2.2.272.zip); \
+#    sed -i -e '1s/python$/python3/' /usr/local/sdutil/sdutil.py; \
+#    chmod 755 /usr/local/sdutil/sdutil.py; \
+#    ln -s /usr/local/sdutil/sdutil.py /usr/local/bin/sdutil; \
+#    pip3 install -r /usr/local/sdutil/requirements.txt; \
+#    mkdir /home/me/.sdcfg;
+##    ln -s /host/data/slbauth.tk /home/me/.sdcfg/slbauth.tk
+##    cp -b -S .orig oldtools/config.yaml /usr/local/sdutil/sdlib/config.yaml
+
+# Optional: Run as a regular user
+RUN adduser -u 800 -g users -G wheel me; \
+    dnf -y install sudo procps-ng psmisc; \
+    echo 'me ALL = (ALL) NOPASSWD: ALL' >> /etc/sudoers; \
+    chown -R me /home/me
+
+# Copy additional files for ad-hoc tests.
+#COPY --chown=800 [ "private/zgyconvert-perftest.sh*", "private/Volve*", "/home/me/" ]
+
+USER me

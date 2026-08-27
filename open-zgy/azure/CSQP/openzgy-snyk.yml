@@ -1,0 +1,27 @@
+name: 'OpenZGY-Snyk'
+
+trigger: none
+schedules:
+- cron: "0 0 * * Fri"
+  displayName: Weekly midnight check
+  batch: true  
+  branches:
+    include:
+    - master
+variables:
+- group: OpenZGY-CSQP
+
+steps:
+  - script: | 
+      cd external
+      for F in zfp*.tar.gz; do tar -xzvf "$F"; done
+    displayName: 'unpack zfp'
+  - script: | 
+      npm -v
+      npm install -g snyk
+    displayName: 'snyk installation'
+  - bash: |
+      cd external
+      snyk auth $(SNYK_TOKEN)
+      snyk monitor --unmanaged --org=seismic-dms --remote-repo-url='openzgy' --project-name='openzgy' -d
+    displayName: Snyk

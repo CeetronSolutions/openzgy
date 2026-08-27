@@ -1,0 +1,37 @@
+name: $(Build.BuildID)-doc
+
+trigger:
+- master
+
+schedules:
+- cron: "1 3 * * *"
+  displayName: Nightly build
+  branches:
+    include:
+    - master
+
+pool:
+  name: Paal-Kvamme-Test
+
+steps:
+- bash: |
+    # See azure/README.md regarding race conditions for ${TAG}.
+    # This step fails to use --iidfile. So the race is real.
+    set -e -x
+    TAG=azure-build-openzgy-doc
+    docker tag ${TAG} ${TAG}:old || true
+    docker build --pull -t ${TAG} -f scripts/Dockerfile-doc .
+    docker rmi -f ${TAG}:old ${TAG}:test || true
+    /bin/rm -f cid.txt
+    docker run --cidfile cid.txt -e AZURE_BUILDID=$(Build.BuildId) ${TAG} make doxygen
+    rm -rf deploy; mkdir deploy
+    docker cp $(cat cid.txt):/home/me/oz/build/deploy - | tar -C $(Build.ArtifactStagingDirectory) --strip-components=1 -xvf -
+    docker commit $(cat cid.txt) ${TAG}:test
+    docker rm $(cat cid.txt)
+    /bin/rm -f cid.txt
+  displayName: 'Build Docs'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathToPublish: $(Build.ArtifactStagingDirectory)
+    artifactName: OpenZGY-doc

@@ -1,0 +1,128 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+  <head>
+    <title>Noise metrics</title>
+    <meta http-equiv="content-type" content="text/html; "/>
+  </head>
+  <body>
+    <p>
+      This is a technical explanation of why compression often shows
+      brick-sized artifacts, and what can be done about it.
+    </p>
+    <p>
+      The intended audience is developers working on compression.
+    </p>
+    <p>
+      I am trying to understand different metrics for measuring noise.
+      Both those used in the compression code and what Victor uses to
+      visualize the quality. I am also trying to understand why
+      displaying the noise as absolute difference in amplitude shows
+      ugly brick artifacts.
+    </p>
+    <p>
+      The root problem is how we measure quality. E.g. a visual display
+      of (old cube - new cube) might show artifacts where (old cube /
+      new cube) would not. Or vice versa.
+    </p>
+    <p>
+      Possible metrics:
+    </p>
+    <ol>
+      <li>The relative error in each sample, e.g. abs((a-b))/abs((a+b)).</li>
+      <li>The absolute error abs(a-b) divided by the average amplitude
+      in the entire survey. [CURRENT]</li>
+      <li>The absolute error abs(a-b) divided by the average amplitude
+      of the current brick.</li>
+      <li>The maximum error divided by the maximum magnitude of the
+      current brick. [FIRST TRY]</li>
+      <li>The maximum error divided by the average magnitude of the
+      entire survey.</li>
+      <li>The maximum error divided by the average magnitude of the
+      current brick.</li>
+      <li>The visual appearance of the difference cube when displayed
+      with the seismic color table.</li>
+      <li>Whatever metric is best for the most important attributes.
+      (Consistent dip?)</li>
+      <li>Whatever metric is best for autotracking.</li>
+    </ol>
+    <p>
+      The first alternative sounds like a good idea, except that for
+      very small amplitudes just a small amount of noise can be
+      devastating. And a zero amplitude causes a divide by zero.
+    </p>
+    <p>
+      The second idea looks reasonable but is difficult to compute
+      because the entire volume must be known before compression can
+      start. So we might be stuck with the third option.
+      The third option can give very visible brick-shaped artifacts if a
+      particular brick has a number of high amplitude spikes while the
+      neighbors don't. This will appear to increase the average signal
+      level, thereby allowing the compressor to tolerate more noise in
+      real samples. So that brick looks noisier. In alternative 2 we
+      might see the opposite effect. Here the signal level remains the
+      same, and the compressor might decide to reduce the compression
+      ratio for this brick in a futile attempt to faithfully replicate
+      the spikes. That problem would get worse if the cost function used
+      RMS amplitude instead of a plain average. It might get slightly
+      better if using median instead of average, but that would be
+      prohibitively expensive at runtime.
+    </p>
+    <p>
+      It is also possible that we might devise a function that lies in
+      between #1 and #3.
+    </p>
+    <p>
+      The "visual appearance" is difficult to turn into a formula, and
+      might not be the best approach for autotracking and attribute
+      extraction anyway. And figuring out what is best for those will be
+      a challenge.
+    </p>
+    <p>
+      I am currently using #2, which makes the compression more
+      expensive but gives better results than #4 which was the first one
+      I tried.
+    </p>
+    <p>
+      Another question: Should the metric be more concerned with the
+      (presumably few) large errors, or it it better to view those
+      outliers as relatively harmless and instead concentrate on
+      reducing noise in most samples? Ideally we should exclude spikes
+      that are just noise but include real samples that happen to have
+      high amplitudes. It would be quite a challenge to differentiate
+      between those two.
+    </p>
+    <p>
+      Here are a few suggestions. To evaluate each alternative I will
+      compute the result for three data sets, each of them with 100
+      samples evenly distributed in the range [-100..+100].
+    </p>
+    <ul>
+      <li>P has one noisy sample, should have been -50 but is +50.</li>
+      <li>Q has one noisy sample, should have been -5 but is +5. I.e. same
+      relative error.</li>
+      <li>R has 10 noisy samples, each of which should have been -5 but is
+      +5.</li>
+    </ul>
+    <p>
+      The formulas below show how to get the noise / signal ratio. To
+      get the snr in decibel, use
+      <tt>snr = -20 * log10(noise/signal)</tt>
+    </p>
+    <img src="images/noise-metrics-fig1.png" alt="[Figure showing equations]" width="826" height="275"/>
+    <p>
+      There are other metrics not covered here. For example, how does
+      the noise affect autotracking? Case in point is that the data
+      might changes sharply at brick boundaries due to different
+      parameters used in compression. The old ZGY compression gives
+      better quality near the edges of each brick. I suspect this is a
+      deliberate feature added to aid autotracking. I am not sure
+      though.
+    </p>
+    <p>
+      All the formulas use only the contents of this brick to extract
+      the "signal" part. If it is possible to replace this with
+      statistics for the entire survey then this gives 3 more formulas.
+      The first formula would not change as it is purely local.
+    </p>
+  </body>
+</html>

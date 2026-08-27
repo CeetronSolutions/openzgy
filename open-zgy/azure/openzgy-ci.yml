@@ -1,0 +1,43 @@
+name: $(Build.BuildID)-openzgy-ci
+
+trigger:
+  batch: true
+  branches:
+    include:
+    - master
+
+pool:
+  name: Paal-Kvamme-Test
+
+variables:
+  - group: 'Salmon Variables'
+  - name: MakeArguments
+    value: ''
+  - name: TagSuffix
+    value: 'default'
+  - name: ExpectToDeploy
+    value: >
+      version.txt
+      openzgy-install.tgz
+      without-dependencies/[Oo]pen[Zz]gy[Bb]indings-.*-PYVERSION-linux_x86_64.whl
+      without-dependencies/[Oo]pen[Zz]gy[Bb]indings-.*.tar.gz
+      LINUXDISTRO-GCCVERSION/[Oo]pen[Zz]gy[Bb]indings-.*-PYVERSION-linux_x86_64.whl
+      LINUXDISTRO-GCCVERSION/[Oo]pen[Zz]gy[Bb]indings-.*.tar.gz
+      LINUXDISTRO-GCCVERSION/libopenzgy\\.so\\..*\\..*
+      LINUXDISTRO-GCCVERSION/libsdapi\\.so\\..*\\..*
+      LINUXDISTRO-GCCVERSION/libopenzgy-zfp\\.so\\..*\\..*
+      include/openzgy/api.h
+      include/openzgy/exception.h
+      include/openzgy/iocontext.h
+
+
+jobs:
+  - template: templates/build-jobs.yml
+    parameters:
+      linuxdistro: 'rocky8'
+      pyversion:   'cp38-cp38'
+      gccversion:  'gcc85'
+      deployed:    '${{variables.ExpectToDeploy}}'
+      makeargs:    '${{variables.MakeArguments}}'
+      tagtail:     '${{variables.TagSuffix}}'
+      upublish:    False

@@ -1,0 +1,19 @@
+#!/bin/bash
+
+ID=
+VERSION=
+CODE=
+if [ -r /etc/os-release ]; then
+    ID=$(sed -n -e 's/"//g' -e 's/^ID=//p' /etc/os-release)
+    VERSION=$(sed -n -e 's/"//g' -e 's/^VERSION_ID=//p' /etc/os-release)
+    CODE=$(sed -n -e 's/"//g' -e 's/^[A-Z]*_CODENAME=//p' /etc/os-release)
+fi
+if [ x"$CODE" != x ]
+then
+    echo $CODE
+elif [ x"ID" != x ]
+then
+    echo ${ID}${VERSION}
+else
+    echo linux
+fi

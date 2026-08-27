@@ -1,0 +1,69 @@
+
+# Input:       COVERAGE {MAIN,TEST,TOOL}_SRC
+# Modifies:    CXXFLAGS LDFLAGS
+# Adds target: "coverage"
+
+NEW_CXXFLAGS = $(if $(COVERAGE),-g -fprofile-arcs -ftest-coverage -O0)
+NEW_LDFLAGS  = $(if $(COVERAGE),-lgcov,)
+
+CXXFLAGS    += $(NEW_CXXFLAGS) $(NEW_LDFLAGS)
+#LDFLAGS     += $(NEW_LDFLAGS)
+
+MAIN_GCOV = $(addprefix $(OBJ_DIR)/, $(MAIN_SRC:.cpp=.cpp.gcov))
+TEST_GCOV = $(addprefix $(OBJ_DIR)/, $(TEST_SRC:.cpp=.cpp.gcov))
+TOOL_GCOV = $(addprefix $(OBJ_DIR)/, $(TOOL_SRC:.cpp=.cpp.gcov))
+ALL_GCOV  = $(MAIN_GCOV) $(TEST_GCOV) $(TOOL_GCOV)
+
+TARGET_GCOV = $(OBJ_DIR)/coverage
+PWD := $(shell pwd)
+
+.PHONY: gcov lcov-init lcov-info coverage run-coverage
+gcov: $(ALL_GCOV)
+
+$(TARGET_GCOV):
+	mkdir -p $@
+
+$(ALL_GCOV): | $(TARGET_GCOV)
+	-gcov -l -o $(dir $(OBJ_DIR)/$@) $(subst .cpp.gcov,,$@).cpp
+	-/bin/mv -f *.gcov $(TARGET_GCOV)
+
+lcov-init:
+	/bin/rm -f $(OBJ_DIR)/module.info $(OBJ_DIR)/initial.info
+	lcov --directory $(OBJ_DIR) --base-directory . --zerocounters
+	lcov --directory $(OBJ_DIR) --base-directory . --capture --initial -o $(OBJ_DIR)/initial.info
+
+lcov-info:
+	lcov --directory $(OBJ_DIR) --base-directory . --capture -o $(OBJ_DIR)/module.info
+
+lcov-html: | $(TARGET_GCOV)
+	lcov -o $(OBJ_DIR)/MOD1.info -a $(OBJ_DIR)/initial.info -a $(OBJ_DIR)/module.info
+	lcov -o $(OBJ_DIR)/MOD2.info -e $(OBJ_DIR)/MOD1.info '*'
+	lcov -o $(OBJ_DIR)/MOD3.info -r $(OBJ_DIR)/MOD2.info '/usr/include/*' '/usr/lib/*' ''
+	genhtml --demangle-cpp --num-spaces 8 --title 'ZGY Cloud plug-in' --rc genhtml_hi_limit=80 --rc genhtml_med_limit=60 $(OBJ_DIR)/MOD3.info -o $(TARGET_GCOV)
+	lcov --summary $(OBJ_DIR)/MOD3.info > $(TARGET_GCOV)/summary.txt 2>&1
+	echo "Produced $(TARGET_GCOV)/index.html"
+
+# VERBOSE 42 turns on all the logging but discards the output.
+# This ensures that behavior does not change when logging is enabled,
+# and also ensures we get coverage of most of the logging code.
+
+TESTQ = OPENZGY_VERBOSE=0
+TESTV = OPENZGY_VERBOSE=42
+
+run-coverage:
+	echo "Building $(BIN_DIR)/test_all"
+	: $(if $(COVERAGE),,$(error Please call with COVERAGE=yes))
+	$(MAKE) COVERAGE=true OPTIMIZE= clobber
+	$(MAKE) COVERAGE=true OPTIMIZE= -j 5 build data
+	$(MAKE) COVERAGE=true OPTIMIZE= lcov-init
+	-env $(TESTV) $(BIN_DIR)/test_all --color=never --no-exec
+	$(MAKE) COVERAGE=true OPTIMIZE= lcov-info
+	$(MAKE) COVERAGE=true OPTIMIZE= lcov-html
+
+# CAVEAT: Do a "make clobber" before and after switching between
+# regulr native builds and coverage builds. Ideally the two should
+# use different folders, but that doesn't work everywhere.
+
+coverage:
+	echo "coverage: Building $(BIN_DIR)/test_all"
+	$(MAKE) COVERAGE=yes OPTIMIZE= run-coverage

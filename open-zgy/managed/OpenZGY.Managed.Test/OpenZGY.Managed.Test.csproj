@@ -1,0 +1,79 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{F064E6FB-228D-4AB8-A22B-88C28E32824C}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>OpenZGY.Managed.Test</RootNamespace>
+    <AssemblyName>OpenZGY.Managed.Test</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>$(SolutionDir)..\..\build\deploy\managed\x64\Debug\</OutputPath>
+    <BaseIntermediateOutputPath>$(SolutionDir)..\..\build\temp\$(AssemblyName)\</BaseIntermediateOutputPath>
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>..\..\build\deploy\managed\x64\Release\</OutputPath>
+    <BaseIntermediateOutputPath>$(SolutionDir)..\..\build\temp\$(AssemblyName)\</BaseIntermediateOutputPath>
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OpenZGY.Managed\OpenZGY.Managed.csproj">
+      <Project>{f0d9f2ac-5480-47dd-b3c3-453f7fc723a7}</Project>
+      <Name>OpenZGY.Managed</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>
+if not exist echo ..\..\..\native Skip copying native libraries.
+if not exist echo ..\..\..\native exit /b 0
+cd ..\..\..\native
+cd
+echo "Recursive list of native"
+dir /s /b /a-d
+7z -y a libs.zip  */*/OpenZGY.dll */*/OpenZGY.pdb */*/zfp.dll */*/zfp.pdb */*/sdapi_3.dll  */*/sdapi_3_d.dll */*/sdapi_3.pdb */*/libcurl*.dll */*/libcurl*.pdb */*/azure-storage-blobs.dll */*/azure-storage-blobs.pdb */*/azure-core.dll */*/azure-core.pdb */*/zlib*.dll */*/zlib*.pdb */*/azure-storage-common.dll */*/azure-storage-common.pdb */*/libxml2.dll  */*/lzma.dll  */*/lzmad.dll  */*/iconv-2.dll
+cd ..\managed
+7z -y x ..\native\libs.zip
+echo "Recursive list of managed"
+dir /s /b /a-d
+del ..\native\libs.zip
+</PostBuildEvent>
+  </PropertyGroup>
+</Project>

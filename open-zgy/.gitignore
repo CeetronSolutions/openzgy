@@ -1,0 +1,65 @@
+*~
+__pycache__
+htmlcov
+/build
+/cbuild
+/sdapi-pkgs
+/pkg
+build-venv
+test-venv
+*.egg-info
+.eggs
+.coverage
+typescript
+
+# The singe-click-build assumes the SDAPI source code is cloned inside
+# the OpenZGY source but not using submodules. Because it is optional
+# and less tightly coupled to OpenZGY than a submodule would expect.
+# The SDAPI source needs to be explicitly hidden from git.
+# The same applies to the binary repo when used.
+/seismic-store-cpp-lib*
+/seismic-dms-sdapi*
+/seismic-service-bin*
+
+# These really shouldn't be in the source area.
+/python/build
+/wrapper/build
+/native/windows/x64
+/native/windows/.vs
+*.VC.db
+*.VC.opendb
+
+# oldtools are binaries just for testing, comparing with old ZGY-Public.
+# Not checked in because I want to avoid bloat in git.
+/oldtools
+
+# Dependencies that this project has ought to have been
+# checked in, but large binaries and git don't mix.
+# Also, zfp is now built locally. So it ought to have
+# been in a separate folder. Eventually I'd like to build
+# the seismic store libraries locally as well.
+/external/*.whl
+/external/*.so
+/external/*.sentinel
+
+# Odds and ends too obscure to commit.
+/misc
+
+# Windows... Since I unpack the tar file on each build this ought to have
+# been placed in some "build" folder.
+/native/windows/zfp-0.5.5
+/native/windows/packages
+/native/windows/*.vcxproj.user
+
+/native/windows/*.zgy
+*.nupkg
+
+# There are three files that are used for building locally that should not
+# be pushed to OSDU. When present they enable fetching the seismic store
+# extensions from a local NuGet repository. Left out the software builds
+# normally but without cloud access.  List them in .gitignore to prevent
+# accidental commit when copying files from the local repository.
+
+/native/windows/Directory.Build.props
+/native/windows/packages.config
+/native/windows/NuGet.conf

@@ -1,0 +1,121 @@
+parameters:
+  linuxdistro: 'centos8'
+  makeargs: ''
+  tagtail: 'default'
+
+steps:
+- checkout: self
+  clean: true
+  path: s
+
+- bash: |
+    echo "Settings from azure/templates/versions.yml, master = $(is_master)"
+    echo "Only starred items are relevant for this pipeline."
+    echo "    Clone   SDAPI   '$(x_sdapi3_hash)'"
+    echo "    Produce SDAPI   '$(x_sdapi3_produce_pkgname)' '$(x_sdapi3_produce_version)'"
+    echo "  * Consume SDAPI   '$(x_sdapi3_consume_pkgname)' '$(x_sdapi3_consume_version)'"
+    echo "  * Produce OpenZGY '$(x_openzgy_produce_pkgname)' '$(x_openzgy_produce_version)' (version not used yet)"
+    echo "    Consume OpenZGY '$(x_openzgy_consume_pkgname)' '$(x_openzgy_consume_version)'"
+    echo "    Clone   OpenVDS '$(x_vds_checkout)'"
+    echo "    Produce OpenVDS '$(x_vds_produce_pkgname)' '$(x_vds_produce_version)'"
+    echo "    Consume OpenVDS '$(x_vds_consume_pkgname)' '$(x_vds_consume_version)'"
+    echo "    Produce ZgyTool '$(x_zgytool_produce_pkgname)' '$(x_zgytool_produce_version)' (version not used yet)"
+  condition: always()
+  displayName: 'OpenZGY version selection'
+
+- task: UniversalPackages@0
+  inputs:
+    command: 'download'
+    downloadDirectory: $(Build.SourcesDirectory)/pkg
+    feedsToUse: 'internal'
+    vstsFeed: 'openzgy'
+    vstsFeedPackage: '$(x_sdapi3_consume_pkgname)'
+    vstsPackageVersion: '$(x_sdapi3_consume_version)'
+  condition: and(succeeded(), ne('${{parameters.tagtail}}', 'nosd'))
+  displayName: 'Download SDAPI'
+
+- bash: |
+    eval $(test ! -x private/grabtoken.sh || private/grabtoken.sh -vv)
+  env:
+    OPENZGY_SDURL: $(SEISMIC_STORE_URL)
+    OPENZGY_SDAPIKEY: $(SEISMIC_STORE_KEY)
+    CLIENT_ID:        $(OPENZGY_TEST_CLIENT_ID)
+    CLIENT_SECRET:    $(OPENZGY_TEST_CLIENT_SECRET)
+    SD_TARGET_AUDIENCE: '$(OPENZGY_TEST_CLIENT_ID) $(OPENZGY_TEST_CLIENT_AUDIENCE)'
+    SDAPI_SAUTH_TOKEN_SERVICE_URL: '$(SEISMIC_STORE_TKSVC_URL)'
+  displayName: 'Show SAuth token'
+
+- bash: |
+    # See azure/README.md regarding race conditions for ${TAG}.
+    set -e -x
+    export LINUXDISTRO=${{parameters.linuxdistro}}
+    export DOCKERFILE=scripts/Dockerfile-${LINUXDISTRO}
+    TAG=azure-build-openzgy-${LINUXDISTRO}-${{parameters.tagtail}}
+    docker tag ${TAG} ${TAG}:old || true
+    mkdir -p private
+    docker build --pull -t ${TAG} -f ${DOCKERFILE} .
+    docker rmi -f ${TAG}:old ${TAG}:test || true
+    /bin/rm -f cid.txt
+    if [ ${{parameters.linuxdistro}} != omega ]
+    then
+      docker run --cidfile cid.txt -e LINUXDISTRO -e AZURE_BUILDID=$(Build.BuildId) ${TAG} make ${{parameters.makeargs}} build testscripts
+    else
+      echo "Using devtoolset-10"
+      docker run --cidfile cid.txt -e LINUXDISTRO -e AZURE_BUILDID=$(Build.BuildId) ${TAG} scl enable devtoolset-10 'make ${{parameters.makeargs}} build testscripts'
+    fi
+    docker cp $(cat cid.txt):/home/me/oz/build/deploy/. - | gzip -9 > openzgy-install.tgz
+    tar zxf openzgy-install.tgz --strip=1 --wildcards --no-wildcards-match-slash './*version.txt'
+    tar zxf openzgy-install.tgz --strip=2 --wildcards --no-wildcards-match-slash './wrapper/*/[Oo]pen[Zz]gy*.whl' './wrapper/*/[Oo]pen[Zz]gy*.tar.gz'
+    # Uncomment the next line to debug the build rules.
+    #docker commit $(cat cid.txt) look-at-me-$(date +'%y%m%d-%H%M')-${RANDOM}
+    docker rm $(cat cid.txt)
+    /bin/rm -f cid.txt
+    docker build -t ${TAG}:test -f ${DOCKERFILE}-test .
+
+  displayName: 'Build OpenZGY'
+
+- bash: |
+    LINUXDISTRO=${{parameters.linuxdistro}}
+    TAG=azure-build-openzgy-${{parameters.linuxdistro}}-${{parameters.tagtail}}
+    wrapper/test/docker/azure_outside.sh ${LINUXDISTRO} ${TAG}:test
+  displayName: 'Test wrapper install'
+  #omega is deprecated; no point in fixing.
+  condition: and (succeeded(), not (in('${{parameters.linuxdistro}}', 'omega')))
+  continueOnError: true
+
+- bash: |
+    TAG=azure-build-openzgy-${{parameters.linuxdistro}}-${{parameters.tagtail}}
+    docker run --rm -e CLIENT_ID -e CLIENT_SECRET -e OPENZGY_SDURL -e OPENZGY_SDAPIKEY -e SD_TARGET_AUDIENCE -e SDAPI_SAUTH_TOKEN_SERVICE_URL -e LINUXDISTRO=${{parameters.linuxdistro}} ${TAG}:test native/src/runtests.sh
+  env:
+    OPENZGY_SDURL: $(SEISMIC_STORE_URL)
+    OPENZGY_SDAPIKEY: $(SEISMIC_STORE_KEY)
+    CLIENT_ID:     $(OPENZGY_TEST_CLIENT_ID)
+    CLIENT_SECRET: $(OPENZGY_TEST_CLIENT_SECRET)
+    SD_TARGET_AUDIENCE: '$(OPENZGY_TEST_CLIENT_ID) $(OPENZGY_TEST_CLIENT_AUDIENCE)'
+    SDAPI_SAUTH_TOKEN_SERVICE_URL: '$(SEISMIC_STORE_TKSVC_URL)'
+  displayName: 'Test native'
+
+- bash: |
+    TAG=azure-build-openzgy-${{parameters.linuxdistro}}-${{parameters.tagtail}}
+    docker run --rm -e CLIENT_ID -e CLIENT_SECRET -e OPENZGY_SDURL -e OPENZGY_SDAPIKEY -e SD_TARGET_AUDIENCE -e SDAPI_SAUTH_TOKEN_SERVICE_URL -e LINUXDISTRO=${{parameters.linuxdistro}} ${TAG}:test wrapper/runtests.sh
+  env:
+    OPENZGY_SDURL: $(SEISMIC_STORE_URL)
+    OPENZGY_SDAPIKEY: $(SEISMIC_STORE_KEY)
+    CLIENT_ID:     $(OPENZGY_TEST_CLIENT_ID)
+    CLIENT_SECRET: $(OPENZGY_TEST_CLIENT_SECRET)
+    SD_TARGET_AUDIENCE: '$(OPENZGY_TEST_CLIENT_ID) $(OPENZGY_TEST_CLIENT_AUDIENCE)'
+    SDAPI_SAUTH_TOKEN_SERVICE_URL: '$(SEISMIC_STORE_TKSVC_URL)'
+  displayName: 'Test wrapper'
+
+- task: CopyFiles@2
+  inputs:
+    contents: |
+      openzgy-install.tgz
+      *.txt
+      *-gcc*/*.whl
+      *-gcc*/*.tar.gz
+      without-dependencies/*.whl
+      without-dependencies/*.tar.gz
+    targetFolder: $(Build.ArtifactStagingDirectory)
+    flattenFolders: false
+  displayName: 'Copy to artifacts'

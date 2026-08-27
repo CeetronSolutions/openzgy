@@ -1,0 +1,222 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{039A5186-A52B-42AB-B2AE-C168B4E38915}</ProjectGuid>
+    <RootNamespace>OpenZGY</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <DefineConstants>$(DefineConstants);</DefineConstants>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)..\..\build\deploy\native\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)..\..\build\temp\$(TargetName)\native\$(TargetName)\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)..\..\build\deploy\native\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)..\..\build\temp\$(TargetName)\native\$(TargetName)\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>$(DefineConstants);_WINDLL;OPENZGY_DLL;HAVE_ZFP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <OpenMPSupport>true</OpenMPSupport>
+      <DisableSpecificWarnings>4251;4100</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(OutDir)\zfp.lib;%(AdditionalDependencies);</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>$(DefineConstants);_WINDLL;OPENZGY_DLL;HAVE_ZFP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <OpenMPSupport>true</OpenMPSupport>
+      <DisableSpecificWarnings>4251;4100</DisableSpecificWarnings>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>$(OutDir)\zfp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\api.cpp" />
+    <ClCompile Include="..\src\capi\capi.cpp" />
+    <ClCompile Include="..\src\capi\handle.cpp" />
+    <ClCompile Include="..\src\exception.cpp" />
+    <ClCompile Include="..\src\impl\file_native.cpp" />
+    <ClCompile Include="..\src\impl\minmaxscan.cpp" />
+    <ClCompile Include="..\src\impl\tracktouched.cpp" />
+    <ClCompile Include="..\src\impl\wintools.cpp" />
+    <ClCompile Include="..\src\impl\workorder.cpp" />
+    <ClCompile Include="..\src\iocontext.cpp" />
+    <ClCompile Include="..\src\writerargs.cpp" />
+    <ClCompile Include="..\src\impl\iocontextimpl.cpp" />
+    <ClCompile Include="..\src\impl\writerargsimpl.cpp" />
+    <ClCompile Include="..\src\impl\bulk.cpp" />
+    <ClCompile Include="..\src\impl\compression.cpp" />
+    <ClCompile Include="..\src\impl\compress_null.cpp" />
+    <ClCompile Include="..\src\impl\compress_zfp.cpp">
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)..\..\build\temp\zfpbuildnative\zfp-0.5.5\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)..\..\build\temp\zfpbuildnative\zfp-0.5.5\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\cornerpoints.cpp" />
+    <ClCompile Include="..\src\impl\databuffer.cpp">
+      <SDLCheck Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</SDLCheck>
+      <BufferSecurityCheck Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</BufferSecurityCheck>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\apirecorder.cpp" />
+    <ClCompile Include="..\src\impl\enum_mapper.cpp" />
+    <ClCompile Include="..\src\impl\environment.cpp" />
+    <ClCompile Include="..\src\impl\expandablebuilder.cpp" />
+    <ClCompile Include="..\src\impl\fancy_timers.cpp" />
+    <ClCompile Include="..\src\impl\file.cpp" />
+    <ClCompile Include="..\src\impl\file_consolidate.cpp" />
+    <ClCompile Include="..\src\impl\file_local.cpp" />
+    <ClCompile Include="..\src\impl\file_parallelizer.cpp" />
+    <ClCompile Include="..\src\impl\file_performance.cpp" />
+    <ClCompile Include="..\src\impl\file_relay.cpp" />
+    <ClCompile Include="..\src\impl\file_sd.cpp" />
+    <ClCompile Include="..\src\impl\file_smallcache.cpp" />
+    <ClCompile Include="..\src\impl\file_windows.cpp" />
+    <ClCompile Include="..\src\impl\genlod.cpp" />
+    <ClCompile Include="..\src\impl\guid.cpp" />
+    <ClCompile Include="..\src\impl\histogrambuilder.cpp" />
+    <ClCompile Include="..\src\impl\histogramdata.cpp" />
+    <ClCompile Include="..\src\impl\iltf2d.cpp" />
+    <ClCompile Include="..\src\impl\lodalgo.cpp" />
+    <ClCompile Include="..\src\impl\locker.cpp" />
+    <ClCompile Include="..\src\impl\lodfilters.cpp" />
+    <ClCompile Include="..\src\impl\lodsampling.cpp" />
+    <ClCompile Include="..\src\impl\logger.cpp" />
+    <ClCompile Include="..\src\impl\lookuptable.cpp" />
+    <ClCompile Include="..\src\impl\meta.cpp" />
+    <ClCompile Include="..\src\impl\mtguard.cpp" />
+    <ClCompile Include="..\src\impl\perflogger.cpp" />
+    <ClCompile Include="..\src\impl\sdasyncio.cpp" />
+    <ClCompile Include="..\src\impl\sanity.cpp" />
+    <ClCompile Include="..\src\impl\sdinterface.cpp" />
+    <ClCompile Include="..\src\impl\statisticdata.cpp" />
+    <ClCompile Include="..\src\impl\structaccess.cpp" />
+    <ClCompile Include="..\src\impl\subtiling.cpp" />
+    <ClCompile Include="..\src\impl\timer.cpp" />
+    <ClCompile Include="..\src\impl\transform.cpp" />
+    <ClCompile Include="..\src\impl\types.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\api.h" />
+    <ClInclude Include="..\src\capi\capi.h" />
+    <ClInclude Include="..\src\capi\handle.h" />
+    <ClInclude Include="..\src\declspec.h" />
+    <ClInclude Include="..\src\example.h" />
+    <ClInclude Include="..\src\exception.h" />
+    <ClInclude Include="..\src\impl\apirecorder.h" />
+    <ClInclude Include="..\src\impl\edgebrick.h" />
+    <ClInclude Include="..\src\impl\minmaxscan.h" />
+    <ClInclude Include="..\src\impl\tracktouched.h" />
+    <ClInclude Include="..\src\impl\wintools.h" />
+    <ClInclude Include="..\src\impl\workorder.h" />
+    <ClInclude Include="..\src\iocontext.h" />
+    <ClInclude Include="..\src\writerargs.h" />
+    <ClInclude Include="..\src\impl\iocontextimpl.h" />
+    <ClInclude Include="..\src\impl\writerargsimpl.h" />
+    <ClInclude Include="..\src\safewriter.h" />
+    <ClInclude Include="..\src\impl\arrayops.h" />
+    <ClInclude Include="..\src\impl\bulk.h" />
+    <ClInclude Include="..\src\impl\compression.h" />
+    <ClInclude Include="..\src\impl\cornerpoints.h" />
+    <ClInclude Include="..\src\impl\databuffer.h" />
+    <ClInclude Include="..\src\impl\enum.h" />
+    <ClInclude Include="..\src\impl\enum_mapper.h" />
+    <ClInclude Include="..\src\impl\environment.h" />
+    <ClInclude Include="..\src\impl\expandablebuilder.h" />
+    <ClInclude Include="..\src\impl\fancy_timers.h" />
+    <ClInclude Include="..\src\impl\file.h" />
+    <ClInclude Include="..\src\impl\file_consolidate.h" />
+    <ClInclude Include="..\src\impl\file_parallelizer.h" />
+    <ClInclude Include="..\src\impl\file_performance.h" />
+    <ClInclude Include="..\src\impl\file_relay.h" />
+    <ClInclude Include="..\src\impl\file_sd.h" />
+    <ClInclude Include="..\src\impl\file_smallcache.h" />
+    <ClInclude Include="..\src\impl\genlod.h" />
+    <ClInclude Include="..\src\impl\guid.h" />
+    <ClInclude Include="..\src\impl\histogrambuilder.h" />
+    <ClInclude Include="..\src\impl\histogramdata.h" />
+    <ClInclude Include="..\src\impl\iltf2d.h" />
+    <ClInclude Include="..\src\impl\locker.h" />
+    <ClInclude Include="..\src\impl\lodalgo.h" />
+    <ClInclude Include="..\src\impl\lodfilters.h" />
+    <ClInclude Include="..\src\impl\lodsampling.h" />
+    <ClInclude Include="..\src\impl\logger.h" />
+    <ClInclude Include="..\src\impl\lookuptable.h" />
+    <ClInclude Include="..\src\impl\meta.h" />
+    <ClInclude Include="..\src\impl\mtguard.h" />
+    <ClInclude Include="..\src\impl\perflogger.h" />
+    <ClInclude Include="..\src\impl\sanity.h" />
+    <ClInclude Include="..\src\impl\sdinterface.h" />
+    <ClInclude Include="..\src\impl\roundandclip.h" />
+    <ClInclude Include="..\src\impl\statisticdata.h" />
+    <ClInclude Include="..\src\impl\structaccess.h" />
+    <ClInclude Include="..\src\impl\subtiling.h" />
+    <ClInclude Include="..\src\impl\timer.h" />
+    <ClInclude Include="..\src\impl\transform.h" />
+    <ClInclude Include="..\src\impl\types.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="deploy-headers.bat">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(FullPath) $(OutDir)..\..\</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)..\..\include\openzgy\api.h</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)..\src\api.h</AdditionalInputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(FullPath) $(OutDir)..\..\</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)..\..\include\openzgy\api.h</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)..\src\api.h</AdditionalInputs>
+    </CustomBuild>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

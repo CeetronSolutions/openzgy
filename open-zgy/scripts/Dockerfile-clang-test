@@ -1,0 +1,56 @@
+# Copyright 2017-2024, Schlumberger
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Create a minimal docker image containing OpenZGY
+
+FROM ubuntu:jammy
+ARG CLEAN_BUILD_COUNTER=5
+ENV CLEAN_BUILD_COUNTER=${CLEAN_BUILD_COUNTER}
+
+RUN apt-get update; \
+    DEBIAN_FRONTEND=noninteractive apt-get -y install \
+        libcurl4 libomp-dev \
+        python3.10-dev python3.10-venv \
+        python3.11-dev python3.11-venv \
+        python3 python3-pip
+
+WORKDIR /home/me/oz
+ADD openzgy-install.tgz build/deploy
+
+# Pre-install OpenZGY in each Python environment to make it more
+# convenient to use the :test image for ad hoc experiments. The
+# drawback is that the tests in test_inside.sh and possibly others
+# will need to uninstall them before doing their stuff.
+RUN PYTHONS=$(/bin/ls -1 /usr/bin/python3[.0-9]* | grep '/python3[.0-9]*$'); \
+    for pp in ${PYTHONS}; do \
+        for wheel in build/deploy/wrapper/*-gcc*/OpenZgyBindings-*.whl; do \
+            echo "Try to install $(basename ${wheel}) in ${pp}"; \
+            ${pp} -m pip install ${wheel} || echo "Failure ignored."; \
+            ${pp} -m pip install numpy; \
+        done; \
+    done
+
+# Optional: Prepare for running unit tests
+RUN tar xvf build/deploy/testscripts.tar; \
+    apt-get update && apt-get -y install bzip2 curl python3-venv cpio
+
+# Specific to wrapper/test/docker/test_inside.sh
+RUN apt-get install -y g++ virtualenv
+
+# Optional: Run as a regular user
+RUN useradd -u 800 -g users me; \
+    apt-get -y install sudo; \
+    echo 'me ALL = (ALL) NOPASSWD: ALL' >> /etc/sudoers; \
+    chown -R me /home/me
+USER me

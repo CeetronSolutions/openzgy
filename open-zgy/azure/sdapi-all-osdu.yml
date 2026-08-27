@@ -1,0 +1,11 @@
+name: $(Build.BuildID)-sdapi-all
+
+trigger: none
+
+pool:
+  name: Paal-Kvamme-Test
+
+steps:
+- bash: |
+    echo "There is no loger a separate osdu-only build of SDAPI."
+  displayName: 'Stub for removed pipeline'

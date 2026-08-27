@@ -1,0 +1,59 @@
+nuget {
+    #defines {
+        x64_release = "..\build\deploy\native\x64\Release";
+        x64_debug = "..\build\deploy\native\x64\Debug";
+    }
+    nuspec {
+        id = OpenZGY.Native.Windows.V142;
+        // azure/openzgy-windows.yml will patch this to the real version.
+        version : 0.0.0;
+        title: OpenZGY C++ native library for windows;
+        authors: {Slb};
+        owners: {Slb};
+        requireLicenseAcceptance:false;
+        summary: OpenZGY C++ native library for windows;
+        description: @"OpenZGY C++ native library for windows;";
+        tags: { OpenZGY, native, CoApp };
+    }
+    dependencies {
+        packages : {
+            // Note: could also set lower bound to "3.30.1185" which is
+            // current as of this writing. But, allowing older versions
+            // that nobody ought to be using makes it easier to verify
+            // that version resolution is working.
+            "SDAPI3.Native.VS143.Bundle.redist/[3.3.0,4.0)",
+        };
+    }
+    files {
+        nestedInclude += {
+            #destination = ${d_include}openzgy;
+            "..\build\deploy\native\include\**\*";
+        };
+        [x64,release,dynamic] {
+            bin += ${x64_release}\OpenZGY.dll;
+            bin += ${x64_release}\zfp.dll;
+            bin += ${x64_release}\OpenZGY.Tools.ZgyDump.exe;
+            bin += ${x64_release}\OpenZGY.Tools.ZgyCopy.exe;
+
+            lib += {
+                ${x64_release}\OpenZGY.lib;
+                ${x64_release}\zfp.lib;
+            }
+
+            symbols += ${x64_release}\OpenZGY.pdb;
+        }
+        [x64,debug,dynamic] {
+            bin += ${x64_debug}\OpenZGY.dll;
+            bin += ${x64_debug}\zfp.dll;
+            bin += ${x64_debug}\OpenZGY.Tools.ZgyDump.exe;
+            bin += ${x64_debug}\OpenZGY.Tools.ZgyCopy.exe;
+
+            lib += {
+                ${x64_debug}\OpenZGY.lib;
+                ${x64_debug}\zfp.lib;
+            }
+
+            symbols += ${x64_debug}\OpenZGY.pdb;
+        }
+    }
+}

@@ -1,0 +1,37 @@
+digraph DependencyTree {
+zgytool [shape=rect]
+"zgytool" -> "openzgy.so.0.2"
+"zgytool" -> "zgytool.so.0.1"
+"azure"
+"azure" -> "crypto.so.3"
+"azure" -> "curl.so"
+"azure" -> "ssl.so.3"
+"crypto.so.1.1" [style=filled;fillcolor=orange]
+"crypto.so.3" [style=filled;fillcolor=yellow]
+"curl.so" [style=filled;fillcolor=yellow;label="curl.so\n(7.82.0)"]
+"curl.so" -> "crypto.so.3"
+"curl.so" -> "ssl.so.3"
+"curl.so.4" [style=filled;fillcolor=orange;label="curl.so.4\n(7.61.1)"]
+"curl.so.4" -> "ssl.so.1.1"
+"curl.so.4" -> "crypto.so.1.1"
+"openvds.so.2"
+"openvds.so.2" -> "crypto.so.1.1"
+"openvds.so.2" -> "curl.so.4"
+"openvds.so.2" -> "sdapi.so.3"
+"openvds.so.2" -> "ssl.so.1.1"
+"openzgy.so.0.2"
+"openzgy.so.0.2" -> "sdapi.so.3"
+"sdapi.so.3" [style=filled;fillcolor=skyblue]
+"sdapi.so.3" -> "azure"
+"sdapi.so.3" -> "crypto.so.3"
+"sdapi.so.3" -> "curl.so"
+"sdapi.so.3" -> "ssl.so.3"
+"ssl.so.1.1" [style=filled;fillcolor=orange]
+"ssl.so.3" [style=filled;fillcolor=yellow]
+"ssl.so.3" -> "crypto.so.3"
+"zgytool.so.0.1"
+"zgytool.so.0.1" -> "curl.so" [style=dashed]
+"zgytool.so.0.1" -> "openvds.so.2"
+"zgytool.so.0.1" -> "openzgy.so.0.2"
+"ssl.so.1.1" -> "crypto.so.1.1"
+}

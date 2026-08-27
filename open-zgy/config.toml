@@ -1,0 +1,29 @@
+concurrent = 1
+check_interval = 0
+
+[session_server]
+  session_timeout = 1800
+
+[[runners]]
+  name = "shell executor runner"
+  url = ""
+  token = ""
+  executor = "shell"
+  shell = "powershell"
+
+[[runners]]
+  name = "openzgy windows10 self-hosted runner"
+  url = "https://community.opengroup.org/"
+  token = "RViFNKmmXpsiTABCdBbn"
+  executor = "shell"
+  shell = "powershell"
+  [runners.custom_build_dir]
+  [runners.cache]
+    [runners.cache.s3]
+    [runners.cache.gcs]
+    [runners.cache.azure]
+
+[[runners]]
+  executor = "docker"
+  [runners.docker]
+    privileged = true

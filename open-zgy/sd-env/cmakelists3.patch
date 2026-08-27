@@ -1,0 +1,25 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 4ed9a83..9bd652e 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -239,10 +239,11 @@ if(AZURE_CURL_PROVIDER_ENABLED)
+     find_library( LZMA_LIBRARY lzma )
+     find_library( Z_LIBRARY    z )
+       
+-    find_package( libxml2 CONFIG REQUIRED)
++    include(CMakeFindDependencyMacro)
++    find_dependency(LibXml2)
++
+     set( LIBXML2_LIBRARY ${XML2_LIBRARY} CACHE FILEPATH "path to libxml2 library" )
+ 
+-    find_package(LibXml2 CONFIG REQUIRED )
+     
+     if(LibXml2_FOUND AND NOT TARGET LibXml2::LibXml2)
+       message( STATUS "manually constructing LibXml2::LibXml2")
+@@ -644,4 +645,4 @@ if(BUILD_BENCHMARKS)
+     COMMENT "Running Performance Benchmarks"
+     )
+ 
+-endif()
+\ No newline at end of file
++endif()

@@ -1,0 +1,241 @@
+
+# Install additional packages in the base image that only OpenZGY needs.
+# This step is referenced both while building and while testing.
+# Some packages might only be needed in one of them. But to simplify
+# maintenance, the same packages are installed both places.
+# Note: It is possible that some of these are not needed at all.
+# Note: Currently only distinguishes between redhat and ubuntu basd
+# distros. It is trivial to change this to be one per distro.
+# Caveat: Installing new packages might cause other packages to be
+# upgraded, leaving the dependencies different from what the base
+# image chose. E.g. valgrind might do this. Valgrind isn't currently
+# used in the OSDU GitLab build.
+
+.install-extras-any-ubuntu:
+  script:
+    - |
+      echo "job .install-extras-any-ubuntu starting $(date)"
+      apt-get update
+      DEBIAN_FRONTEND=noninteractive \
+        apt-get -y --no-install-recommends install  \
+          uuid-dev patchelf \
+          python3-dev python3-pip python3-setuptools python3-tk python3-venv
+      #DEBIAN_FRONTEND=noninteractive \
+      #  apt-get -y --no-install-recommends install  \
+      #    strace valgrind
+      scripts/pip3.sh install wheel virtualenv numpy cython
+      #ls -laR
+      echo "job .install-extras-any-ubuntu finished $(date)"
+
+.install-extras-any-redhat:
+  script:
+    - |
+      echo "job .install-extras-any-redhat starting $(date)"
+      dnf -y install uuid-devel patchelf bzip2 sudo
+      #dnf -y install valgrind-devel
+      # Choose the Python version. Plain "python" maps to 3.6, which is EOL.
+      # Available: python{3,38,39,3.11}. Omega wants to use 3.11.
+      # CAVEAT: If SDAPI or its dependencies uses or links with Python,
+      # the version choice should be in the parent image.
+      dnf -y install python3.11-devel python3.11-pip
+      update-alternatives --set python3 /usr/bin/python3.11
+      python3 -m ensurepip
+      python3 -m pip install --upgrade pip
+      scripts/pip3.sh install wheel virtualenv numpy cython
+      #ls -laR
+      echo "job .install-extras-any-redhat finished $(date)"
+
+# Referenced from test jobs
+.install-built-packages-any:
+  script:
+  - |
+    set -e -x
+    echo "job .install-built-packages-any starting $(date)"
+    scripts/pip3.sh install wheel virtualenv numpy cython
+    #ls -laR
+    ls -l build/deploy/wrapper/*-gcc*
+    for wheel in build/deploy/wrapper/*-gcc*/OpenZgyBindings-*.whl
+    do
+        echo "Trying to install ${wheel} in $(python3 --version)"
+        python3 -m pip install "${wheel}" || echo "Failed."
+    done
+    #du -skc build/deploy/native/* && ls -l build/deploy
+    echo "job .install-built-packages-any finished $(date)"
+
+# Compile job templates
+.compile_job:
+  stage: build
+  image: # OVERRIDE-IN-CHILD
+  tags:
+    - osdu-medium
+  artifacts:
+    name: OpenZGY-$LINUXDISTRO
+    expire_in: 1 hr
+    paths:
+    - build
+    exclude:
+    - build/**.timestamp
+  before_script: 
+    - | 
+      set -e -x
+      # The image we are running in might not have up to date CA certificates,
+      # which would cause problems when downloading the software below.
+      # Note that this will only work if running as root in a container.
+      # In a shared runner we won't be allowed to modufy the system.
+      # Commented out because it probably isn't needed any longer,
+      # and the fix is specific to debian- and ubuntu based distros.
+      #apt-get update
+      #apt-get install -y ca-certificates || echo "Cert update failed"
+      git clone --recursive https://community.opengroup.org/osdu/platform/domain-data-mgmt-services/seismic/seismic-dms-suite/seismic-store-cpp-lib.git osdu-sdapi-cpp
+      #echo "All files in $(pwd)"; ls -FC .. . * || true
+
+      # Patch version for OpenZGY
+      export AZURE_BUILDID="${CI_PIPELINE_IID}"
+
+      # Patch SDAPI rules... OUCH!
+      # This needs to be fixed in the SDAPI baseline.
+      # It varies which distros need -ldl. Harmless to always add it.
+      sed -i -e '/^ *\${OPENSSL_LIBRARY}/s/$/ ${CMAKE_DL_LIBS}/' osdu-sdapi-cpp/src/CMakeLists.txt
+
+      # Build SDAPI
+      cd osdu-sdapi-cpp
+      chmod +x devops/scripts/gen_version.sh
+      SDAPI_VERSION=$(devops/scripts/gen_version.sh)
+      echo ${SDAPI_VERSION}
+      CXX11_ABI=1
+      test "${LINUXDISTRO}" != "omega8" || CXX11_ABI=0
+      devops/scripts/build-linux64.sh --build-mode=Release \
+          --lib-version=${SDAPI_VERSION}  \
+          --build-utest  \
+          --cmake-additional-options="-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=${CXX11_ABI} -DCMAKE_EXE_LINKER_FLAGS=-ldl -DCMAKE_VERBOSE_MAKEFILE=ON -DVERBOSE=ON" \
+          ${CLOUD_PROVIDERS}
+
+      #Pack SDAPI without root directory (required for OpenZGY)
+      ( cd ./dist/Release/sdapi-${SDAPI_VERSION}; tar -cf - * ) | gzip > ./dist/sdapi_linux64_osdu.tar.gz
+      #Copy SDAPI to where thge OpenZGY build expects to find it.
+      cd ..
+      mkdir -p pkg
+      cp ./osdu-sdapi-cpp/dist/sdapi_linux64_osdu.tar.gz  pkg/sdapi_linux64.tar.gz
+
+  script: #Implement 
+
+  after_script: 
+    - |
+      set +e -x
+      PROVIDERS=$(echo ${CLOUD_PROVIDERS} | sed 's/--//g' | sed 's/-provider//g' | sed 's/ /./g')
+      # The OpenZGY versioning strategy leaves a bit to be desired.
+      # The OSDU build setup will name the output 0.2.${CI_PIPELINE_IID}.
+      # The "0.2." prefix is hard coded several places. E.g. wrapper/setup.py.
+      # To avoid adding yet another such place, look at the binary wheel for
+      # the Python wrapper and extract the version from the file name.
+      WRAPPERWHEEL=$(find build/deploy/wrapper -name \*.whl | sort | head -1)
+      OPENZGYVERSION=$(echo $WRAPPERWHEEL | sed -ne 's;^.*/OpenZgyBindings-\([0-9][0-9a-zA-Z.]*\)-.*$;\1;p')
+      : ${OPENZGYVERSION:=noversion}
+      echo WRAPPERWHEEL=${WRAPPERWHEEL}
+      echo OPENZGYVERSION=${OPENZGYVERSION}
+      echo "Creating ./build/OpenZGY.${LINUXDISTRO}.sdms-bundle-${PROVIDERS}.${OPENZGYVERSION}.tar.gz"
+      tar --directory=./build/deploy/ -cf - . | gzip > ./build/OpenZGY.${LINUXDISTRO}.sdms-bundle-${PROVIDERS}.${OPENZGYVERSION}.tar.gz  
+
+.jammy_compile_job:
+  extends: .compile_job
+  image: community.opengroup.org:5555/osdu/platform/domain-data-mgmt-services/seismic/seismic-dms-suite/seismic-store-cpp-lib/sdapi-osdu-ubuntu22-gcc11-static-deps:latest
+  artifacts:
+    name: OpenZGY-jammy
+  script:
+  - !reference [.install-extras-any-ubuntu, script]
+  - make build testscripts
+
+.rocky8_compile_job:
+  extends: .compile_job
+  image: community.opengroup.org:5555/osdu/platform/domain-data-mgmt-services/seismic/seismic-dms-suite/seismic-store-cpp-lib/sdapi-osdu-rocky8-gcc10-static-deps-new-string-abi
+  artifacts:
+    name: OpenZGY-rocky8
+  script:
+  - !reference [.install-extras-any-redhat, script]
+  - make build testscripts
+
+.omega8_compile_job:
+  extends: .compile_job
+  image: community.opengroup.org:5555/osdu/platform/domain-data-mgmt-services/seismic/seismic-dms-suite/seismic-store-cpp-lib/sdapi-osdu-rocky8-gcc10-static-deps-old-string-abi
+  artifacts:
+    name: OpenZGY-omega8
+  script:
+  - !reference [.install-extras-any-redhat, script]
+  - make build testscripts
+
+
+# Deploy job templates
+
+.deploy_job: 
+  stage: deploy
+  image: docker:19.03
+  script: |
+   set -e -x
+   apk add curl
+   ls -laR 
+   echo "${CI_API_V4_URL}"
+   echo "${CI_PROJECT_ID}"
+   set +e
+   WRAPPERWHEEL=$(find build/deploy/wrapper -name \*.whl | sort | head -1)
+   OPENZGYVERSION=$(echo $WRAPPERWHEEL | sed -ne 's;^.*/OpenZgyBindings-\([0-9][0-9a-zA-Z.]*\)-.*$;\1;p')
+   : ${OPENZGYVERSION:=noversion}
+   OPENZGYPATH=$(find "$(pwd -P)" -name OpenZGY.${LINUXDISTRO}*.tar.gz)
+   OPENZGYFILE=$(basename ${OPENZGYPATH})
+
+   echo WRAPPERWHEEL=${WRAPPERWHEEL}
+   echo OPENZGYVERSION=${OPENZGYVERSION}
+   echo OPENZGYPATH${OPENZGYPATH}
+   echo OPENZGYFILE${OPENZGYFILE}
+   set -e
+   curl -v --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file ${OPENZGYPATH} "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/OpenZGY/$OPENZGYVERSION/${OPENZGYFILE}"
+
+
+# Test templates. Can be used if we put tests in a separate job.
+
+.test:
+  stage: test
+  image: # OVERRIDE-IN-CHILD
+  before_script:
+  - |
+    export CLIENT_ID="" 
+    export CLIENT_SECRET="" 
+    export OPENZGY_SDURL="" 
+    export OPENZGY_SDAPIKEY="" 
+    export OPENZGY_TOKEN="" 
+    export OPENZGY_TESTDATA="../testdata" 
+    export OPENZGY_SDTESTDATA="sd://opendes/slb-testdata"
+    export OPENZGY_SDTESTSINK="sd://opendes/slb-testsink/a"
+
+.test-jammy:
+  extends: .test
+  image: community.opengroup.org:5555/osdu/platform/domain-data-mgmt-services/seismic/seismic-dms-suite/seismic-store-cpp-lib/sdapi-osdu-ubuntu22-gcc11-static-deps:latest
+  script:
+  - !reference [.install-extras-any-ubuntu, script]
+  - !reference [.install-built-packages-any, script]
+  - echo "SDTESTDATA=${SDTESTDATA}"
+  - echo "RUN native/src/runtests.sh"; native/src/runtests.sh
+  - echo "RUN wrapper/runtests.sh";    wrapper/runtests.sh
+  dependencies:
+  - jammy-compile-azure-curl
+
+.test-rocky8:
+  extends: .test
+  image: community.opengroup.org:5555/osdu/platform/domain-data-mgmt-services/seismic/seismic-dms-suite/seismic-store-cpp-lib/sdapi-osdu-rocky8-gcc10-static-deps-new-string-abi
+  script:
+  - !reference [.install-extras-any-redhat, script]
+  - !reference [.install-built-packages-any, script]
+  - echo "RUN native/src/runtests.sh"; native/src/runtests.sh
+  - echo "RUN wrapper/runtests.sh";    wrapper/runtests.sh
+  dependencies:
+  - rocky8-compile-azure-curl
+
+.test-omega8:
+  extends: .test
+  image: community.opengroup.org:5555/osdu/platform/domain-data-mgmt-services/seismic/seismic-dms-suite/seismic-store-cpp-lib/sdapi-osdu-rocky8-gcc10-static-deps-old-string-abi
+  script:
+  - !reference [.install-extras-any-redhat, script]
+  - !reference [.install-built-packages-any, script]
+  - echo "RUN native/src/runtests.sh"; native/src/runtests.sh
+  - echo "RUN wrapper/runtests.sh";    wrapper/runtests.sh
+  dependencies:
+  - rocky8-compile-azure-curl

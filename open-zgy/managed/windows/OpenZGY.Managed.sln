@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30413.136
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenZGY.Managed", "..\OpenZGY.Managed\OpenZGY.Managed.csproj", "{29C81593-BDE9-48C0-9E0F-F47E1F6B5963}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenZGY.Managed.Test", "..\OpenZGY.Managed.Test\OpenZGY.Managed.Test.csproj", "{F064E6FB-228D-4AB8-A22B-88C28E32824C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{29C81593-BDE9-48C0-9E0F-F47E1F6B5963}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{29C81593-BDE9-48C0-9E0F-F47E1F6B5963}.Debug|x64.Build.0 = Debug|Any CPU
+		{29C81593-BDE9-48C0-9E0F-F47E1F6B5963}.Release|x64.ActiveCfg = Release|Any CPU
+		{29C81593-BDE9-48C0-9E0F-F47E1F6B5963}.Release|x64.Build.0 = Release|Any CPU
+		{F064E6FB-228D-4AB8-A22B-88C28E32824C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F064E6FB-228D-4AB8-A22B-88C28E32824C}.Debug|x64.Build.0 = Debug|Any CPU
+		{F064E6FB-228D-4AB8-A22B-88C28E32824C}.Release|x64.ActiveCfg = Release|Any CPU
+		{F064E6FB-228D-4AB8-A22B-88C28E32824C}.Release|x64.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E296431B-92B6-433B-8189-A15515114A3C}
+	EndGlobalSection
+EndGlobal

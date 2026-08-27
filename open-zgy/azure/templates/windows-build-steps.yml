@@ -1,0 +1,153 @@
+parameters:
+- name: configuration
+  displayName: Configuration
+  type: string
+  default: 'Debug'
+- name: platform
+  displayName: Platform
+  type: string
+  default: 'x64'
+- name: havesd
+  displayName: Include SDAPI?
+  type: string
+  default: no
+
+steps:
+- bash: |
+    PATH="$PATH:/c/Program Files/Microsoft Visual Studio/2022/Enterprise/MSBuild/Current/Bin/amd64/"
+    havesd="${{parameters.havesd}}"
+    if [[ "$havesd" == "yes" ]]; then
+      echo 'HAVE_SD=yes'
+      MSBuild.exe "$(Build.SourcesDirectory)/openzgy/native/windows/OpenZGY.sln" //p:Configuration=${{parameters.configuration}} //p:Platform=${{parameters.platform}} //p:DefineConstants=HAVE_SD
+    else
+      echo 'HAVE_SD=no'
+      MSBuild.exe "$(Build.SourcesDirectory)/openzgy/native/windows/OpenZGY.sln" //p:Configuration=${{parameters.configuration}} //p:Platform=${{parameters.platform}}
+    fi
+  displayName: 'Build OpenZGY-${{parameters.platform}}-${{parameters.configuration}}-HAVE_SD=${{parameters.havesd}}'
+
+- bash: |
+    echo 'parameters.havesd: ${{parameters.havesd}}'
+    eval $(test ! -x openzgy/private/grabtoken.sh || bash openzgy/private/grabtoken.sh -vv)
+    ls -la '$(Build.SourcesDirectory)\openzgy\build\deploy\native\${{parameters.platform}}\${{parameters.configuration}}'
+    '$(Build.SourcesDirectory)\openzgy\build\deploy\native\${{parameters.platform}}\${{parameters.configuration}}\OpenZGY.Test.exe'
+  env:
+    OPENZGY_SDURL: $(SEISMIC_STORE_URL)
+    OPENZGY_SDAPIKEY: $(SEISMIC_STORE_KEY)
+    CLIENT_ID:     $(OPENZGY_TEST_CLIENT_ID)
+    CLIENT_SECRET: $(OPENZGY_TEST_CLIENT_SECRET)
+    SD_TARGET_AUDIENCE: '$(OPENZGY_TEST_CLIENT_ID) $(OPENZGY_TEST_CLIENT_AUDIENCE)'
+    SDAPI_SAUTH_TOKEN_SERVICE_URL: '$(SEISMIC_STORE_TKSVC_URL)'
+  displayName: 'Test native ${{parameters.platform}}-${{parameters.configuration}}'
+
+- bash: |
+    echo 'parameters.havesd: ${{parameters.havesd}}'
+    havesd="${{parameters.havesd}}"
+    options=
+    if [[ "$havesd" != "yes" ]]; then
+      options=--nosd
+    fi
+    eval $(test ! -x openzgy/private/grabtoken.sh || bash openzgy/private/grabtoken.sh -vv)
+    ls -la '$(Build.SourcesDirectory)\openzgy\build\deploy\managed\${{parameters.platform}}\${{parameters.configuration}}'
+    echo '$(Build.SourcesDirectory)\openzgy\build\deploy\managed\${{parameters.platform}}\${{parameters.configuration}}\OpenZGY.Managed.Test.exe' $options
+    '$(Build.SourcesDirectory)\openzgy\build\deploy\managed\${{parameters.platform}}\${{parameters.configuration}}\OpenZGY.Managed.Test.exe' $options
+  env:
+    OPENZGY_SDURL: $(SEISMIC_STORE_URL)
+    OPENZGY_SDAPIKEY: $(SEISMIC_STORE_KEY)
+    CLIENT_ID:     $(OPENZGY_TEST_CLIENT_ID)
+    CLIENT_SECRET: $(OPENZGY_TEST_CLIENT_SECRET)
+    SD_TARGET_AUDIENCE: '$(OPENZGY_TEST_CLIENT_ID) $(OPENZGY_TEST_CLIENT_AUDIENCE)'
+    SDAPI_SAUTH_TOKEN_SERVICE_URL: '$(SEISMIC_STORE_TKSVC_URL)'
+  displayName: 'Test managed ${{parameters.configuration}}'
+
+- bash: |
+    echo "Running in $(pwd)"
+    BSL="$(Build.SourcesDirectory)/openzgy"
+    WRAPPER_SRC="${BSL}/wrapper"
+    WRAPPER_BIN="${BSL}/build/deploy/wrapper/${{parameters.platform}}/${{parameters.configuration}}"
+    echo calling "${BSL}/native/windows/test-wrapper.bat" "${WRAPPER_SRC}/" "${WRAPPER_BIN}"/OpenZgyBindings*.whl ${{parameters.havesd}}
+                 "${BSL}/native/windows/test-wrapper.bat" "${WRAPPER_SRC}/" "${WRAPPER_BIN}"/OpenZgyBindings*.whl ${{parameters.havesd}}
+    RC=$?
+    echo "test-wrapper.bat launched from bash returned ${RC}"
+    exit $RC
+  env:
+    # HAVE_SD is forced on in windows, as a flag to the compiler, inside
+    # native/windows/Directory.Build.props. This is pretty obscure.
+    # On windows it is set as a variable in the pipeline. Also
+    # not easy to find, as it isn't even in source control.
+    #HAVE_SD: yes
+    OPENZGY_SDURL: $(SEISMIC_STORE_URL)
+    OPENZGY_SDAPIKEY: $(SEISMIC_STORE_KEY)
+    OPENZGY_TOKEN: SlbAuthServiceAccount:$(OPENZGY_TEST_CLIENT_ID):$(OPENZGY_TEST_CLIENT_SECRET)
+    SD_TARGET_AUDIENCE: '$(OPENZGY_TEST_CLIENT_ID) $(OPENZGY_TEST_CLIENT_AUDIENCE)'
+    SDAPI_SAUTH_TOKEN_SERVICE_URL: '$(SEISMIC_STORE_TKSVC_URL)'
+  condition: and(succeeded(), eq('${{parameters.configuration}}', 'Release'))
+  displayName: 'Test Python wrapper ${{parameters.configuration}}'
+
+- bash: |
+    echo "Running in $(pwd)"
+    BSL="$(Build.SourcesDirectory)/openzgy"
+    WRAPPER_SRC="${BSL}/wrapper"
+    WRAPPER_BIN="${BSL}/build/deploy/wrapper/generic/${{parameters.configuration}}"
+    export OPENZGY_SDK="${BSL}/build/deploy"
+    echo calling "${BSL}/native/windows/test-wrapper.bat" "${WRAPPER_SRC}/" "${WRAPPER_BIN}"/OpenZgyBindings*.whl ${{parameters.havesd}}
+                 "${BSL}/native/windows/test-wrapper.bat" "${WRAPPER_SRC}/" "${WRAPPER_BIN}"/OpenZgyBindings*.whl ${{parameters.havesd}}
+    RC=$?
+    echo "test-wrapper.bat launched from bash returned ${RC}"
+    exit $RC
+  env:
+    OPENZGY_SDURL: $(SEISMIC_STORE_URL)
+    OPENZGY_SDAPIKEY: $(SEISMIC_STORE_KEY)
+    OPENZGY_TOKEN: SlbAuthServiceAccount:$(OPENZGY_TEST_CLIENT_ID):$(OPENZGY_TEST_CLIENT_SECRET)
+    SD_TARGET_AUDIENCE: '$(OPENZGY_TEST_CLIENT_ID) $(OPENZGY_TEST_CLIENT_AUDIENCE)'
+    SDAPI_SAUTH_TOKEN_SERVICE_URL: '$(SEISMIC_STORE_TKSVC_URL)'
+  condition: and(succeeded(), eq('${{parameters.configuration}}', 'Release'))
+  displayName: 'Test Python wrapper ${{parameters.configuration}} generic wheel'
+  continueOnError: true
+
+- bash: |
+    echo "Running in $(pwd)"
+    BSL="$(Build.SourcesDirectory)/openzgy"
+    WRAPPER_SRC="${BSL}/wrapper"
+    WRAPPER_BIN="${BSL}/build/deploy/wrapper/generic/${{parameters.configuration}}"
+    export OPENZGY_SDK="${BSL}/build/deploy"
+    echo calling "${BSL}/native/windows/test-wrapper.bat" "${WRAPPER_SRC}/" "${WRAPPER_BIN}"/OpenZgyBindings*.tar.gz ${{parameters.havesd}}
+                 "${BSL}/native/windows/test-wrapper.bat" "${WRAPPER_SRC}/" "${WRAPPER_BIN}"/OpenZgyBindings*.tar.gz ${{parameters.havesd}}
+    RC=$?
+    echo "test-wrapper.bat launched from bash returned ${RC}"
+    exit $RC
+  env:
+    OPENZGY_SDURL: $(SEISMIC_STORE_URL)
+    OPENZGY_SDAPIKEY: $(SEISMIC_STORE_KEY)
+    OPENZGY_TOKEN: SlbAuthServiceAccount:$(OPENZGY_TEST_CLIENT_ID):$(OPENZGY_TEST_CLIENT_SECRET)
+    SD_TARGET_AUDIENCE: '$(OPENZGY_TEST_CLIENT_ID) $(OPENZGY_TEST_CLIENT_AUDIENCE)'
+    SDAPI_SAUTH_TOKEN_SERVICE_URL: '$(SEISMIC_STORE_TKSVC_URL)'
+  condition: and(succeeded(), eq('${{parameters.configuration}}', 'Release'))
+  displayName: 'Test Python wrapper ${{parameters.configuration}} generic sdist'
+  continueOnError: true
+
+- task: CopyFiles@2
+  inputs:
+    sourceFolder: '$(Build.SourcesDirectory)/openzgy/build/deploy'
+    targetFolder: '$(Build.ArtifactStagingDirectory)'
+    contents: |
+      native/${{parameters.platform}}/${{parameters.configuration}}/**
+      native/include/**
+      wrapper/*/*/*.whl
+      wrapper/*/*/*.tar.gz
+      managed/${{parameters.platform}}/${{parameters.configuration}}/netstandard2.0/**
+    overWrite: true
+    flattenFolders: false
+  displayName: 'Copy ${{parameters.platform}}-${{parameters.configuration}} to ArtifactStagingDirectory'
+
+- bash: |
+    # In the future this might create an msi or other package format.
+    set -e
+    pwd
+    cd '$(Build.ArtifactStagingDirectory)'
+    pwd
+    ZIPPED='OpenZGY-${{parameters.configuration}}.zip'
+    ls -FC
+    /bin/rm -f "${ZIPPED}"
+    7z a -tzip "${ZIPPED}" native managed
+    7z l ${ZIPPED} > ${ZIPPED}.txt
+  displayName: 'Single zip installer- ${{parameters.configuration}}.'

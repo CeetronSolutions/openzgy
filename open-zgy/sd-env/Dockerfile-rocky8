@@ -1,0 +1,86 @@
+# Copyright 2017-2023, Schlumberger
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+ARG variant=cloud
+
+#############################################################################
+###   SDAPI build prerequisites   ###########################################
+#############################################################################
+
+FROM rockylinux/rockylinux:8 AS sdapi-base
+ENV LINUXDISTRO=rocky8
+
+ARG CLEAN_BUILD_COUNTER=5
+ENV CLEAN_BUILD_COUNTER=${CLEAN_BUILD_COUNTER}
+
+RUN dnf -y install epel-release dnf-plugins-core; \
+    dnf config-manager --set-enabled powertools; \
+    dnf install -y \
+        make gcc-c++ libcurl-devel openssl-devel \
+        which git sudo cmake patch unzip zip diffutils cpio \
+        kernel-headers perl-IPC-Cmd patchelf findutils \
+        ca-certificates
+RUN useradd -m -u 800 -G wheel --shell /bin/bash -p '' me
+WORKDIR /home/me
+
+COPY ["sd-env/.empty", "private/Slb*.crt", "/etc/pki/ca-trust/source/anchors/"]
+RUN update-ca-trust
+
+#############################################################################
+###   SDAPI third party dependencies (have patience)   ######################
+#############################################################################
+
+FROM sdapi-base AS sdapi-manual
+#ARG vcpkg_branch=52b66042
+# 8-12-2023
+#ARG  vcpkg_branch=8ee46dc7
+# 6-8-2024
+#ARG  vcpkg_branch=a2367cee
+# 2-1-2025
+ARG vcpkg_branch=4b6c50d9
+
+RUN mkdir -p /opt/vcpkg && chown me /opt/vcpkg
+USER me
+RUN git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg && \
+    cd /opt/vcpkg && git checkout ${vcpkg_branch} && \
+    cd /opt/vcpkg && ./bootstrap-vcpkg.sh -disableMetrics
+RUN cd /opt/vcpkg; ./vcpkg install azure-storage-cpp:x64-linux
+RUN cd /opt/vcpkg; ./vcpkg install azure-storage-blobs-cpp:x64-linux
+
+RUN find /opt/vcpkg/installed -name 'lib*.so*' -type f ! -name \*boost\* -print0 | xargs -r0 readelf -d
+RUN find /opt/vcpkg/installed -name 'lib*.so*' -type f -print0 | xargs -r0 ls -ld
+#RUN set -e; cd /opt/vcpkg/installed/x64-linux/lib; \
+#    test -h libcurl.so || mv -f libcurl.so libcurl.so.vcpkg; \
+#    /tmp/sofixup -l libcurl.so libcurl.so.4 lib*.so*; \
+#    cd /opt/vcpkg/installed/x64-linux/debug/lib; \
+#    test -h libcurl-d.so || mv -f libcurl-d.so libcurl-d.so.vcpkg; \
+#    /tmp/sofixup -l libcurl-d.so libcurl-d.so.4 lib*.so*
+
+#############################################################################
+###   Environment is ready, build SDAPI now!   ##############################
+#############################################################################
+
+FROM sdapi-manual AS sdapi-build
+
+# SOURCE CODE FROM BUILD CONTEXT COPIED IN
+COPY --chown=800 seismic-store-cpp-lib /home/me/sdapi/
+COPY --chown=800 ["sd-env/build-template.sh", "sd-env/*.patch", "/home/me/" ]
+USER me
+
+ARG AZURE_BUILDID
+ENV AZURE_BUILDID=${AZURE_BUILDID}
+RUN ./build-template.sh
+
+# If stopping the build at this point, /home/me/sdapi_linux64.tar.gz
+# can be extracted from the image and deployed e.g. as a universal package.

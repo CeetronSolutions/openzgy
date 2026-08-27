@@ -1,0 +1,57 @@
+name: $(Build.BuildID)-sdapi-all
+
+trigger: none
+
+pool:
+  name: Paal-Kvamme-Test
+
+parameters:
+- name: PublishUniversal
+  displayName: Publish universal packages
+  type: boolean
+  default: false
+
+- name: build_rocky8
+  type: boolean
+  default: true
+
+- name: build_focal
+  type: boolean
+  default: true
+
+- name: build_jammy
+  type: boolean
+  default: true
+
+- name: build_noble
+  type: boolean
+  default: true
+
+variables:
+  - group: 'Salmon Variables'
+
+jobs:
+
+  - ${{ if parameters.build_rocky8 }}:
+    - template: templates/sdapi-jobs.yml
+      parameters:
+        linuxdistro: ${{ 'rocky8' }}
+        upublish: ${{parameters.PublishUniversal}}
+
+  - ${{ if parameters.build_focal }}:
+    - template: templates/sdapi-jobs.yml
+      parameters:
+        linuxdistro: ${{ 'focal' }}
+        upublish: ${{parameters.PublishUniversal}}
+
+  - ${{ if parameters.build_jammy }}:
+    - template: templates/sdapi-jobs.yml
+      parameters:
+        linuxdistro: ${{ 'jammy' }}
+        upublish: ${{parameters.PublishUniversal}}
+
+  - ${{ if parameters.build_noble }}:
+    - template: templates/sdapi-jobs.yml
+      parameters:
+        linuxdistro: ${{ 'noble' }}
+        upublish: ${{parameters.PublishUniversal}}

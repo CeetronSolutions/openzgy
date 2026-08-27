@@ -1,0 +1,62 @@
+# Copyright 2017-2023, Schlumberger
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#centos:centos8 is no longer available; choose some other RedHat 8 lookalike.
+#FROM quay.io/centos/centos:stream8
+FROM rockylinux/rockylinux:8
+#FROM oraclelinux:8
+#FROM almalinux:8
+
+ENV LINUXDISTRO=rocky8
+
+ARG CLEAN_BUILD_COUNTER=5
+ENV CLEAN_BUILD_COUNTER=${CLEAN_BUILD_COUNTER}
+
+RUN set -e; dnf -y install epel-release dnf-plugins-core; \
+    dnf config-manager --set-enabled powertools; \
+    dnf -y install \
+        make cmake gcc-c++ libgomp gdb strace \
+        uuid uuid-devel valgrind-devel libxslt patchelf \
+        curl bzip2 less zip unzip which sudo doxygen java findutils \
+        rpm-build
+
+# Choose the Python version to use. Plain "python" maps to 3.6, which is EOL.
+# Available: python{3,38,39,311}. Keep Dockerfile* and Dockerfile-test* in sync.
+RUN set -e; dnf -y install python38-devel python39-devel python3.11-devel; \
+    update-alternatives --set python3 /usr/bin/python3.8; \
+    for pp in python3.8 python3.9 python3.11; do \
+        ${pp} -m ensurepip; \
+        ${pp} -m pip install --upgrade pip; \
+        ${pp} -m pip install wheel numpy cython; \
+    done
+
+# Only needed when building the coverage report, but is harmless.
+RUN dnf -y install lcov
+
+#RUN echo dnf -y install \
+#        tigervnc-server openssh-server dbus-x11 \
+#        xterm firefox emacs ImageMagick icewm ksysguard
+
+# CMake bug, deps to newer version are missing.
+#RUN dnf -y install libarchive
+# sometimes Azure SDK looks for the certificate file in the wrong place.
+RUN test -r /etc/ssl/cert.pem || ln -s /etc/pki/tls/cert.pem /etc/ssl/cert.pem
+
+RUN useradd -m -u 800 -G wheel --shell /bin/bash -p '' me
+USER me
+WORKDIR /home/me
+
+# SOURCE CODE FROM BUILD CONTEXT COPIED IN
+COPY --chown=800 ./ oz/
+WORKDIR /home/me/oz

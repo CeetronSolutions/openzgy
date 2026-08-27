@@ -1,0 +1,365 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>
+      </Extensions>
+    </Filter>
+    <Filter Include="src\impl">
+      <UniqueIdentifier>{6b7ee65e-f8c2-4e25-8fe7-8292c10b7b1c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\capi">
+      <UniqueIdentifier>{1aacd76b-0503-4dea-9360-1484114f9ed9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\api.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\exception.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\iocontext.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\writerargs.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\iocontextimpl.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\writerargsimpl.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\apirecorder.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\bulk.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\compress_null.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\compress_zfp.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\compression.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\cornerpoints.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\databuffer.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\enum_mapper.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\environment.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\expandablebuilder.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\fancy_timers.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\file.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\file_windows.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\file_consolidate.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\file_parallelizer.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\file_performance.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\file_relay.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\file_sd.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\file_smallcache.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\genlod.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\guid.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\histogrambuilder.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\histogramdata.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\iltf2d.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\locker.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\lodalgo.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\lodfilters.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\lodsampling.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\logger.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\lookuptable.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\meta.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\mtguard.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\perflogger.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\sanity.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\sdasyncio.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\sdinterface.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\statisticdata.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\structaccess.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\subtiling.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\timer.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\transform.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\types.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\file_local.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\capi\capi.cpp">
+      <Filter>src\capi</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\capi\handle.cpp">
+      <Filter>src\capi</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\minmaxscan.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\wintools.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\file_native.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\workorder.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\impl\tracktouched.cpp">
+      <Filter>src\impl</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\api.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\example.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\exception.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\iocontext.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\writerargs.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\iocontextimpl.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\writerargsimpl.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\apirecorder.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\arrayops.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\bulk.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\compression.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\cornerpoints.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\databuffer.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\enum.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\enum_mapper.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\environment.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\expandablebuilder.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\fancy_timers.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\file.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\file_consolidate.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\file_parallelizer.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\file_performance.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\file_relay.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\file_sd.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\file_smallcache.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\genlod.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\guid.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\histogrambuilder.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\histogramdata.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\iltf2d.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\locker.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\lodalgo.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\lodsampling.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\lodfilters.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\logger.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\lookuptable.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\meta.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\mtguard.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\perflogger.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\sanity.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\sdinterface.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\roundandclip.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\statisticdata.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\structaccess.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\subtiling.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\timer.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\transform.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\types.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\declspec.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\safewriter.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\capi\capi.h">
+      <Filter>src\capi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\capi\handle.h">
+      <Filter>src\capi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\minmaxscan.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\wintools.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\workorder.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\edgebrick.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\impl\tracktouched.h">
+      <Filter>src\impl</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="deploy-headers.bat" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,36 @@
+parameters:
+  linuxdistro: 'centos8'
+  pyversion: 'Unset-PYVERSION'
+  gccversion: 'Unset-GCCVERSION'
+  deployed: .
+  makeargs: ''
+  tagtail: 'default'
+  upublish: False
+
+jobs:
+- job: builder_${{parameters.linuxdistro}}
+  displayName: 'Build ${{parameters.linuxdistro}} tarball'
+  pool:
+    name: Paal-Kvamme-Test
+
+  variables:
+  - template: versions.yml
+    parameters:
+      linuxdistro: '${{parameters.linuxdistro}}'
+      tagtail: '${{parameters.tagtail}}'
+
+  steps:
+  - template: build-steps.yml
+    parameters:
+      linuxdistro: '${{parameters.linuxdistro}}'
+      makeargs:    '${{parameters.makeargs}}'
+      tagtail:     '${{parameters.tagtail}}'
+
+  - template: publish-steps.yml
+    parameters:
+      linuxdistro: '${{parameters.linuxdistro}}'
+      pyversion:   '${{parameters.pyversion}}'
+      gccversion:  '${{parameters.gccversion}}'
+      deployed:    '${{parameters.deployed}}'
+      tagtail:     '${{parameters.tagtail}}'
+      upublish:    '${{parameters.upublish}}'

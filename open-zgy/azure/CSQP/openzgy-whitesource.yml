@@ -1,0 +1,26 @@
+name: 'OpenZGY-WhiteSource'
+
+trigger: none
+schedules:
+- cron: "0 0 * * Fri"
+  displayName: Weekly midnight check
+  batch: true  
+  branches:
+    include:
+    - master
+variables:
+- group: OpenZGY-CSQP
+
+steps:
+  - script: | 
+      cd external
+      for F in zfp*.tar.gz; do tar -xzvf "$F"; done
+    displayName: 'unpack zfp'
+  - bash: |
+      set -eu
+      ls -laR azure
+      curl -LJO https://github.com/whitesource/unified-agent-distribution/releases/latest/download/wss-unified-agent.jar
+      java -jar wss-unified-agent.jar -c ./azure/CSQP/wss-unified-agent.config \
+              -apiKey $(OPENZGY_WHITESOURCE_APIKEY) \
+              -projectVersion $BUILD_BUILDID
+    displayName: WhiteSource

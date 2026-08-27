@@ -1,0 +1,143 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{303218AF-44F0-4392-954D-BAE27434BA06}</ProjectGuid>
+    <RootNamespace>OpenZGYTest</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <DefineConstants>$(DefineConstants);</DefineConstants>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)..\..\build\deploy\native\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)..\..\build\temp\$(TargetName)\native\$(TargetName)\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)..\..\build\deploy\native\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)..\..\build\temp\$(TargetName)\native\$(TargetName)\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <OpenMPSupport>true</OpenMPSupport>
+      <DisableSpecificWarnings>4251</DisableSpecificWarnings>
+      <PreprocessorDefinitions>$(DefineConstants);HAVE_ZFP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <OpenMPSupport>true</OpenMPSupport>
+      <DisableSpecificWarnings>4251</DisableSpecificWarnings>
+      <PreprocessorDefinitions>$(DefineConstants);HAVE_ZFP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\test\cutest.h" />
+    <ClInclude Include="..\src\test\mock.h" />
+    <ClInclude Include="..\src\test\test_all.h" />
+    <ClInclude Include="..\src\test\test_sdutils.h" />
+    <ClInclude Include="..\src\test\test_utils.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\test\mock.cpp" />
+    <ClCompile Include="..\src\test\test_all.cpp" />
+    <ClCompile Include="..\src\test\test_api.cpp" />
+    <ClCompile Include="..\src\test\test_bulk.cpp" />
+    <ClCompile Include="..\src\test\test_compression.cpp" />
+    <ClCompile Include="..\src\test\test_consolidate.cpp" />
+    <ClCompile Include="..\src\test\test_cornerpoints.cpp" />
+    <ClCompile Include="..\src\test\test_databuffer.cpp" />
+    <ClCompile Include="..\src\test\test_edgebrick.cpp" />
+    <ClCompile Include="..\src\test\test_example.cpp" />
+    <ClCompile Include="..\src\test\test_file.cpp" />
+    <ClCompile Include="..\src\test\test_histobuilder.cpp" />
+    <ClCompile Include="..\src\test\test_histogram.cpp" />
+    <ClCompile Include="..\src\test\test_iocontext.cpp" />
+    <ClCompile Include="..\src\test\test_locker.cpp" />
+    <ClCompile Include="..\src\test\test_lodalgo.cpp" />
+    <ClCompile Include="..\src\test\test_lowpass.cpp" />
+    <ClCompile Include="..\src\test\test_meta.cpp" />
+    <ClCompile Include="..\src\test\test_mtguard.cpp" />
+    <ClCompile Include="..\src\test\test_optimize.cpp" />
+    <ClCompile Include="..\src\test\test_reopen.cpp" />
+    <ClCompile Include="..\src\test\test_roundandclip.cpp" />
+    <ClCompile Include="..\src\test\test_sdutils.cpp" />
+    <ClCompile Include="..\src\test\test_smallcache.cpp" />
+    <ClCompile Include="..\src\test\test_structaccess.cpp" />
+    <ClCompile Include="..\src\test\test_timer.cpp" />
+    <ClCompile Include="..\src\test\test_tracktouched.cpp" />
+    <ClCompile Include="..\src\test\test_utils.cpp" />
+    <ClCompile Include="..\src\test\test_workorder.cpp" />
+    <ClCompile Include="..\src\test\test_writerargs.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="OpenZGY.vcxproj">
+      <Project>{039a5186-a52b-42ab-b2ae-c168b4e38915}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\src\test\testdata.bat">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(FullPath) $(SolutionDir)..\..\build\testdata\</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)..\..\build\testdata\Empty-V1.zgy;$(SolutionDir)..\..\build\testdata\Empty-V3.zgy;$(SolutionDir)..\..\build\testdata\Fancy-int8.zgy;$(SolutionDir)..\..\build\testdata\EmptyOldFile.zgy</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(FullPath) $(SolutionDir)..\..\build\testdata\</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)..\..\build\testdata\Empty-V1.zgy;$(SolutionDir)..\..\build\testdata\Empty-V3.zgy;$(SolutionDir)..\..\build\testdata\Fancy-int8.zgy</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</DeploymentContent>
+    </CustomBuild>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,48 @@
+# Docker image containing the "sdutil" command and not much else.
+# Useful for running sdutil on a temporary cloud VM, in case you
+# need to move a lot of data around.
+
+FROM centos:centos7
+
+RUN useradd -G wheel -p '' me
+RUN yum install -y epel-release && yum install -y python-pip && pip install --upgrade pip && pip install egg colorama flask requests
+
+COPY . /sdutil
+
+# Kludge: Make sdutil use ~/.sdcfg and not authenticate by machine account.
+# There should really have been an option to sdutil for doing this.
+RUN sed -i -e 's/rx = requests.get.*metadata.google.internal.*/return False/' /sdutil/sdlib/utils.py
+
+# Make sdutil available in the path.
+RUN (echo '#!/bin/bash'; echo 'python /sdutil/sdutil.py "$@"') > /usr/bin/sdutil; chmod 755 /usr/bin/sdutil
+
+# ... Instructions for building ...
+#
+# git clone ssh://slb-swt@vs-ssh.visualstudio.com:22/carbon/_ssh/seismic-store-sdutil
+# cd seismic-store-sdutil
+# docker build -t sdutil .
+
+# ... Instructions for running on Cloud VM ...
+# ... (If running locally, only the last step applies)
+#
+# [ copy in ~/.sdcfg from somewhere, as sdutil auth login won't work headless ]
+# pass=$(curl -sS "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token" -H "Metadata-Flavor: Google" | cut -d\" -f4)
+# docker login -u oauth2accesstoken -p "$pass" gcr.io/sntc-geoscience-ml
+# docker run --rm -it -v ${HOME}/.sdcfg:/root/.sdcfg gcr.io/sntc-geoscience-ml/sdutil
+
+# Alternative: Create a VM and deploy the container in one operation:
+#
+# gcloud beta compute --project=sntc-geoscience-ml \
+#     instances create-with-container uploader \
+#     --zone=europe-west1-b \
+#     --machine-type=n1-standard-4 \
+#     --image=cos-stable-66-10452-101-0 \
+#     --image-project=cos-cloud \
+#     --boot-disk-size=1000GB \
+#     --container-image=gcr.io/sntc-geoscience-ml/sdutil \
+#     --container-restart-policy=never \
+#     --labels=container-vm=cos-stable-66-10452-101-0
+#
+# scp -r  -i ~/.ssh/id_google_rsa ~/.sdcfg ${ip}:
+# ssh -i ~/.ssh/id_google_rsa ${ip}
+# docker run --rm -it -v ${HOME}/.sdcfg:/root/.sdcfg gcr.io/sntc-geoscience-ml/sdutil

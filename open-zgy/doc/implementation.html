@@ -1,0 +1,951 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+  <head>
+    <title>OpenZGY implementation notes</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <style>
+      th, td {padding: 2px 10px 2px 10px;}
+      th.section {padding: 14px 10px 14px 10px;}
+      p.page, h2.page {page-break-before: always}
+      p.version {font-style: italic; font-size: smaller;}
+    </style>
+  </head>
+
+  <body bgcolor="#ffffff">
+    <p class="version">This is version 0.4 of the document, last updated 2021-07-23.</p>
+
+    <!-- <h1 style="color: red">DRAFT DOCUMENT</h1> -->
+
+    <h1>Copyright</h1>
+<pre>
+Copyright 2017-2021, Schlumberger
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+</pre>
+
+    <h1>Intended Audience</h1>
+    <p>
+    This document is written for developers that need to understand
+    some of the finer points about ZGY. It contains notes on several
+    different topics. This is not the place to start if you just want
+    an introduction. The document should be considered as an extension
+    of the comments in the source code. If you are not a person that is
+    comfortable reading Python and C++ source code then you are of
+    course still welcome to continue reading. But you will likely
+    find the content boring and pedantic.
+    </p>
+
+    <h1>OpenZGY implementation notes</h1>
+
+    <h2>Terminology</h2>
+
+    <p>ZGY-Public, ZGY-Cloud and ZGY-Internal refer to the old closed
+    source ZGY library. Having three different apis is not a good
+    idea. This is part of the technical debt that I am trying to
+    remove.</p>
+
+    <dl>
+      <dt>ZGY-Public</dt>
+      <dd>is the old api we allow external clients to use. Also
+      used internally by e.g. the ML project. Available in C++ and as a
+      Python wrapper. This api has no knowledge of seismic store
+      whatsoever. The ZGY-Public mdule was available in binary
+      form in the &quot;zgy&quot; folder but has been logically
+      deleted. If you need it then do a "git checkout" to an
+      older date.</dd>
+      <dt>ZGY-Internal</dt>
+      <dd>is a richer API with some difficult, deprecated, and
+      dangerous entry points. C++ only. Used by Petrel.
+      </dd>
+      <dt>ZGY-Cloud</dt>
+      <dd>is a plug-in that, just by being linked into the
+      application, makes it possible to use the ZGY-Public or the
+      ZGY-Internal API for accessing files on the cloud. In theory
+      this is a near perfect separation of concerns. In practice the
+      separation is too good. Application code does need to be aware
+      of the cloud at some level. So the ZGY-Cloud module, in addition
+      to being a plug-in, comes with its own api. This is where the
+      problems start; trying to work around that "perfect isolation".
+      </dd>
+      <dt>OpenZGY</dt>
+      <dd>will replace all three of the above.</dd>
+    </dl>
+
+    <h2>Differences in the OpenZGY implementation compared to ZGY-Public:</h2>
+
+    <p>Some the limitations listed here are already enforced by the existing
+    ZGY-Public API, so they only affect Petrel which uses the ZGY-Internal
+      API instead.</p>
+
+    <ul>
+      <li><p>
+	Writing alpha tiles will not be supported.
+	<br/>[Enforced by ZGY-Public][Ok for Petrel]
+      </p></li>
+
+      <li><p>
+	The available value types used for storage is limited to int8,
+	int16, and float32. Internally there is also support for int32,
+	uint8, uint16, and uint32 but these are not accepted by any known
+	clients.
+	<br/>[Enforced by ZGY-Public]. [Ok for Petrel]
+      </p></li>
+
+      <li><p>
+	The only value type conversion offered by the API is to convert
+	between the value type in storage and float. Trying to request e.g.
+	a file stored as int8 with the API that returns int16 data will
+	fail.Asking for that same data in float samples will succeed.
+	<br/>[Enforced by ZGY-Public][Ok for Petrel]
+      </p></li>
+
+      <li><p>
+	Samples never written to will have the default value which is
+	usually zero. This is a slight behavior change, probably for the
+	better. For integral storage types the default is as close as
+	possible to zero as can be represented with the file's coding
+	range. Normally this will also be zero; see the discussion
+	about zero centric coding ranges. If the application creating a zgy
+	file wants a different default then this is trivial. Just issue a
+	single writeconst() of the entire survey area, immediately after
+	creation, setting the chosen default. This is quite efficient.
+	Constant-value bricks do not take up space in the file.
+      </p></li>
+
+      <li><p>
+	Application code will not be able to distinguish between samples
+	that are:</p>
+	<ul>
+	  <li>In a brick that was never written to.</li>
+	  <li>In a brick partially written to but not this sample.</li>
+	  <li>Explicitly written to contain the default value.</li>
+	</ul>
+	<p>
+	  This is a slight behavior change, probably for the better.
+	</p>
+      </li>
+
+      <li><p>
+	The statistics and histogram information automatically computed
+	while writing to the file will also not distinguish on whether a
+	sample has been written or not. All samples within the survey are
+	counted. Keep this in mind if the survey's data is not rectangular.
+	If the default value is not zero this will make the statistics
+	pretty useless.
+       <br/>[N/A for ZGY-Public] [Probably not an issue for Petrel]
+      </p></li>
+
+      <li><p>
+	Technically it is possible to limit the statistics and histogram
+	to live traces only by checking each trace to see if all the
+	samples are the same value, and exclude from statistics if
+	this is the case. The computation cost might be high, though.
+	And this might not work for compressed files where identifying
+	a trace as dead might be difficult.
+      </p></li>
+
+      <li><p>
+	Technically it is also possible to approximate the old behavior
+	if statistics and histogram are collected just below the write()
+	layer i.e. where we know exactly which traces the user wrote
+	explicitly. This does open up a can of worms. Because the app
+	might be writing the same trace more than once. Not to mention
+	that re-computing the histogram later will give a different
+	result when it is no longer known which traces were written.
+      </p></li>
+
+      <li><p>
+	Reading data need not honor any alpha tile information. It simply
+	needs to be aware if them due to the (small) space the
+	corresponding lookup table needs in the file. This means that if
+	an archived file contains traces marked as dead, but where the
+	actual samples contain garbage values instead of zeros, those
+	traces will show up as garbage. To my knowledge, no such files
+	exist. And newer versions of the ZGY library will refuse to write
+	such data. So this issue is mostly academic. Note that traces that
+	are dead due to being padding in the last brick should be handled
+	correctly.
+	<br/>[Probably N/A]
+      </p></li>
+
+      <li><p>
+	There is no access to compressed files written by the old ZGY library.
+      </p></li>
+
+      <li><p>
+	When the storage type is set to float the coding range specified on
+	file creation will be completely ignored. On file close it will be
+	set to the actual value range of the data. This differs from the
+	old code where the coding range for a float cube serves as a hint
+	for the histogram range. And the old code leaves it alone, even if
+	completely wrong, when the file is closed. This can cause all kinds
+	of subtle bugs if the provided range is wrong.
+	The flip side of this is when realizing an int8 cube as float.
+	The histogram is not going to look pretty unless the range is
+	set to match the input. Which it won't unless the input contains
+	at least one -128 and one +127 sample. On the other hand, converting
+	an int8 cube to float is a pretty odd thing to do.
+      </p></li>
+
+    </ul>
+
+    <h2>How the old accessor deals with default values:</h2>
+
+    <ul>
+      <li><p>
+	Samples in a brick that was never written to are not counted in
+	statistics and will be returned as precisely zero both when
+	reading as the native (integral) storage type and as float. This
+	means that in this case the "float" result might not be the same
+	as the "raw" result explicitly converted to float. This violates
+	the principle of least surprise.
+      </p></li>
+
+      <li><p>
+	in a brick partially written to, unwritten samples are counted
+	unless alpha planes are in use. In which case it is possible to
+	flag entire traces as dead and not to be included in statistics.
+      </p></li>
+
+      <li><p>
+	For unwritten data in a brick that was partially written, the
+	decision about what to use is made inside the writer.
+	Specifically the logic that does read/modify/write, when the
+	brick has not been written to. Posibly this depends on whether
+	the raw or the float api was used. I have not checked that,
+	and I am not sure I want to know.
+      </p></li>
+
+      <li><p>
+	For data read from a non-existing brick the decision about
+	default value is made inside the reader, not the writer.
+	This partly explains how we ended up with this inconsistency.
+      </p></li>
+
+      <li><p>
+	Currently, reading from a range that has only missing bricks
+	causes an error to be raised instead of default values to be
+	returned. Logically the behavior ought to have been consistent.
+	The ZGY-Public python wrapper fixes this, so the issue only
+	applies to C++ ZGY-Public.
+      </p></li>
+
+      <li><p>
+	The last few problems go away if the file is explicitly
+	initialized to a constant value. This is possible both in the
+	old and the new accessor. In the old accessor it is somewhat
+	expensive to do this.
+      </p></li>
+    </ul>
+
+    <h2>Regarding alpha tiles:</h2>
+    <ul>
+      <li><p>
+	For uncompressed files, alpha tiles are pretty useless since no
+	current applications make use of them. If alpha tiles had been used
+	while writing an irregular survey then the statistics and histogram
+	would be more accurate since only live traces would be included.
+	Traces would still need to be all the same size, as there is no
+	way to specify that samples below a certain point are dead.
+      </p></li>
+
+      <li><p>
+	For compressed files the alpha tiles might have merit since they
+	avoid showing a very small amount of noise in traces that should
+	have been dead. Some attribute algorithms may amplify this noise as
+	part of normalizing the amplitude. The result looks ugly because
+	areas outside the live parts of an irregularly shaped survey will
+	then show white noise. But only up to the next brick boundary.
+	Alpha tiles partly solve this. But we should really have had one
+	tile per brick, not just one per column of bricks.
+      </p></li>
+
+      <li><p>
+	Bottom line, the existing support for alpha tiles should be
+	removed. Something similar might be added later as part of handling
+	compression. This would be transparent to the user.
+      </p></li>
+
+      <li><p>
+	If we do introduce alpha tiles in any form, applications should still
+	write out the samples of each dead trace as zero. This is to ensure
+	that readers can choose to ignore the alpha information.
+      </p></li>
+
+    </ul>
+    <h2>Regarding writes:</h2>
+    <ul>
+      <li><p>
+	It is allowed, and in fact encouraged, to write data to the padding
+	area between the end of the survey and the end of the last brick.
+	The reason it is encouraged is that this helps the application
+	write only fully aligned bricks.
+      </p></li>
+
+      <li><p>
+	Clients must not assume that data inside the padding area will be
+	retained. The writer should explicitly set the padding area to zero,
+	to ensure repeatable behavior in case the application just left
+	garbage in those samples. If the brick is to be compressed some
+	other setting might work better. The reader might choose to set this
+	area to all zeros so that the caller doesn't see what we did here
+	for implementation reasons.
+      </p></li>
+
+      <li><p>
+	The writer might automatically detect that a write request includes
+	the very last live sample if the survey and add padding itself to
+	make the request brick aligned. Don't depend on the initial version
+	doing this.
+      </p></li>
+
+      <li><p>
+	Computing statistics, histogram, and low resolution bricks
+	will be done in a separate pass after all full resolution data
+	is written. A mechanism is in place to allow the application
+	to display a progress bar. If the actual write needs a progress
+	bar (managed by the application) then a progress bar during
+	finalize (which generates the low resolution bricks) will
+	probably need one as well. The writes and the finalize usually
+	take the same amount of time.
+      </p></li>
+
+      <li><p>
+	For good performance it is recommended that application
+	code always specifies both begin and count aligned to
+	64<sup>3</sup> boundaries. Including the last block, even if
+	this means data is written to the padding area. For local
+	files there is some overhead if this rule is not followed. For
+	files on the cloud the overhead is larger and it is also
+	possible that it will waste disk space.
+      </p></li>
+
+    </ul>
+    <h2>Resizing a survey:</h2>
+    <ul>
+      <li><p>
+	This is not yet implemented, neither in the existing ZGY library
+	nor OpenZGY. It is not allowed to increase the survey size.
+	Technically this would be possible, at least for adding data at the
+	end (higher ordinal numbers) of the survey. All the headers would
+	need to be re-written. Additional LOD levels might need to be
+	added. If the header grows into the following bricks, a few data
+	bricks might need to be relocated. Adding space at the beginning of
+	the file is trickier but might still work as long as there is no
+	requirement that the mapping from ordinal to annotation values
+	remain the same.
+      </p></li>
+
+      <li><p>
+	Obviously, resizing a survey is only useful if the accessor allows
+	opening and writing to an existing file. OpenZGY currently does not
+	allow this.
+      </p></li>
+
+    </ul>
+    <h2>Multiple passes:</h2>
+    <ul>
+      <li><p>
+	In the first version of the writer, all low resolution bricks
+	are calculated in a separate pass. Each brick, both full
+	resolution and low resolution, will be both read and written
+	exactly once. We might elide many of the reads, but see below.
+      </p></li>
+
+      <li><p>
+	A significant benefit of this strategy is that some reads will
+	be able to use larger blocks sizes since it is more likely that
+	bricks are contiguous. It also simplifies the code quite a lot.
+      </p></li>
+
+      <li><p>
+	Writing low resolution data interleaved might also be somewhat
+	more efficient, especially if the application writes 128<sup>3</sup>
+	blocks, because generating LOD 1 might then not need to read
+	the full resolution from disk. Unfortunately this creates
+	problems for computing the histogram. Because the value range
+	will not be known yet.
+      </p></li>
+
+      <li><p>
+	Technically, LOD n bricks can be written as soon as all the
+	input (8 surrounding cubes) is known. This means that if
+	application sends us e.g. 256<sup>3</sup> bricks then LOD 0,
+	1, 2 can all be written from this data while it is still in
+	memory. Saving some reads but causing other problems.
+      </p></li>
+
+      <li><p>
+	If we later allow opening files for update, some kind of
+	incremental update of low resolution, statistics, and
+	histogram will be needed anyway. If or when we implement this
+	we might revisit the choices made here.
+      </p></li>
+
+      <li><p>
+	Implementation notes: While LOD0 bricks are being written the
+	code will keep track of the min and max sample values only for
+	the purpose of setting the limits of the histogram. And not
+	for 8-bit data where the histogram equals the coding range.
+	Since application code is in some cases allowed to overwrite
+	data this means that the range may end up wider than the data
+	that finally ends up on the file. This only affects the
+	histogram range. So it should not be an issue.
+	</p><p>
+	While LOD1 bricks are being written and LOD0 bricks read, the
+	code will compute the histogram in addition to computing the
+	LOD1 bricks. The histogram range was computed in the previous
+	step. It only needs to be made zero centric.
+      </p></li>
+
+      <li><p>
+	Caveats if trying to reduce the number of passes:
+	</p><p>
+	If the histogram is written in parallel with LOD 0 then the
+	value range of the histogram is subject to a heuristic
+	algorithm that depends somewhat on the order of written
+	blocks. We <em>might</em> allow the caller to specify a range
+	hint (Petrel does), but it can easily end up completely wrong
+	and render the histogram completely useless. The issue goes
+	away completely with multiple passes.
+	</p><p>
+	If LOD 2 is written before the histogram is fully known then
+	the result depends on the order of written data.
+      </p></li>
+    </ul>
+    <h2>Challenges for writing files with lossy compression.</h2>
+    <ul>
+      <li><p>
+	Generating low resolution data is tricky because this involves
+	reading already written tiles, decompressing, computing a
+	lower resolution, compressing and storing the result. The
+	causes compression artifacts to accumulate.
+      </p></li>
+
+      <li><p>
+	Statistics and histogram also become more challenging because
+	they should preferably not be generated in a separate pass.
+	Doing that means that compression artifacts would be included in
+	the statistics and histogram.
+      </p></li>
+
+      <li><p>
+	Similarly, if the user writes data not aligned to bricks this
+	involves a read/modify/write which will accumulate errors.
+      </p></li>
+
+      <li><p>
+	A partial solution is to require the application to write at least
+	brick-aligned regions to avoid r/m/w on LOD 0. Preferably aligning
+	to 2x2x2 bricks because this would allow also LOD 1 to be written
+	without incurring extra compression artifacts. Writing LOD0 and
+	LOD1 interleaved has its own problems though. Described under
+	"Multiple passes".
+      </p></li>
+
+      <li><p>
+	A possible compromise is to have the accessor write both a
+	compressed file and an uncompressed file in parallel, without
+	writing out LOD0 in the uncompressed file and with LOD1
+	written on the fly when the caller provides 64<sup>3</sup>
+	bricks. The uncompressed file then effectively becomes a cache
+	for uncompressed files, with size approx. 1/7 of what the
+	complete uncompressed file would have had.
+      </p></li>
+    </ul>
+
+    <h2>Explaining multi resolution a.k.a. LOD data:</h2>
+
+    <ul>
+      <li><p>
+	This feature is useful when the application wants to display a
+	section that is much larger than what will fit on the screen
+	and wants to zoom the display to make it fit.
+      </p></li>
+
+      <li><p>There are several goals:</p>
+      <ol>
+	<li><p>
+	  The access should be faster, with less data transferred over
+	  the network.
+	</p></li>
+
+	<li><p>
+	  Even if the application is willing to read the full
+	  resolution data, the application might save time by not
+	  having to run an expensive decimation algorithm.
+	</p></li>
+      </ol>
+      </li>
+
+      <li><p>
+	Both the existing uncompressed- and compressed ZGY handle this
+	by decimating the data 2x, 4x, 8x, etc. and store this as
+	additional cubes inside the ZGY file. The files become approx.
+	30% larger due to this. The decimation algorithm is decent but
+	far from perfect.
+      </p></li>
+
+      <li><p>
+	For compressed data there is a way of getting a higher quality
+	decimation. The compression algorithm itself needs to generate
+	high quality decimated versions of the input as part of the
+	compression. These <em>might</em> do a better job than today's
+	decimation done in a separate step. So for compressed data we
+	might consider using that. <b>Caveat:</b> this gives a very strong
+	lock-in to our compression algorithm.
+      </p></li>
+
+      <li><p>
+	Older versions of the ZGY access library could extract 2x and
+	4x low resolution data from a compressed file without using
+	extra storage space. Instead it would just do a partial
+	decompression, asking the algorithm to throw away the high
+	frequency parts. This even speeds up decompression somewhat.
+	However, reading low resolution data then ends up reading very
+	small blocks meaning that if I/O is a bottleneck then this is
+	not a good idea. The code that implemented this has been
+	removed. We <em>might</em> resurrect it but I doubt this will
+	happen.
+      </p></li>
+    </ul>
+
+    <h2>Details of the seismic store access:</h2>
+    <ul>
+      <li><p>
+	There will be no caching in the new plug-in.
+      </p></li>
+
+      <li><p>
+	  The experimental &quot;Seismic Server&quot; app is not
+	  supported because it depends heavily on how caching works in
+	  the old ZGY-Public and ZGY-Cloud.
+      </p></li>
+
+      <li><p>
+	There will be no speculative prefetch since there is no
+	caching.
+      </p></li>
+
+      <li><p>
+	There will be no support for direct GCS access. If we need
+	this it would be a separate plug-in.
+      </p></li>
+
+      <li><p>
+	There will be no support for sharing readers across permission
+	boundaries. Credentials and other cloud specific settings will
+	be specified when the file is open and will be associated to
+	the open file. If the application is a multi threaded server
+	dealing with multiple users then it should not share open
+	files between users. If the caller really needs to change
+	credentials for an open file then it may provide a get-token
+	callback instead of the token itself. It is then up to the
+	application how that callback figures out what credentials are
+	needs. The ZGY library tries to not cache the credentials
+	anywhere if a get-token callback is needed. But it might do so
+	indirectly by caching SDManager instances indexed by a hash of
+	the token. The manager itself does cache the token.
+      </p></li>
+
+      <li><p>
+	There will be no cloud performance improvements for old files.
+	Uploading to cloud should always reformat the file using the
+	newest writer for best read performance.
+      </p></li>
+
+      <li><p>
+	The plugin for low level I/O can fairly easily consolidate
+	adjacent bricks. This means the effective block size goes up,
+	which helps performance for cloud access. After consolidation
+	it might want to split up very large requests (along
+	boundaries of the original scatter/gather array) to increase
+	parallelism. Or simpler: After consolidating e.g. 64 MB, end
+	this request and start a new one. Too bad if the contiguous
+	area happened to be 65 MB. Splitting 64+1 MB is way less
+	efficient than 33+32 MB
+      </p></li>
+
+      <li><p>
+	Newly written files should not interleave low resolution and
+	alpha bricks. This means that if the app always writes full
+	traces then reading full traces will always refer to a
+	contiguous region on disk. Which can be read faster. This is
+	true even if some of the bricks were all-constant. To get even
+	larger block size on read the app can write 128x128xN blocks.
+	Or even better, write 64x64x64 blocks with all such blocks
+	ordered in the horizontal direction using a hilbert pattern.
+	Or, if application is likely to request inline slices more
+	frequently than crossline and randomline it might be better to
+	write the data in that order.
+      </p></li>
+    </ul>
+
+    <h2>Zero centric coding range:</h2>
+
+    <p>
+    If floating point bulk data can contain both positive and negative
+    values we must assume that zero has a special importance.
+    This is definitely the case for seismic data. A float zero
+    converted to int and back to float must remain precisely zero
+    to avoid introducing a bias.
+    </p>
+    <p>
+    The linear transform between actual sample values and the integers
+    in storage is specified as the "coding range" which is often just
+    set to the min and max sample values in the entire survey.
+    In most cases this will <b>not</b> end up zero centric by itself.
+    So the coding range may need to be adjusted slightly.
+    </p>
+    <p>
+    Example: Consider the case where samples [-1.0 to 3.0> are stored
+    as 200, [3.0, 7.0> are stored as 201, et cetera.
+    </p>
+    <pre>
+       199     200     201     202     (int8)
+    +-------+-|-----+-------+-------+
+    -5     -1 0    +3      +7      +11 (float)
+    </pre>
+    <p>
+      So, a floating point value of zero is stored as (int8)200.
+      When read back the (int8)200 is known to correspond to something
+      between -1 and +3. So it is assumed to be the average of those
+      limits, i.e. <b>(float)+1</b>. Not what we want to see.
+    </p>
+
+    <h2>OpenZGY compression</h2>
+    <p>
+      Compression in OpenZGY is not the same as the old compressed ZGY format.
+      The old implementation treated compressed ZGY as a completely different
+      format that just happened to have the same API as uncompressed.
+      In OpenZGY there is just one file format. Initially identical to
+      uncompressed ZGY, but with a few small changes to allow individual
+      bricks to be compressed.
+    </p>
+    <p>
+      Historical note: The reason this was not done before is that the
+      compressed ZGY format is much older than the uncompressed version
+      and was already well established when the uncompressed format was
+      introduced. Extending the old compressed format to also allow bricks
+      to be stored uncompressed was not feasible. Taking the time to make
+      the newer ZGY format also support compression was not felt to be urgent.
+    </p>
+    <p>
+      OpenZGY does not compress headers, only data blocks. Header
+      compression might be added in the future. But that compression is
+      unlikely to make the file noticeably smaller. Just more difficult
+      to parse.
+    </p>
+    <p>
+      OpenZGY compression is handled by a plug-in to make it fairly simple
+      to add more algorithms in the future. It is highly recommended
+      that any new algorithm is included in the OpenZGY source tree.
+      This ensures that OpenZGY always knows how to decode each brick.
+      If this is not possible then the OpenZGY files written with an
+      unrecognized compressor are essentially a proprietary format.
+    </p>
+    <p>
+      OpenZGY makes a few assumptions about the compressor:
+    </p>
+    <ul>
+      <li><p>
+	The algorithm must be able to compress and decompress a 3d
+	data brick independent from all the others. It should not rely
+	on any global data.
+      </p></li>
+      <li><p>
+	The size of the compressed output must be equal to or smaller
+	than the uncompressed input. If the algorithm cannot compress
+	a particular brick this way then it should simply return
+	"None" which means "store unchanged".
+      </p></li>
+      <li><p>
+	The decompressor may be passed more data than needed to
+	decompress one brick. This means it has to be able to ignore
+	any trailing data. This ought to be simple to achieve. Just add
+	an extra header if the algorithm being implemented cannot
+	already figure out the length it needs.
+      </p></li>
+      <li><p>
+	The decompressor may be passed compressed data that was produced
+	by a different algorithm. It needs to be able to detect this,
+	e.g. by checking a magic number, and inform the caller.
+      </p></li>
+    </ul>
+
+    <h2>Comparing different compression algorithms</h2>
+    <p>
+    We would like to know the relationship between SNR
+    (quality, as described by signal to noise ratio)
+    and compression
+    (compressed size as a percentage of the size in uncompressed float32).
+    An algorithm that achieves better compression for the same SNR
+    is probably better. But this is tricky to measure.
+    </p>
+    <p>
+    There is no easy way of calculating the quality.
+    What really matters is whether the noise is low enough to not
+    affect the workflows the data is needed for. E.g. autotracking.
+    Expressing this using a formula is not possible. Even the term
+    signal to noise ratio is ambiguous. The choice of how the SNR
+    is computed might affect which algorithm appears to be best.
+    </p>
+    <p>
+    Compression results are also strongly affected by the input data.
+    Data with fewer high frequency components generally compress better.
+    Data that was compressed in an unfortunate manner might compress
+    worse.
+    </p>
+    <p>
+    Example: You have a float cube that unbeknownst to you is a
+    straight copy of an int16 cube. Even the most basic lossless
+    compressor ought to achieve at least 2x compression bringing
+    the file size back to what it was when stored as 16 bits.
+    A fancier algorithm might not manage this since it might be
+    optimized for the more general cases. When comparing algorithms
+    this means it is difficult to find a "fair" test data set.
+    </p>
+
+    <h2>Data ranges</h2>
+
+    <p>
+      ZGY uncompressed v3 files have a statistical range, coding
+      range, and histogram range.
+    </p>
+
+    <h4>The statistical range works as follows:</h4>
+
+    <ul><li><p>
+      The statistical range is the actual value range of the data. If
+      a file is loaded as int8 or int16 the statistical range is
+      measured after the samples have been clipped and/or rounded to
+      the closest valid value. This means that if you read back the
+      file and compute the sample min/max you should get the same
+      result. Note that this might not be 100% true for the old
+      compressed format.
+    </p></li></ul>
+
+    <h4>The coding range works as follows:</h4>
+
+    <ul>
+      <li><p>
+	On read of float file it will return whatever was set when the
+	file was written. It is strongly recommended to set it to the
+	statistical range, or possibly slightly larger if you need to
+	tweak the histogram range. TODO: It is possible that the old
+	code does enforce this already I have not checked very
+	carefully.
+      </p>
+      <p>
+	OpenZGY: Will always be returned as the statistical range.
+	The value stored on file will be ignored.
+      </p></li>
+      <li><p>
+	On read of integral files it will be the largest possible
+	range, i.e. the range assuming the file was written to utilize
+	the integral range 100%. This means that the coding range can
+	be larger than the statistical range but not smaller.
+      </p>
+      <p>
+	Note this obscure issue: If the codingrange is e.g. -1280..+1270
+	this tells you which values you might read from the file. For an
+	int8 cube this also implies that each integer value represents input
+	data +/- 5. You might argue that the true range of this file is
+	-1285 to 1275 since this represents the input values that will not
+	be clipped, only rounded to the nearest representable value. If this
+	is how you define 'range' you can easily compute that new range
+	yourself.
+      </p>
+      <p>
+	OpenZGY: No change
+      </p></li>
+      <li><p>
+	On write of float file it defines the minimum range of the
+	histogram. If unset or too small the range gets extended
+	automatically. If too large it will be used as-is. If it is
+	way too large then the histogram ends up with all the samples
+	in a single bin.
+      </p><p>
+        OpenZGY: The user supplied value is ignored and the
+        statistical range is stored on the file.
+      </p></li>
+      <li><p>
+	On write of int file it defines how to scale the input data
+	into integral values. If set too small this will clip the
+	input sample values.
+      </p><p>
+        OpenZGY: no change.
+      </p></li>
+    </ul>
+
+    <h4>The histogram range works as follows:</h4>
+    <ul>
+      <li><p>
+	On write of float file the range will be the larger of the
+	provided codingrange (which in this case ought to have been
+	called histogram hint) and the statistical range. For
+	implememtation reasons it will often end up somewhat larger than
+	the statistcal range.
+      </p>
+      <p>
+	OpenZGY: coding range is ignored and the histogram range is set
+	to the statistical range. If the application writing the file
+	does updates then it might end up larger, as the logic will use
+	the largest and smallest sample value ever written. Not the
+	sample values currently on the file. Yes, this is a fairly
+	obscure point and applications probably need not worry about it,
+      </p></li>
+      <li><p>
+	On write of int8 file the range will be set to the codingrange.
+	Each representable value maps 1:1 to a histogram bin. This means
+	that any other histogram range is pointless.
+	</p><p>
+	OpenZGY: no change.
+      </p></li>
+      <li><p>
+	On write of int16 file the range will currently be set to the
+	codingrange. Each bin holds ~256 representable values. If the
+	stored data uses less than 16 bits the histogram will not be
+	optimal, as more than half the bins will be empty.
+      </p>
+      <p>
+	OpenZGY: no change for now, but improvements are possible. See
+	notes.txt
+      </p>
+      </li>
+    </ul>
+
+    <h2>Read only ZGY files</h2>
+    <p>
+      Seismic Store has the ability to set a file to read-only mode.
+      This may help performance because less locking is needed
+      and more caching is possible.
+    </p>
+    <p>
+      The initial plan was to treat all ZGY files on the cloud as
+      immutable. But requirements have changed. OpenZGY now allows
+      updating an existing file in some situations. The requirements /
+      use cases that need to be supported are still not clearly
+      defined. So I will try to define them here and see if anybody
+      protests.
+    </p>
+    <ul>
+      <li>
+	<p>
+	  Petrel needs update capability but only for files that
+	  nave no data blocks yet.
+	</p>
+      </li>
+      <li>
+	<p>
+	  The Ocean stability guarantee requires update to be
+	  supported via the Ocean API.
+	</p>
+	<ul>
+	  <li>
+	    It may be possible to limit this to on-prem files only.
+	  </li>
+	</ul>
+      </li>
+      <li>
+	<p>
+	  Petrel needs read/write ZGY files for classification.
+	</p>
+	<ul>
+	  <li>
+	    It may be possible to limit this to on-prem files only.
+	  </li>
+	  <li>
+	    As long as the file is opened for write, low resolution
+	    data will not be available.
+	  </li>
+	</ul>
+      </li>
+      <li>
+	<p>
+	  Long running batch jobs need to write part of a file as a
+	  checkpoint.
+	</p>
+	<ul>
+	  <li>
+	    The application needs to do a controlled close of the
+	    file. A crash when a file is opened for write will in most
+	    cases corrupt the file.
+	  </li>
+	</ul>
+      </li>
+      <li>
+	<p>
+	  Additional restrictions.
+	</p>
+	<ul>
+	  <li>
+	    A file that is opened both for read and write at the same
+	    time, or open more than once for write, triggers undefined
+	    behavior. It is the application's responsibility to
+	    prevent this from happening.
+	  </li>
+	</ul>
+      </li>
+    </ul>
+    <h4>Current implementation</h4>
+    <p>
+      Three additional settings have been added to the IOContext.
+    </p>
+    <dl>
+      <dt>setRoAfterWrite(bool)</dt>
+      <dd>
+	<p>
+	  Set the ZGY file to read-only when done writing it. Has no
+	  effect on files opened for read. Defaults to on. Most
+	  applications will want to turn in this on because most
+	  applications do not expect to update ZGY files in place.
+	</p>
+      </dd>
+      <dt>forceRoBeforeRead(bool)</dt>
+      <dd>
+	<p>
+	  Sneak past the mandatory locking in SDAPI by forcing the
+	  read-only flag to true on the ZGY file, if needed, on each
+	  open for read. This allows for less overhead, more caching,
+	  and use of the altUrl feature. This option is useful if the
+	  file is logically immutable but was not flagged as such.
+	  E.g. the creator forgot to call setRoCloseWrite(true), or
+	  the ZGY file was not created by OpenZGY. The option has no
+	  effect on files opened for create or update. Caveat:
+	  Allowing a read-only open to have a permanent effect of the
+	  file being opened is not ideal.
+	</p>
+      </dd>
+      <dt>forceRwBeforeWrite</dt>
+      <dd>
+	<p>
+	  Dangerous option. Sneak past the mandatory locking in SDAPI
+	  by forcing the read-only flag to false on the ZGY file, if
+	  needed, that is about to be opened for update. The
+	  application must know that the file is not open for read by
+	  somebody else. There is also a risk that data might exists
+	  in cache even for a closed file. The application assumes all
+	  responsibility.
+	</p>
+      </dd>
+    </dl>
+    <p>
+      Files created by the old ZGY-Cloud library will still be left
+      writable. This means that altUrl will not work for those, unless
+      forceRoBeforeRead is in effect. Hopefully applications will move
+      away from the deprecated ZGY-Cloud fast enough that this will
+      not become a problem.
+    </p>
+  </body>
+</html>

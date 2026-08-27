@@ -1,0 +1,80 @@
+# Copyright 2017-2021, Schlumberger
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+ARG variant=cloud
+
+#############################################################################
+###   SDAPI build prerequisites   ###########################################
+#############################################################################
+
+FROM debian:bullseye AS sdapi-base
+ENV LINUXDISTRO=bullseye
+
+ARG CLEAN_BUILD_COUNTER=4
+ENV CLEAN_BUILD_COUNTER=${CLEAN_BUILD_COUNTER}
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get -y install \
+        g++ curl make libcurl4-openssl-dev libssl-dev zip \
+	git vim sudo pkg-config cpio patchelf
+RUN useradd -m -u 800 -G sudo --shell /bin/bash -p '' me
+WORKDIR /home/me
+
+# vcpkg needs a newer CMake.
+RUN curl -LSs -o /root/cmake.tar.gz https://github.com/Kitware/CMake/releases/download/v3.20.5/cmake-3.20.5.tar.gz && \
+    tar zxf /root/cmake.tar.gz -C /root && cd /root/cmake-3.20.5 && \
+    ./bootstrap -- -DCMAKE_BUILD_TYPE:STRING=Release && make -j4 && make install
+
+#############################################################################
+###   SDAPI third party dependencies (have patience)   ######################
+#############################################################################
+
+FROM sdapi-base AS sdapi-manual
+#ARG vcpkg_branch=52b66042
+# 8-12-2023
+#ARG  vcpkg_branch=8ee46dc7
+# 6-8-2024
+ARG  vcpkg_branch=a2367cee
+
+RUN mkdir -p /opt/vcpkg && chown me /opt/vcpkg
+USER me
+RUN git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg && \
+    cd /opt/vcpkg && git checkout ${vcpkg_branch} && \
+    mkdir -p /opt/vcpkg/custom-triplets && \
+    cat /opt/vcpkg/triplets/x64-linux.cmake | \
+        sed -e '/VCPKG_LIBRARY_LINKAGE/s;static;dynamic;' | \
+	tee /opt/vcpkg/custom-triplets/x64-linux.cmake && \
+    cd /opt/vcpkg && ./bootstrap-vcpkg.sh -disableMetrics
+RUN cd /opt/vcpkg; ./vcpkg install --overlay-triplets=custom-triplets azure-storage-cpp:x64-linux
+RUN cd /opt/vcpkg; ./vcpkg install --overlay-triplets=custom-triplets azure-storage-blobs-cpp:x64-linux
+
+# Don't patch libcurl for Debian based distros. See Dockerfile-focal.
+
+#############################################################################
+###   Environment is ready, build SDAPI now!   ##############################
+#############################################################################
+
+FROM sdapi-manual AS sdapi-build
+
+# SOURCE CODE FROM BUILD CONTEXT COPIED IN
+COPY --chown=800 seismic-store-cpp-lib /home/me/sdapi/
+COPY --chown=800 ["sd-env/build-template.sh", "sd-env/*.patch", "/home/me/" ]
+USER me
+
+ARG AZURE_BUILDID
+ENV AZURE_BUILDID=${AZURE_BUILDID}
+RUN ./build-template.sh
+
+# If stopping the build at this point, /home/me/sdapi_linux64.tar.gz
+# can be extracted from the image and deployed e.g. as a universal package.

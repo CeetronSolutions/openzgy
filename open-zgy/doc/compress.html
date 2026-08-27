@@ -1,0 +1,250 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+  <head>
+    <title>OpenZGY compression notes</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <style>
+      th, td {padding: 2px 10px 2px 10px;}
+      dt {padding: 5px 0 5px 0; color: black;}
+      dd {padding: 5px 0 5px 0; color: black;}
+    </style>
+  </head>
+
+  <body bgcolor="#ffffff">
+
+    <style>
+      th, td {padding: 2px 10px 2px 10px;}
+      dt {padding: 5px 0 5px 0; color: black;}
+      dd {padding: 5px 0 5px 0; color: black;}
+    </style>
+
+    <h2>Executive summary</h2>
+    <p style="margin-left: 4em; width: 600px; border: 1px solid black; padding: 5px">
+      What I am looking for is how to tune ZFP so it is best suited for
+      compressed seismic. Also judge whether we ought to stick with our
+      old ZGY compression algorithm.
+    </p>
+
+    <h2>Tentative conclusions</h2>
+    <p style="margin-left: 4em; width: 600px; border: 1px solid black; padding: 5px">
+      I recommend switching to use ZFP, in spite of the compressed
+      files being on average 15% larger for the same signal to noise ratio.
+      There are a number of benefits with the new code.
+    </p>
+    <p style="margin-left: 4em; width: 600px; border: 1px solid black; padding: 5px">
+      When compressing seismic data with ZFP we should convert it to
+      float if not already stored that way and then invoke ZFP with a
+      fixed precision. As with the old algorithm, a compressed file
+      will appear to contain floating point data even it the input was
+      int8 or int16.
+    </p>
+    <p>
+      The above sounds simple but is the conclusion of several weeks
+      of testing. And I admit I still don't have 100% confidence.
+    </p>
+    <h3>Why only float?</h3>
+    <p>
+      End users has already questioned this behavior in ZGY-Classic.
+      To summarize:
+    </p>
+
+    <dl style="margin-left: 2em">
+      <dt>
+	You are inflating my data 4 times (int8->float) before even
+	starting to compress it. If you had compressed the 8-bit data
+	directly the resulting file would have been a lot smaller.
+      </dt>
+      <dd>
+	No, it wouldn't. Trust me. The signal to noise ratio in a
+	compressed file depends mainly on the number of bits per
+	sample after compression. Whether that data came from an int8,
+	int16, or float32 source is much less important.
+      </dd>
+      <dt>
+	But you are using ZFP, which advertises that it can do
+	integer compress and decompress.
+      </dt>
+      <dd>
+	We have run a number of tests on this. When the input is
+	seismic data, ZFP's floating point compression works better.
+      </dd>
+      <dt>
+	But my application is running out of memory! I need int8
+	(or int16) data not just to save on disk space but also on
+	application memory.
+      </dt>
+      <dd>
+	That is a valid point. But there is nothing preventing the
+	application from converting the float data returned by the ZGY
+	api to int8 or int16 as soon as it is read into the
+	application. You just need to understand that you are now
+	adding yet another source of noise. Your data is now: original
+	-> float/int16 -> compress/decompress -> float/int16 where all
+	three steps add noise. If this is done with int8 instead of
+	int16 there is probably not much left of your signal.
+	Disclaimer: I have not run tests showing how much extra noise
+	this final conversion adds. This might be an interesting
+	project.
+      </dd>
+      <dt>
+	Can you get the ZGY library to make this final conversion
+	to integral? That would make it less noisy.
+      </dt>
+      <dd>
+	Yes, we can, and no, it wouldn't.
+      </dd>
+      <dt>
+	I heard that the file format allows individual bricks to be
+	stored uncompressed if neither lossy not lossless compression
+	works properly. I want to make sure these bricks are stored
+	as int16 (or int8) to save space. When I try to create a file
+	with compression and an integral value type I get an exception.
+      </dt>
+      <dd>
+        Storing those (presumably very few) blocks as integral means
+        more that can go wrong and more unit tests. And keep in mind
+        that float->int8 and float->int16 are also a form of compression
+        (4x and 2x respectively) but is a lot noisier than ZFP at the same
+        compression factor.
+      </dd>
+      <dt>
+	I want to compress files loaded into Petrel in batch, without
+	starting up Petrel at all. And without Petrel seeing these
+	cubes as new objects. If I compress an int8 file then Petrel
+	will get confused when that file suddenly contains a different
+	value type. So I am forced to do the compression inside
+	Petrel.
+      </dt>
+      <dd>
+	Sorry about that. It is an issue that would be better to
+	address inside Petrel. Have Petrel check whether the zgy files
+	it uses have changed their value type. Then update the Petrel
+	&quot;Shape&quot; accordingly.
+      </dd>
+      <dt>
+	I have discrete data stored in a ZGY file which would have benefitted
+	from lossless compression. (Ordinary seismic hardly compresses
+	in that mode). However, the API will only let me specify float
+	datatype when I request compression.
+      </dt>
+      <dd>
+	The code to handle that case exists, but has not been tested enough
+	so it has been blocked in the API layer. It also complicates the
+	code quite a bit. I am tempted to remove the option completely.
+	Speak up if you really need it.
+      </dd>
+    </dl>
+
+    <h3>Should we choose ZFP or ZGY compression?</h3>
+    <p>
+      I believe there are benefits with ZFP that outweigh the larger files.
+    </p>
+    <ul>
+      <li>
+	Faster compression and decompression.
+      </li>
+      <li>
+	Less sensitive to spikes, which can now only damage a 4<sup>3</sup> region.
+      </li>
+      <li>
+	Less problems with noise at survey edge. The noise will now extend no more than 3 traces past the edge.
+      </li>
+      <li>
+	Less maintainence cost of the code.
+      </li>
+    </ul>
+
+    <h2>Overall goal</h2>
+
+    <p>
+      The user should be able to request a specific SNR as today. We
+      can accept changing the definition of SNR somewhat (the formula
+      is rather ad-hoc anyway) but it needs to remain reasonably close
+      to what it is today.
+    </p>
+
+    <ul>
+      <li>
+	A simple way of requesting a particular SNR from ZFP.
+	<ul>
+	  <li>
+	    Not dependant on brick contents (leads to checkerboard look).
+	  </li>
+	  <li>
+	    Not dependant on entire survey statistics (will require
+	    two pass write).
+	  </li>
+	  <li>
+	    Not requiring an adaptive algorithm (more expensive, and
+	    leads to checkerboard look.
+	  </li>
+	</ul>
+      </li>
+      <li>
+	good quality vs. compression ratio.
+      </li>
+      <li>
+	good decompression speed.
+      </li>
+      <li>
+	integral data read back as int.
+	<ul>
+	  <li>
+	    Either compress as integer, or do int->float->compressed->int.
+	  </li>
+	</ul>
+      </li>
+    </ul>
+
+    <h2>ZFP options</h2>
+    <p>
+      There are several ways to configure ZFP. Which of them are best
+      will take a lot of testing. Which I am currently working on. And
+      there is always the option to use our old algorithm instead of
+      ZFP.
+    </p>
+    <p>
+      The question is how we tell ZFP how hard it should compress.
+    </p>
+    <ul>
+      <li>Compress to a given SNR as defined by our old formula.</li>
+      <li>Compress by precision (number of bit planes), data compressed as-is</li>
+      <li>Compress by precision (number of bit planes), data compressed as float</li>
+      <li>  Note, reported input size will now be the floating point size.</li>
+      <li>Compress by precision (number of bit planes), data compressed as float, convert back.</li>
+      <li>tolerance (maximum error) relative to average amplitude in 64^3 brick</li>
+      <li>tolerance (maximum error) relative to average amplitude in survey(two-pass write)</li>
+      <li>fixed compression ratio (not allowed more bits for difficult areas).</li>
+    </ul>
+
+    <p>
+      I am currently hoping that I can get the "simple heuristic"
+      case. I need to try each of the alternatives ZFP offers and
+      find one where I can write a heuristic formula that works for
+      many different kinds of data. Then I need to show that this
+      method is not much inferior when it comes to compressed size
+      and/or decompression speed.
+    </p>
+    <p>
+      Currently it takes about 24 hours to run a battery of tests on
+      the data sets I am using. I am using a dozen or so 8-bit
+      files, same number of 16-bit files, but I currently have just
+      a single file with real float seismic. I'd like more of the
+      latter kind.
+    </p>
+    <p>
+      I have been writing more and more ad-hoc scripts to
+      automatically process the results but it still takes me a few
+      hours to manually post process and also interpret what each
+      result mean.
+    </p>
+
+    <h2>Tests and Test Results</h2>
+    <p>
+    This have been moved to the extended version of this file,
+    ../private/doc/compression.html. Regrettably that file cannot
+    be published as it contain screen dumps of seismic data that we
+    might not have the rights to show publically.
+    </p>
+  </body>
+</html>

@@ -1,0 +1,258 @@
+# name: 'OpenZGY Windows'
+name: $(Build.BuildID)-windows
+
+trigger:
+  - master
+
+pool: 
+  name: 'Azure Pipelines'
+  vmImage: 'windows-2022'
+   
+parameters:
+- name: PublishNuGetNative
+  displayName: Publish NuGet C++ package
+  type: boolean
+  default: false
+- name: PublishNuGetManaged
+  displayName: Publish NuGet Managed package
+  type: boolean
+  default: false
+- name: UsePythonVersion
+  displayName: Python version
+  type: string
+  default: 3.8
+
+variables:
+  - group: 'Salmon Variables'
+  - template: templates/versions.yml
+    parameters:
+      linuxdistro: windows
+      tagtail: default
+
+jobs:
+- job:
+  timeoutInMinutes: 180
+  steps:
+    - checkout: self
+      clean: true
+
+    - bash: |
+        echo "Settings from azure/templates/versions.yml, master = $(is_master)"
+        echo "Only starred items are relevant for this pipeline."
+        echo "  * Produce OpenZGY NuGet '$(x_openzgy_produce_nuget)'"
+      condition: always()
+      displayName: 'OpenZGY version selection'
+
+    # I cannot remove this or set enabled: false because with just one checkout
+    # the "self" checkout is placed at s/. and not s/openzgy. And I cannot set
+    # path: s/openzgy above because that will also change the default directory.
+    - checkout: git://Colors/seismic-service-bin
+      path: s/seismic-service-bin
+      condition: eq('true','false')
+
+    - powershell: |
+        Write-Host "Current  Python version"
+        python --version
+        Write-Host "Current path: $($env.Path)`n`n"
+        dir env:
+      displayName: 'List environment variables'
+
+    - task: UsePythonVersion@0
+      displayName: 'Use Python ${{parameters.UsePythonVersion}}'
+      inputs:
+        versionSpec: ${{parameters.UsePythonVersion}}
+
+    - powershell: |
+        Write-Host "Current  Python version"
+        python --version
+        Write-Host "Current path: $($env.Path)`n`n"
+        dir env:
+      displayName: 'List environment variables'
+
+    - powershell: |
+        Write-Host "Current path: $($env.Path)`n`n"
+
+        $Path = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\amd64\;$($env:Path)"
+        $Path = "c:\Program Files\7-Zip\;$($env:Path)"
+        Write-Host "##vso[task.setvariable variable=Path;]$Path"
+        dir env:
+      displayName: 'List environment variables'
+
+    - bash: |
+        eval $(test ! -x openzgy/private/grabtoken.sh || bash openzgy/private/grabtoken.sh -vv)
+      env:
+        OPENZGY_SDURL: $(SEISMIC_STORE_URL)
+        OPENZGY_SDAPIKEY: $(SEISMIC_STORE_KEY)
+        CLIENT_ID:        $(OPENZGY_TEST_CLIENT_ID)
+        CLIENT_SECRET:    $(OPENZGY_TEST_CLIENT_SECRET)
+        SD_TARGET_AUDIENCE: '$(OPENZGY_TEST_CLIENT_ID) $(OPENZGY_TEST_CLIENT_AUDIENCE)'
+        SDAPI_SAUTH_TOKEN_SERVICE_URL: '$(SEISMIC_STORE_TKSVC_URL)'
+      displayName: 'Show SAuth token'
+
+    - bash: |
+        echo "##vso[task.setvariable variable=OPENZGY_TESTDATA;]$(Build.SourcesDirectory)\openzgy\build\testdata"
+      displayName: Set env variables
+
+    - task: NuGetCommand@2
+      inputs:
+        command: 'restore'
+        restoreSolution: 'openzgy\native\windows\packages.config'
+        feedsToUse: 'select'
+        # Feed named "zgy-cloud" in this (openzgy) project.
+        vstsFeed: 'ad4cb17d-525f-488d-93b3-3903b262a93b'
+        restoreDirectory: 'packages'
+        includeNuGetOrg: false
+      displayName: 'Restoring SDAPI and libcurl packages'
+
+    - bash: |
+        # Exactly why this extra 'nuget restore' is needed is not clear.
+        # It seems to install two .NET packages. It also creates
+        # openzgy\build\temp\project.assets.json. It should not need
+        # to pull any slb packages, as those are handled in the task
+        # above. So the NuGet.config used here only needs nuget.org
+        # MSBuild.exe //t:Restore will lock the csproj files. Bummer.
+        # NuGetCommand@2, I don't know which feed to use.
+        # As for the two lines below, I need OpenZGY.Managed.sln even
+        # though the error message comes when building OpenZGY.sln.
+        # Changed 2024-06-11: Restore OpenZGY.sln now prints
+        # "An item with the same key has already been added."
+        # and doesn't seem to do much. Restore OpenZGY.Managed.csproj
+        # as well seems to have gotten it working again.
+        PATH="$PATH:/c/Program Files/Microsoft Visual Studio/2022/Enterprise/MSBuild/Current/Bin/amd64/"
+        touch files1.txt files2.txt
+        find . -print | sort -o files1.txt
+        echo "Restore OpenZGY.sln"
+        nuget restore "$(Build.SourcesDirectory)/openzgy/native/windows/OpenZGY.sln"
+        echo "Restore OpenZGY.Managed.csproj"
+        nuget restore "$(Build.SourcesDirectory)/openzgy/managed/OpenZGY.Managed/OpenZGY.Managed.csproj"
+        find . -print | sort -o files2.txt
+        echo "Files added by extra nuget restore"
+        comm -3 files1.txt files2.txt
+        echo "@end"
+      displayName: 'Extra nuget restore'
+      continueOnError: true
+
+    - template: templates/windows-build-steps.yml
+      parameters:
+        platform: 'x64'
+        configuration: 'Release'
+        havesd: $(HAVE_SD)
+
+    - template: templates/windows-build-steps.yml
+      parameters:
+        platform: 'x64'
+        configuration: 'Debug'
+        havesd: $(HAVE_SD)
+
+    - task: CopyFiles@2
+      inputs:
+        contents: |
+          '*.whl'
+          '*.tar.gz'
+        sourceFolder: $(Build.ArtifactStagingDirectory)\native\x64\Release\
+        targetFolder: $(Build.ArtifactStagingDirectory)
+        overWrite: true
+        flattenFolders: true
+      displayName: 'Copy wheel to top level'
+
+    - task: UniversalPackages@0
+      inputs:
+        command: 'download'
+        downloadDirectory: '$(System.DefaultWorkingDirectory)'
+        feedsToUse: 'internal'
+        vstsFeed: 'ad4cb17d-525f-488d-93b3-3903b262a93b'
+        vstsFeedPackage: '2ede6ce0-3aae-46c1-8ca6-c99bdf6f213d'
+        vstsPackageVersion: '1.0.0'
+      displayName: 'Download CoApp.Tools.Powershell universal package'
+
+    - task: PowerShell@2
+      inputs:
+        targetType: 'inline'
+        script: |
+          $fileName = '$(System.DefaultWorkingDirectory)\CoApp.Tools.Powershell.msi'
+          $DataStamp = get-date -Format yyyyMMddTHHmmss
+          $logFile = '{0}-{1}.log' -f $fileName,$DataStamp
+          $MSIArguments = @(
+              "/i"
+              ('"{0}"' -f $fileName)
+              "/qn"
+              "/norestart"
+              "/L*v"
+              $logFile
+          )
+          Start-Process "msiexec.exe" -ArgumentList $MSIArguments -Wait -NoNewWindow 
+          Get-Content $logFile
+      displayName: "'Install CoApp's Powershell Tools"
+
+    - task: PowerShell@2
+      inputs:
+        targetType: 'inline'
+        script: |
+          # CoApp has issues with first install so the environment variable is not refreshed. So it should be refresh manually. 
+          $env:PSMODULEPATH += ';C:\Program Files (x86)\Outercurve Foundation\Modules\CoApp;C:\Program Files (x86)\Outercurve Foundation\Modules\CoApp\etc'
+          Write-Host "##vso[task.setvariable variable=PSMODULEPATH]$env:PSMODULEPATH"
+          $env:PSMODULEPATH
+      displayName: 'Refresh Powershell env variable'
+
+    - bash: |
+        set -e
+        newversion="$(x_openzgy_produce_nuget)"
+        scriptdir="$(Build.SourcesDirectory)/openzgy/scripts"
+        echo "Setting NuGet version to ${newversion} in openzgy.autopkg and openzgy.managed.nuspec"
+        sed -i.orig -e "/version *:/s/[0-9][0-9.]*/${newversion}/" "${scriptdir}/openzgy.autopkg"
+        sed -i.orig -e "/<version> *[0-9][0-9.]* *<\/version>/s/[0-9][0-9.]*/${newversion}/" "${scriptdir}/openzgy.managed.nuspec"
+        if diff -U 0 ${scriptdir}/openzgy.autopkg/{,.orig}
+        then
+            echo "Unable to set NuGet version to ${newversion} in openzgy.autopkg"
+            exit 1
+        fi
+        if diff -U 0 ${scriptdir}/openzgy.managed.nuspec/{,.orig}
+        then
+            echo "Unable to set NuGet version to ${newversion} in openzgy.managed.nuspec"
+            exit 1
+        fi
+      displayName: 'Set version of nuget package'
+
+    - task: PowerShell@2
+      inputs:
+        targetType: 'inline'
+        script: |
+          Write-Host 'PSMODULEPATH is:'
+          $env:PSMODULEPATH 
+          Write-NugetPackage .\openzgy\scripts\openzgy.autopkg
+      displayName: 'Create nuget package using CoApp'
+
+    - task: NuGetCommand@2
+      inputs:
+        command: 'pack'
+        packagesToPack: '.\openzgy\scripts\openzgy.managed.nuspec;'
+        version: 0.0.$(Build.BuildID)
+      displayName: 'Create managed nuget package'
+
+      # Managed NuGet packages end up in
+      # $(Build.ArtifactStagingDirectory),
+      # unmanaged in $(Build.SourcesDirectory).
+      # I want both in artifacts so they become
+      # visible as build artifacts.
+
+    - task: CopyFiles@2
+      inputs:
+        contents: '*.nupkg'
+        sourceFolder: $(Build.SourcesDirectory)
+        targetFolder: $(Build.ArtifactStagingDirectory)
+      displayName: 'Copy nupkg to artifacts'
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathToPublish: $(Build.ArtifactStagingDirectory)
+        artifactName: OpenZGY-Windows
+      displayName: 'Publish build artifacts'
+
+    - task: NuGetCommand@2
+      inputs:
+        command: 'push'
+        packagesToPush: '$(Build.ArtifactStagingDirectory)\*.nupkg;'
+        nuGetFeedType: 'internal'
+        publishVstsFeed: 'ad4cb17d-525f-488d-93b3-3903b262a93b'
+      condition: and(succeeded(), ${{parameters.PublishNuGetManaged}})
+      displayName: 'Publish NuGet to slb-swt'

@@ -1,0 +1,34 @@
+# name: 'OpenZGY Linux Coverage'
+name: $(Build.BuildID)-rocky8-coverage
+
+trigger: none
+schedules:
+- cron: "42 2 * * *"
+  displayName: Nightly build
+  branches:
+    include:
+    - master
+
+pool:
+  name: Paal-Kvamme-Test
+
+variables:
+  - group: 'Salmon Variables'
+  - template: templates/versions.yml
+    parameters:
+      linuxdistro: rocky8
+      tagtail: coverage
+
+steps:
+- template: templates/coverage-build-steps.yml
+  parameters:
+    makeargs: ''
+    linuxdistro: 'rocky8'
+    tagtail: 'coverage'
+
+- template: templates/publish-steps.yml
+  parameters:
+    linuxdistro: 'rocky8'
+    upublish: False
+    deployed: >
+      coverage\\.tgz

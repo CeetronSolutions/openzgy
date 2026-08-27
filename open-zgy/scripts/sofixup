@@ -1,0 +1,153 @@
+#!/bin/bash
+
+# Fix shared object references to libraries known to be compatible
+# but where the SONAME differs and we wish it didn't.
+#
+# Usage: sofixup [-l] old new file ...
+# Example:
+#   sofixup 'libsdapi.so.3.* 'libsdapi.so.3' BIN_DIR/*.so*
+#
+# All definitions and references matching "old" will be changed to
+# define (SONAME) and reference (NEED) "new". If "-l" is provided
+# symlinks are adjusted as well, for SONAME matches.
+#
+#
+# The script ignores symlinks passed on the command line.
+#
+# Caveat when -l is used. The script expects that there will be
+# just a single non-symlink file that defines (with SONAME) the
+# library. This may not be the case if symlinks have been turned
+# into copies by unzip. Or worse, two different versions might
+# exist in the same folder. The result is unspecified. Passing a
+# sorted list of files to a single invocation of the script might
+# help. At least it makes the problem somewhat more reproducible.
+#
+# -l causes existing symlinks are removed and replaced with these:
+#    libname.so -> libname.$new
+#    libname.$new -> $file
+#
+# Obviously the link is not created if source and target are equal.
+
+RUN=
+
+# todo error handling from patchelf
+# todo files with spaces not well tested
+# Note OLD is a grep pattern, not a shell name. Fix?
+
+dolinks=n
+case "$1" in
+  -l) dolinks=y; shift;;
+  -n) RUN=:; shift;;
+  -ln|-nl) dolinks=y; RUN=:; shift;;
+  -*) echo >&2 "Unknown option $1"; exit 1;;
+esac
+
+OLD="${1:?}"
+NEW="${2:?}"
+shift 2
+
+all=()
+def=()
+for i in "$@"
+do
+  if [ -f "$i" -a ! -h "$i" ]
+  then
+    all+=("$i")
+    soname=$(patchelf --print-soname "$i")
+    if echo $soname | grep -q "$OLD" >/dev/null
+    then
+        echo >&2 "Found SONAME $soname in $i"
+        def+=("$i")
+    fi
+  fi
+done
+
+case ${#def[@]} in
+  0) echo >&2 "$OLD is not defined in any file";;
+  1) echo >&2 "$OLD is defined in ${def[0]}";;
+  *) echo >&2 "ERROR: Old defined in multiple files: ${def[@]}"
+     exit 2;;
+esac
+
+for i in "${def[@]}"
+do
+  soname=$(patchelf --print-soname "$i")
+  echo >&2 "Patching SONAME from $soname to $NEW in $i"
+  echo patchelf --set-soname "$NEW" "$i"
+  $RUN patchelf --set-soname "$NEW" "$i"
+done
+
+# Note, if OLD is too general then multiple
+# NEED entries get patched to the same NEW.
+# Assume the user knows wjat he is doing.
+
+for i in "${all[@]}"
+do
+  for need in $(patchelf --print-needed "$i" | grep "$OLD")
+  do
+    echo patchelf --replace-needed "$need" "$NEW" "$i"
+    $RUN patchelf --replace-needed "$need" "$NEW" "$i"
+  done
+done
+
+if [ "$dolinks" = "y" ]
+then
+  # This will NOT work if multiple defs.
+  realfile="${def[0]}"
+  realbase=$(basename "$realfile")
+  stem=$(echo "$realfile" | sed -ne 's/\.so.*/.so/p')
+  dir=$(dirname "$realfile")
+  if [ -n "$stem" ]
+  then
+    # Remove old links
+    for link in "${stem}"*
+    do
+      if [ -h "$link" ]
+      then
+        echo /bin/rm -f "$link"
+        $RUN /bin/rm -f "$link"
+      fi
+    done
+
+    # E.g. SONAME libfoo.1
+    # link libfoo.1 -> libfoo.1.1
+
+    if [ ! -e "$dir/$NEW" ]
+    then
+      echo ln -s "$realbase" "$dir/$NEW"
+      $RUN ln -s "$realbase" "$dir/$NEW"
+    elif [ "$realbase" = "$NEW" ]
+    then
+      echo >&2 "Skip link to $NEW -- same file"
+    else
+      echo >&2 "WARNING: Cannot link $realbase to $NEW"
+    fi
+
+    # link foo.so => foo.so.1
+    bs=$(basename "$stem")
+    if [ ! -e "$stem" ]
+    then
+      echo ln -s "$NEW" "$stem"
+      $RUN ln -s "$NEW" "$stem"
+    elif [ "$NEW" = "${bs}" ]
+    then
+      echo >&2 "Skip link to $bs -- same file"
+    else
+      echo >&2 "WARNING: Cannot link $NEW to $bs"
+    fi
+  fi
+fi # -l option given
+
+# Copyright 2017-2022, Schlumberger
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.

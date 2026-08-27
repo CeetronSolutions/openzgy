@@ -1,0 +1,137 @@
+# Copyright 2017-2021, Schlumberger
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+ARG variant=cloud
+
+#############################################################################
+###   Devtoolset   #########################################################
+#############################################################################
+
+FROM centos:centos7 AS sdapi-toolset-centos7
+ARG CLEAN_BUILD_COUNTER=4
+ENV CLEAN_BUILD_COUNTER=${CLEAN_BUILD_COUNTER}
+RUN yum install -y centos-release-scl && yum install -y devtoolset-10
+
+#############################################################################
+###   SDAPI build prerequisites   ###########################################
+#############################################################################
+
+FROM sdapi-toolset-centos7 AS sdapi-base
+ENV LINUXDISTRO=omega
+
+ARG CLEAN_BUILD_COUNTER=4
+ENV CLEAN_BUILD_COUNTER=${CLEAN_BUILD_COUNTER}
+
+RUN yum install -y epel-release && \
+    yum install -y \
+        make which git sudo cmake3 libcurl-devel openssl-devel bzip2 patch \
+        autoconf expat-devel gettext-devel zlib-devel perl-CPAN perl-devel \
+        kernel-headers perl-IPC-Cmd patchelf
+RUN useradd -m -u 800 -G wheel --shell /bin/bash -p '' me
+WORKDIR /home/me
+
+# Build GIT from sources because the newer git 2.x is needed for Azure.
+# Install in /usr/local/bin.
+ARG GITVER=2.18.0
+RUN curl -sS -o /root/git-$GITVER.tar.gz https://mirrors.edge.kernel.org/pub/software/scm/git/git-$GITVER.tar.gz
+RUN set -e; \
+    tar zxf /root/git-$GITVER.tar.gz -C /root; \
+    cd /root/git-$GITVER; \
+    make configure; \
+    ./configure --prefix /usr/local; \
+    make; \
+    make install
+
+#############################################################################
+###   SDAPI third party dependencies (have patience)   ######################
+#############################################################################
+
+FROM sdapi-base AS sdapi-vcpkg
+#ARG vcpkg_branch=52b66042
+# 8-12-2023
+#ARG  vcpkg_branch=8ee46dc7
+# 6-8-2024
+ARG  vcpkg_branch=a2367cee
+
+RUN mkdir -p /opt/vcpkg && chown me /opt/vcpkg
+USER me
+RUN git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg && \
+    cd /opt/vcpkg && git checkout ${vcpkg_branch} && \
+    mkdir -p /opt/vcpkg/custom-triplets && \
+    cat /opt/vcpkg/triplets/x64-linux.cmake | \
+        sed -e '/VCPKG_LIBRARY_LINKAGE/s;static;dynamic;' | \
+	tee /opt/vcpkg/custom-triplets/x64-linux.cmake && \
+    scl enable devtoolset-10 './bootstrap-vcpkg.sh -disableMetrics'
+RUN cd /opt/vcpkg; scl enable devtoolset-10 './vcpkg install --overlay-triplets=custom-triplets azure-storage-cpp:x64-linux'
+RUN cd /opt/vcpkg; scl enable devtoolset-10 './vcpkg install --overlay-triplets=custom-triplets azure-storage-blobs-cpp:x64-linux'
+
+# vcpkg builds libcurl with the wrong SONAME.
+# Curl references should match the system version (libcurl.so.4) which
+# initially should point to the vcpkg-built one. If the end user wants
+# to use the system curl then he can just remove the symlink.
+#COPY ["scripts/sofixup", "/tmp/sofixup"]
+RUN find /opt/vcpkg/installed -name 'lib*.so*' -type f ! -name \*boost\* -print0 | xargs -r0 readelf -d
+RUN find /opt/vcpkg/installed -name 'lib*.so*' -type f -print0 | xargs -r0 ls -ld
+#RUN set -e; cd /opt/vcpkg/installed/x64-linux/lib; \
+#    test -h libcurl.so || mv -f libcurl.so libcurl.so.vcpkg; \
+#    /tmp/sofixup -l libcurl.so libcurl.so.4 lib*.so*; \
+#    cd /opt/vcpkg/installed/x64-linux/debug/lib; \
+#    test -h libcurl-d.so || mv -f libcurl-d.so libcurl-d.so.vcpkg; \
+#    /tmp/sofixup -l libcurl-d.so libcurl-d.so.4 lib*.so*
+
+#############################################################################
+###   Need a newer CURL   ###################################################
+#############################################################################
+
+FROM sdapi-vcpkg AS sdapi-manual
+USER root
+
+# libcurl in CentOS 7 has serious performance issues. Download and
+# build from source. Preferably using a mirror. Use RUN not ADD
+# because I don't want to invalidate the Docker cache and rebuild
+# curl on every invocation.
+ARG CURL=7.74.0
+RUN curl -sSL -o /root/curl-$CURL.tar.bz2 https://curl.se/download/curl-$CURL.tar.bz2
+
+# Build the curl source downloaded earlier and replace the one we have.
+# Caveat: Replacing the system version of curl that several other packages
+# depend on. Applications compiled against curl 7.29.0 will now dynamically
+# link with $CURL. This might not end well. The reason I do it this way
+# is to make sure libsdapi and its dependents use a consistent version.
+# Caveat: The vcpkg dependencies might have their own idea.
+RUN cd /root && \
+    tar jxf curl-$CURL.tar.bz2 && \
+    cd curl-$CURL && ./configure --prefix /usr --libdir=/usr/lib64 && \
+    make && \
+    rpm -e --nodeps libcurl-devel libcurl curl && \
+    make install
+USER me
+
+#############################################################################
+###   Environment is ready, build SDAPI now!   ##############################
+#############################################################################
+
+FROM sdapi-manual AS sdapi-build
+
+# SOURCE CODE FROM BUILD CONTEXT COPIED IN
+COPY --chown=800 seismic-store-cpp-lib /home/me/sdapi/
+COPY --chown=800 ["sd-env/build-template.sh", "sd-env/*.patch", "/home/me/" ]
+USER me
+
+ARG AZURE_BUILDID
+ENV AZURE_BUILDID=${AZURE_BUILDID}
+RUN scl enable devtoolset-10 ./build-template.sh
+
+# If stopping the build at this point, /home/me/sdapi_linux64.tar.gz
+# can be extracted from the image and deployed e.g. as a universal package.

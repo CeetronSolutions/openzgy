@@ -1,0 +1,70 @@
+# Version numbers of third party libraries.
+#
+# Be careful when bumping the version number. NuGet versions can never
+# count downwards. Universal packages can do this but cannot re-use a
+# previous verson number even after it is deleted. The version number
+# in the binary package we build must be major.minor.patch and patch
+# needs to be incremented also if rebuilding the same upstream version.
+# If the upstream already uses three numbers we cannot use the full
+# upstream version number directly in the binary being built.
+#
+#   checkout - Source code branch, label, or hash.
+#   remarks  - Human readable text stored in the bnary package.
+#   produce_pkgname  - Name of the binary universal package we build.
+#   produce_version  - Version number of the binary universal package we build.
+#   consume_pkgname  - How to consume the package we built. May use wildcards.
+#   consume_version  - How to consume the package we built. May use wildcards.
+#
+# Note that "package" might use an auto-increment last number such as
+# $(Build.BuildID) or last_patch+1. If "consume" doesn't use a wildcard
+# for the patch number this means there will be several iterations
+# before everything is updated.
+#
+# Also note that if producing a universal package from a branch that isn't
+# master then the package automatically gets a -dev suffix. But the downstream
+# pipelines will still consume the -master (or in some cases no suffix)
+# version. You might want to temporarily change the consumed package in your
+# private branch if you intend to build multiple pipelines.
+
+parameters:
+  linuxdistro: 'missing-distro-parameter'
+  tagtail: 'default'
+
+variables:
+    is_master: $[eq(variables['Build.SourceBranch'], 'refs/heads/master')]
+    ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/master') }}:
+      dev_suffix_only: ''
+      branch_suffix:   '-master'
+    ${{ else }}:
+      dev_suffix_only: '-dev'
+      branch_suffix:   '-dev'
+
+    x_vds_checkout: '3.3.3'
+    x_vds_produce_pkgname:  'openvds-${{parameters.linuxdistro}}${{variables.branch_suffix}}'
+    x_vds_produce_version:  '3.303.$(Build.BuildId)'
+    x_vds_produce_nuget:    '3.3.3.$(Build.BuildId)'
+    x_vds_consume_pkgname:  openvds-${{parameters.linuxdistro}}-master
+    x_vds_consume_version:  '3.303.*'
+
+    x_zgytool_produce_pkgname: zgytool-${{parameters.linuxdistro}}${{variables.branch_suffix}}
+    x_zgytool_produce_version: '0.0.$(Build.BuildId)' # Not used yet
+
+    # belongs in oz/templates/versions.yml, except for x_openzgy_consume.
+
+    # After changing the hash, ckeck src/src/core/SDVersion.h to
+    # see if the minor version number needs to be changed as well.
+    x_sdapi3_hash:    d72ddb3f
+    x_sdapi3_remarks: Vanilla rebuild.
+    x_sdapi3_produce_version: 31.0.$(Build.BuildId)
+    x_sdapi3_produce_pkgname: oz-sdapi3-${{parameters.linuxdistro}}${{variables.dev_suffix_only}}
+    ${{ if ne(parameters.linuxdistro, 'clang') }}:
+      x_sdapi3_consume_pkgname: oz-sdapi3-${{parameters.linuxdistro}}
+    ${{ else }}:
+      x_sdapi3_consume_pkgname: oz-sdapi3-jammy
+    x_sdapi3_consume_version: '31.0.*'
+
+    x_openzgy_produce_pkgname: openzgy-${{parameters.linuxdistro}}${{variables.dev_suffix_only}}
+    x_openzgy_produce_version: '0.0.$(Build.BuildId)' # Not used yet
+    x_openzgy_produce_nuget:   '1.0.$(Build.BuildId)'
+    x_openzgy_consume_pkgname: openzgy-${{parameters.linuxdistro}}
+    x_openzgy_consume_version: '*'

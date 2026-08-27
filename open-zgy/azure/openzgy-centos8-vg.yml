@@ -1,0 +1,39 @@
+# name: 'OpenZGY Linux CentOS 8 py36 Valgrind'
+name: $(Build.BuildID)-rocky8-vg
+
+trigger: none
+schedules:
+- cron: "30 3 * * *"
+  displayName: Nightly build
+  branches:
+    include:
+    - master
+
+pool:
+  name: Paal-Kvamme-Test
+
+variables:
+  - group: 'Salmon Variables'
+  - template: templates/versions.yml
+    parameters:
+      linuxdistro: rocky8
+      tagtail: valgrind
+
+jobs:
+- job:
+  timeoutInMinutes: 120
+  steps:
+  - template: templates/valgrind-build-steps.yml
+    parameters:
+      linuxdistro: 'rocky8'
+      makeargs: OPTIMIZE=
+      tagtail: valgrind
+
+  - template: templates/publish-steps.yml
+    parameters:
+      linuxdistro: 'rocky8'
+      upublish: False
+      deployed: >
+        valgrind.txt
+        valgrind-1.txt
+        valgrind-2.txt

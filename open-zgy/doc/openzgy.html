@@ -1,0 +1,1657 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+  <head>
+    <title>The ZGY file format</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <style>
+      th, td {padding: 2px 10px 2px 10px;}
+      th.section {padding: 14px 10px 14px 10px;}
+      p.page, h2.page {page-break-before: always}
+      p.version {font-style: italic; font-size: smaller;}
+    </style>
+  </head>
+
+  <body bgcolor="#ffffff">
+    <p class="version">This is version 0.7 of the document, last updated 2021-04-15.</p>
+
+    <!-- <h1 style="color: red">DRAFT DOCUMENT</h1> -->
+
+    <h1>Copyright</h1>
+<pre>
+Copyright 2017-2021, Schlumberger
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+</pre>
+    <h1>ZGY File Format</h1>
+
+    The ZGY file format exists in two variants:
+
+    <ul>
+      <li>Uncompressed ZGY (ucZGY)</li>
+      <li>Compressed ZGY (cZGY)</li>
+    </ul>
+
+    <p>
+      There exists a closed source library able to read and write
+      uncompressed ZGY and read compressed ZGY. This is freely
+      available in binary form. It is delivered as a zip or tar
+      archive containing API documentation, binary libraries, and
+      headers. No source is provided except for a few examples on how
+      to use the API.
+    </p>
+
+    <p>
+      Work is in progress on an open source library called OpenZGY that
+      will be able to read and write the same ZGY format that the closed
+      source library does. At least the uncompressed ZGY is planned to be
+      fully supported. Although our legal department probably won't allow us
+      to promise anything more than what you see is what you get.
+    </p>
+
+    <p>
+      No decision has been made whether to open source the existing
+      compressed format.
+    </p>
+
+    <p>
+      OpenZGY extends the existing "uncompressed" format to optionally
+      apply ZFP compression to some or all individual bricks. Without
+      compressing the file itself. This is why the existing compressed
+      format is being deprecated and might well be left as closed source.
+    </p>
+
+    <p>
+      The reference implementation of an OpenZGY reader will be written in
+      Python. Focus will be on writing code that can explain any subtle
+      issues that are not clear enough in the documentation. A C++ version
+      might be implemented later.
+    </p>
+
+    <p>
+      Starting fresh is done for a number of reasons. The closed source code
+      is old and has accrued quite a bit of technical debt, obscure apis,
+      and unused features.
+    </p>
+
+    <p>
+      Initial tests of the pure Python accessor show that performance
+      is comparable between the native C++ library, the Python wrapper
+      around native C++, and the new pure Python implementation.
+    </p>
+
+    <p>
+      Note that it was a single simple test so this is a very
+      rough comparison. The testing case was a single threaded read from a
+      local file which is all the pure Python version can do
+      for the moment. The test was run on a fairly old machine using a
+      20 GB file of float32 samples. The machine had 12 GB of ram.
+      Each test was run multiple times so large parts of the file
+      would have been in memory.
+    </p>
+
+    <p>
+      To test the raw bandwidth of the machine, "dd" was used
+      to copy the zgy file to /dev/null with a 1 MB block size. For
+      the ZGY library, all the full resolution samples were read,
+      requesting 64x64x896 samples (14 MB) at a time and the
+      result was discarded. At the lowest level this still ends up reading 1 MB
+      blocks.
+    </p>
+
+    <table border="1" style="border-collapse: collapse">
+      <tr>
+	<td>Raw "dd"        </td><td align="right">110 MB/s</td>
+	<td>Native C++      </td><td align="right">102 MB/s</td>
+	<td>Python wrapper  </td><td align="right">101 MB/s</td>
+	<td>Pure Python     </td><td align="right">101 MB/s</td>
+      </tr>
+    </table>
+
+    <p>
+      This file contains the documentation of the uncompressed ZGY format.
+      This applies both to the old ZGY library and OpenZGY.
+    </p>
+
+
+    <h2 class="page">Size on disk</h2>
+    <p>
+      The disk space needed for a ZGY file depends on the survey size
+      and the percentage of bricks with no data in them. For
+      compressed files it also depends on the requested output quality
+      and on how much high frequency information exists in the input
+      data. So your mileage may vary.
+    </p>
+
+    <p>
+      As a rough estimation for typical seismic data you can use:
+    </p>
+
+    <table border="1" style="border-collapse: collapse">
+      <tr><th>File type</th><th>Size on disk </th></tr>
+      <tr><td>Uncompressed float</td><td>size in samples * 4 * 1.3</td></tr>
+      <tr><td>Uncompressed int16</td><td>size in samples * 2 * 1.3</td></tr>
+      <tr><td>Uncompressed int8</td><td>size in samples * 1 * 1.3</td></tr>
+      <tr><td>Compressed 50 dB</td><td>size in samples * 1 * 1.3</td></tr>
+      <tr><td>Compressed 30 dB</td><td>size in samples * 0.6 * 1.3</td></tr>
+    </table>
+
+    <p>
+      The table assumes there are no dead traces.
+    </p>
+
+    <p>
+      The factor 1.3 accounts for the low resolution bricks
+      (1/8 + 1/16 + ...) and for other overhead such as lookup
+      tables and for rounding to a multiple of the brick size.
+    </p>
+
+    <p>
+      The table shows that compressing a float file by converting it
+      to int8 will typically end up with the same size on disk as a
+      ZFP compression with 50 dB signal to noise. However, the signal
+      to noise ratio of the int8 file would be significantly worse.
+    </p>
+
+    <h2 class="page">File layout</h2>
+
+    <p>
+      The following describes the format of the physical file.
+    </p>
+
+    <p>
+      A ZGY file contains seismic samples for a fixed size 3d cube,
+      and meta information such as the cube annotation and location.
+      Samples are stored in bricks of 64*64*64 samples of int8, int16,
+      or float32 data. So, the size of each brick is either 256 KB,
+      512 KB, or 1 MB depending on the data type.
+      The enum for data type also includes int32, uint8, uint16, uint32,
+      and ibm_float. Support for those types is limited and they may not
+      work or may not be accessible from the api.
+    </p>
+
+    <p>
+      The ZGY file also has room for storing a boolean for each vertical
+      trace telling whether this trace has live data or not. This
+      feature is deprecated and should not be used. As long as these
+      booleans (called alpha tiles) are not written out, the space
+      penalty in the ZGY file is negligible.
+    </p>
+
+    <p>
+      ZGY automatically stores decimated versions of the data to speed
+      up access. Level of Detail 0 (LOD 0) is the full resolution.
+      The bricks always contain the same number of samples. This means
+      that each low resolution brick is computed from several higher
+      resolution (lower LOD number) bricks.
+    </p>
+
+    <p>
+      The uncompressed format version 2 and onwards store data inside each
+      brick in format ZeroOneTwo, with the vertical (last) dimension
+      varying fastest and the inline (first) dimension varying slowest.
+      Uncompressed format version 1 stores sub-bricks of 8*8*8 samples inside
+      each regular brick, both ordered TwoOneZero i.e. the other way
+      around. Compressed data and the order of entries in lookup tables
+      also use TwoOneZero: the vertical (last) dimension varying slowest
+      and the inline (first) dimension varying fastest.
+    </p>
+
+    <p>
+      Some of the meta information is important because it must be
+      known before the size and offset of several other sections can be known.
+      Any code that wants to read ZGY files must implement a function
+      that computes the number of tiles and bricks as described below.
+    </p>
+
+    <ul>
+      <li>size and (v2) bricksize determine the size of the lookup tables.</li>
+      <li>datatype and (v2)bricksize determine the size of each data brick.</li>
+      <li>(v2)slbufsize explicitly gives the size of the variable length
+      string table.</li>
+    </ul>
+
+    <p>
+      Both the number of bricks and the number of LOD levels are calculated
+      from the cube size. Enough levels of detail will be added to make the
+      highest-level fit in a single brick. The number of bricks in LOD 0 is
+      simply the survey size divided by the brick size and rounded up. The
+      number of bricks in LOD n+1 is the number of bricks in LOD n divided
+      by (2,2,2) and rounded up. The total number of bricks is found by
+      summing the number of bricks in LOD 0, 1, 2, etc. up to and including
+      the LOD that only contains a single brick.
+    </p>
+
+    <p>
+      The same calculation is used to calculate the number of alpha
+      tiles, except that the number of LOD levels have already been
+      determined by the bricks. And the vertical size is always 1
+      since the alpha tiles are 2d only. Readers of v2 and v3 need to
+      be aware of how the deprecated alpha tiles (for flagging dead traces)
+      are computed because this affects
+      where the other headers are stored. For versions of ZGY that
+      contain an offset table (v1, and presumably v4) this is not an
+      issue.
+    </p>
+
+    <p>
+      The precise physical layout of the file depends on the version,
+      but can be divided into:
+      </p><p> </p><ul>
+      <li>8-byte header identifying the format and version.</li>
+      <li>Table of offsets to the other sections.</li>
+      <li>Headers containing descriptive data.</li>
+      <li>Table of file offsets for each alpha- and data brick.</li>
+      <li>Data bricks.</li>
+    </ul>
+
+    <h2 class="page">Survey location</h2>
+    <p>
+      Notes on gpiline, gpxline, gpx, gpy:
+    </p>
+    <p>
+      The grid definition in gpiline, gpxline, gpx, and gpy defines
+      an affine transform from inline, crossline to world X, Y.
+    </p>
+    <p>
+      Since an affine transform is used it is possible to define a
+      coordinate system where the X and Y axes are not precisely
+      perpendicular to each other. It is up to the application reading
+      the files to decide whether to accept such non-orthogonal
+      coordinate systems. When writing files, think long and
+      hard about whether to allow the user to create a
+      non-orthogonal ZGY file. If you do, you might regret it after a
+      few decades of supporting that feature in all your applications
+      that read ZGY.
+    </p>
+    <p>
+      On write, gpiline and gpxline should contain the 4 corners
+      of the survey in annotation values. This means they are to be
+      trivially computed from orig, inc, and size. The order of the
+      corners should be:
+    </p>
+    <ul>
+      <li>First inline / first crossline,</li>
+      <li>last inline / first crossline,</li>
+      <li>first inline / last crossline,</li>
+      <li>last inline / last crossline.</li>
+    </ul>
+    <p>
+      The gpx and gpy arrays should be set to the world (X,Y)
+      coordinates corresponding to those 4 corner points.
+    </p>
+    <p>
+      On read, trust that the 3 first annotation points and the 3
+      first world coordinates refer to the same three locations and that
+      those three points don't overlap and are not colinear. Do not
+      trust that the points are in fact corners of the lattice. There
+      is still enough information to reconstruct the lattice and
+      calculate the actual corners, which the reader should do as soon
+      as possible, so only the "correct" corner points are available
+      in the API.
+    </p>
+
+    <!--......................................................................-->
+
+    <h2 class="page">ZGY Uncompressed Format version 2, 3, 4</h2>
+
+    <p>
+      All integer data is stored as little-endian. Unlike format 1, only one
+      level of bricking is used. The brick size is explicitly specified.
+      But currently only bricks of 64*64*64 samples will work.
+    </p>
+    <p>
+      The uuids in a ZGY file on disk are stored not big-endian as
+      <a href="https://tools.ietf.org/html/rfc4122">RFC 4122</a>
+      requires. Instead they are stored piecewise little endian.
+      This affects how the raw bytes are converted to a canonical
+      string. To avoid confusion an access library should prevent
+      application code from seeing the raw bytes. Only the canonical
+      string representation should be accessible. See doc/uuid.md
+      for more details.
+    </p>
+    <p>
+      The physical layout of files version 2, 3, and 4 is identical.
+      But version 4 allows interpreting the file slightly differently.
+      Version 4 files may have entries in the lookup table starting
+      with 0xC0. Had the old ZGY accessor been allowed to open such
+      files (which it isn't, because the version is too high) then the
+      compressed bricks would appear to be constant-value with an
+      arbitrary constant. Similarly a version 4 file may be written
+      without low resolution data meaning it will return nlods()==1.
+      Had the old ZGY accessor been allowed to open such files it would
+      return the wrong lod count. Leading the application to believe
+      that low resolution data exists but then getting all zeros or
+      possibly stale data back. The change from version 2 to 3 was done
+      for similar reasons. Version 3 files were written by a completely
+      redesigned library which was supposed to work identically but
+      might have introduced subtle changes as with the 3 to 4 change.
+      To my knowledge no such changes showed up.
+    </p>
+
+    <table border="1" style="border-collapse: collapse">
+      <tr>
+	<th colspan="4" class="section">FileHeader</th>
+	<td>Located at the start of the file.</td>
+      </tr>
+
+      <tr><th>offset</th><th>size</th><th>type</th><th>name</th><th>remarks</th></tr>
+      <tr><td>  0</td><td> 4</td><td>uint8     </td><td>magic[4]      </td><td>Always VBS\0 when viewed as a char[4].</td></tr>
+      <tr><td>  4</td><td> 4</td><td>uint32    </td><td>version       </td><td>Current version is 3.</td></tr>
+      <tr><td>  8</td><td colspan="3">&nbsp;</td><td>end.</td></tr>
+
+      <tr>
+	<th colspan="4" class="section">OffsetHeader</th>
+	<td>Consecutive, so this is offset 8 from the start of the file.</td>
+      </tr>
+
+      <tr><th>offset</th><th>size</th><th>type</th><th>name</th><th>remarks</th></tr>
+      <tr><td>  0</td><td> 1</td><td>uint8</td><td>padding</td><td>Write as 0, ignore on read.</td></tr>
+      <tr><td> 1</td><td colspan="3">&nbsp;</td><td>end.</td></tr>
+
+      <tr>
+	<th colspan="4" class="section">InfoHeader</th>
+	<td>Consecutive, so this is offset 9 from the start of the file.</td>
+      </tr>
+
+      <tr><th>offset</th><th>size</th><th>type</th><th>name</th><th>remarks</th></tr>
+      <tr><td>  0</td><td>12</td><td>int32     </td><td>bricksize[3]  </td><td>Brick size. Values other than (64,64,64) will likely not work.</td></tr>
+      <tr><td> 12</td><td> 1</td><td>uint8     </td><td>datatype      </td><td>Type of samples in each brick: int8 = 0, int16 = 2, float32 = 6.</td></tr>
+      <tr><td> 13</td><td> 8</td><td>float32   </td><td>codingrange[2]</td><td>If datatype is integral (note that int8 and int16 are the only integral types supported), this is the value range samples will be scaled to when read as float. In this case it must be specified on file creation. If datatype is float then this is the value range of the data and should be set automatically when writing the file.</td></tr>
+      <tr><td> 21</td><td>16</td><td>uint8     </td><td>dataid[16]    </td><td>GUID set on file creation.</td></tr>
+      <tr><td> 37</td><td>16</td><td>uint8     </td><td>verid[16]     </td><td>GUID set each time the file is changed.</td></tr>
+      <tr><td> 53</td><td>16</td><td>uint8     </td><td>previd[16]    </td><td>GUID before last change.</td></tr>
+      <tr><td>  *</td><td> *</td><td>char*     </td><td>srcname       </td><td>Optional name of this data set. Rarely used.</td></tr>
+      <tr><td>  *</td><td> *</td><td>char*     </td><td>srcdesc       </td><td>Optional description of this data set. Rarely used.</td></tr>
+      <tr><td> 69</td><td> 1</td><td>uint8     </td><td>srctype       </td><td>Optional datatype the samples had before being stored in this file.</td></tr>
+      <tr><td> 70</td><td>12</td><td>float32   </td><td>orig[3]       </td><td>First inline, crossline, time/depth. Unline v1 these are now floating point.</td></tr>
+      <tr><td> 82</td><td>12</td><td>float32   </td><td>inc[3]        </td><td>Increment in inline, crossline, vertical directions.</td></tr>
+      <tr><td> 94</td><td>12</td><td>int32     </td><td>size[3]       </td><td>Size in inline, crossline, vertical directions.</td></tr>
+      <tr><td>106</td><td>12</td><td>int32     </td><td>curorig[3]    </td><td>Unused. Set to (0,0,0) on write and ignore on read.</td></tr>
+      <tr><td>118</td><td>12</td><td>int32     </td><td>cursize[3]    </td><td>Unused. Set to size on write and ignore on read.</td></tr>
+      <tr><td>130</td><td> 8</td><td>int64     </td><td>scnt          </td><td>Count of values used to compute statistics.</td></tr>
+      <tr><td>138</td><td> 8</td><td>float64   </td><td>ssum          </td><td>Sum of all "scnt" values.</td></tr>
+      <tr><td>146</td><td> 8</td><td>float64   </td><td>sssq          </td><td>Sum of squared "scnt" values.</td></tr>
+      <tr><td>154</td><td> 4</td><td>float32   </td><td>smin          </td><td>Statistical (computed) minimum value.</td></tr>
+      <tr><td>158</td><td> 4</td><td>float32   </td><td>smax          </td><td>Statistical (computed) maximum value.</td></tr>
+      <tr><td>162</td><td>12</td><td>float32   </td><td>srvorig[3]    </td><td>Unused. Set equal to orig on write. Ignore on read.</td></tr>
+      <tr><td>174</td><td>12</td><td>float32   </td><td>srvsize[3]    </td><td>Unused. Set to inc*size on write. Ignore on read.</td></tr>
+      <tr><td>186</td><td> 1</td><td>uint8     </td><td>gdef          </td><td>Grid definition type. Set to 3 (enum: "FourPoint") on write. Ignored on read. See notes for a longer explanation.</td></tr>
+      <tr><td>187</td><td>16</td><td>float64   </td><td>gazim[2]      </td><td>Unused.</td></tr>
+      <tr><td>203</td><td>16</td><td>float64   </td><td>gbinsz[2]     </td><td>Unused.</td></tr>
+      <tr><td>219</td><td>16</td><td>float32   </td><td>gpiline[4]    </td><td>Inline component of 4 control points.</td></tr>
+      <tr><td>235</td><td>16</td><td>float32   </td><td>gpxline[4]    </td><td>Crossline component of 4 control points.</td></tr>
+      <tr><td>251</td><td>32</td><td>float64   </td><td>gpx[4]        </td><td>X coordinate of 4 control points.</td></tr>
+      <tr><td>283</td><td>32</td><td>float64   </td><td>gpy[4]        </td><td>Y coordinate of 4 control points.</td></tr>
+      <tr><td>  *</td><td> *</td><td>char*     </td><td>hprjsys       </td><td>Free form description of the projection coordinate system. Usually not parseable into a well known CRS. Petrel neither sets nor uses this field. Keep that in mind when reading files exported from Petrel. For files that will be imported into Petrel you will need another way to help the users load the data correctly.</td></tr>
+      <tr><td>315</td><td> 1</td><td>uint8     </td><td>hdim          </td><td>Horizontal dimension. Unknown = 0, Length = 1, ArcAngle = 2. Few applications support ArcAngle. Petrel neither sets nor uses the unit- and dimension fields. Both horizontal and vertical get left as Unknown, 1.0, and the empty string respectively. Technically this qualifies as a bug.</td></tr>
+      <tr><td>316</td><td> 8</td><td>float64   </td><td>hunitfactor   </td><td>Multiply by this factor to convert from storage units to SI units. Applies to gpx, gpy.</td></tr>
+      <tr><td>  *</td><td> *</td><td>char*     </td><td>hunitname     </td><td>For annotation only. Use hunitfactor, not the name, to convert to or from SI.</td></tr>
+      <tr><td>324</td><td> 1</td><td>uint8     </td><td>vdim          </td><td>Vertical dimension. Unknown = 0, Depth = 1, SeismicTWT = 1, SeismicOWT = 3.</td></tr>
+      <tr><td>325</td><td> 8</td><td>float64   </td><td>vunitfactor   </td><td>Multiply by this factor to convert from storage unite to SI units. Applies to orig[2], inc[2].</td></tr>
+      <tr><td>  *</td><td> *</td><td>char*     </td><td>vunitname     </td><td>For annotation only. Use vunitfactor, not the name, to convert to or from SI.</td></tr>
+      <tr><td>333</td><td> 4</td><td>uint32    </td><td>slbufsize     </td><td>Size of the StringList section.</td></tr>
+      <tr><td>337</td><td colspan="3">&nbsp;</td><td>end.</td></tr>
+
+      <tr>
+	<th colspan="4" class="section">StringList</th>
+	<td>Consecutive, so this is offset 346 from the start of the file.</td>
+      </tr>
+
+      <tr><th>offset</th><th>size</th><th>type</th><th>name</th><th>remarks</th></tr>
+      <tr><td>0</td><td>varies</td><td>char*</td><td>&nbsp;</td>
+
+      <td>
+	The 5 entries in the InfoHeader above that are variable length strings
+	are stored here, to allow the InfoHeader to have a constant size.
+	The strings are all null terminated and stored consecutively.
+	The total size of the StringList section is stored in slbufsize.
+      </td>
+      </tr>
+
+      <tr>
+	<th colspan="4" class="section">Histogram</th>
+	<td>Consecutive. Location in file depends on size of previous entries.</td>
+      </tr>
+
+      <tr><th>offset</th><th>size</th><th>type</th><th>name</th><th>remarks</th></tr>
+      <tr><td>  0</td><td>   8</td><td>int64     </td><td>cnt           </td><td>Total number of samples.</td></tr>
+      <tr><td>  8</td><td>   4</td><td>float32   </td><td>min           </td><td>Center point of first bin.</td></tr>
+      <tr><td> 12</td><td>   4</td><td>float32   </td><td>max           </td><td>Center point of last bin.</td></tr>
+      <tr><td> 16</td><td>2048</td><td>int64     </td><td>bin[256]      </td><td>Histogram.</td></tr>
+      <tr><td>2064</td><td colspan="3">&nbsp;</td><td>end.</td></tr>
+
+      <tr>
+	<th colspan="4" class="section">AlphaLup</th>
+	<td>Consecutive. Location in file depends on size of previous entries.</td>
+      </tr>
+
+      <tr><th>offset</th><th>size</th><th>type</th><th>name</th><th>remarks</th></tr>
+      <tr><td>0</td><td>varies</td><td>int64[]</td><td>&nbsp;</td>
+
+      <td>
+	<p>
+	  Offsets into the file for each alpha tile.
+	  The size of this section depends on "size" and "bricksize".
+	  "bricksize" is implicit (64,64,64) in version 1.
+	</p>
+	<p>
+	  This section should be written as all zeros and ignored on read.
+	  Had it been in use, entries would have the same meaning as in
+	  BrickLup except that bricksize[2]=1 and valuetype is uint8.
+	  With the default bricksize this means that alpha tiles are 4 KB each.
+	</p>
+      </td></tr>
+
+      <tr>
+	<th colspan="4" class="section">BrickLup</th>
+	<td>Consecutive. Location in file depends on size of previous entries.</td>
+      </tr>
+
+      <tr><th>offset</th><th>size</th><th>type</th><th>name</th><th>remarks</th></tr>
+      <tr><td>0</td><td>varies</td><td>int64[]</td><td>&nbsp;</td>
+
+      <td colspan="4">
+	<p>
+	  Offsets into the file for each data brick.
+	  The size of this section depends on "size".
+	</p>
+	<p>
+	  On write, all offsets should be a multiple of the brick size.
+	  On read, misaligned offsets should be tolerated but might result
+	  in significantly reduced performance. Version 1 files were usually
+	  written misaligned.
+	</p>
+	<p>
+	  Zero means brick does not exist, i.e. was never written.
+	  Reading such a brick should return the default value, which
+	  is the sample value that after conversion to float is the
+	  one closest to zero.
+	</p>
+	<p>
+	  Entries with the most significant bit set signify a brick
+	  where all samples have the same value. That value is stored
+	  in the least significant byte or bytes of the entry. The
+	  value type of the constant is the same as that of regular
+	  samples, and the constant is subject to the same conversion
+	  when the application requests float data. As with the
+	  missing bricks, these constant-value bricks do not take up
+	  space in the file apart from the 8-bit entry in the lookup
+	  table.
+	</p>
+	<p>
+	  An entry of 1 is treated the same as 0x8000000000000000,
+	  i.e. constant value zero before conversion to float.
+	  New files version 3 should write 0x8000000000000000 instead
+	  of 1, but both alternatives should be recognized on read.
+	</p>
+	<p>
+	  Any other entries are used as the file offset to the start
+	  of the brick. The size of the brick is given by bricksize *
+	  sizeof(valuetype).
+	</p>
+      </td></tr>
+    </table>
+
+    <!--......................................................................-->
+
+    <h2 class="page">ZGY Uncompressed Format version 1</h2>
+    <p>
+      Most numeric data is stored as little-endian, but 64 bit integers
+      are stored as two 32-bit little-endian integers with the most
+      significant half first. So, these are half big-endian, half little-endian.
+      64-bit integers are used in a couple of discrete properties and in
+      all file offsets.
+    </p>
+    <p>
+      Two levels of bricking are used in version 1. The primary brick size is
+      64 in each direction. The data inside each brick is further subdivided
+      into 8*8(*8) bricks.
+    </p>
+
+    <table border="1" style="border-collapse: collapse">
+      <tr>
+	<th colspan="4" class="section">FileHeader</th>
+	<td>Located at the start of the file.</td>
+      </tr>
+
+      <tr><th>offset</th><th>size</th><th>type</th><th>name</th><th>remarks</th></tr>
+      <tr><td>  0</td><td> 4</td><td>uint8     </td><td>magic[4]      </td><td>Always VBS\0 when viewed as a char[4].</td></tr>
+      <tr><td>  4</td><td> 4</td><td>uint32    </td><td>version       </td><td>In this case, 1.</td></tr>
+      <tr><td>  8</td><td colspan="3">&nbsp;</td><td>end.</td></tr>
+
+      <tr>
+	<th colspan="4" class="section">OffsetHeader</th>
+	<td>Consecutive, so this is offset 8 from the start of the file.</td>
+      </tr>
+
+      <tr><th>offset</th><th>size</th><th>type</th><th>name</th><th>remarks</th></tr>
+      <tr><td>  0</td><td> 8</td><td>int64    </td><td>infoheader_off</td><td>The offsets are stored as two little-endian 32-bit integers, with the most significant half first.</td></tr>
+      <tr><td>  8</td><td> 8</td><td>int64    </td><td>alphalup_off</td><td>&nbsp;</td></tr>
+      <tr><td> 16</td><td> 8</td><td>int64    </td><td>bricklup_off</td><td>&nbsp;</td></tr>
+      <tr><td> 24</td><td> 8</td><td>int64    </td><td>histogram_off</td><td>&nbsp;</td></tr>
+      <tr><td> 32</td><td colspan="3">&nbsp;</td><td>end.</td></tr>
+
+      <tr>
+	<th colspan="4" class="section">InfoHeader</th>
+	<td>Location in the file is specified in the OffsetHeader.</td>
+      </tr>
+
+      <tr><th>offset</th><th>size</th><th>type</th><th>name</th><th>remarks</th></tr>
+      <tr><td>  0</td><td>12</td><td>int32     </td><td>size[3]       </td><td>Integer size in inline, crossline, vertical directions.</td></tr>
+      <tr><td> 12</td><td>12</td><td>int32     </td><td>orig[3]       </td><td>First inline, crossline, time/depth. Only integral values allowed.</td></tr>
+      <tr><td> 24</td><td>12</td><td>int32     </td><td>inc[3]        </td><td>Integer increment in inline, crossline, vertical directions.</td></tr>
+      <tr><td> 36</td><td>12</td><td>float32   </td><td>incfactor[3]  </td><td>Unused. Write as (1,1,1), ignore on read.</td></tr>
+      <tr><td> 48</td><td>16</td><td>int32     </td><td>gpiline[4]    </td><td>Inline component of 4 control points.</td></tr>
+      <tr><td> 64</td><td>16</td><td>int32     </td><td>gpxline[4]    </td><td>Crossline component of 4 control points.</td></tr>
+      <tr><td> 80</td><td>32</td><td>float64   </td><td>gpx[4]        </td><td>X coordinate of 4 control points.</td></tr>
+      <tr><td>112</td><td>32</td><td>float64   </td><td>gpy[4]        </td><td>Y coordinate of 4 control points.</td></tr>
+      <tr><td>144</td><td> 1</td><td>uint8     </td><td>datatype      </td><td>Type of samples in each brick: int8 = 0, int16 = 2, float32 = 6.</td></tr>
+      <tr><td>145</td><td> 1</td><td>uint8     </td><td>coordtype     </td><td>Coordinate type: unknown = 0, meters = 1, feet = 2, degrees*3600 = 3, degrees = 4, DMS = 5.</td></tr>
+      <tr><td>146</td><td colspan="3">&nbsp;</td><td>end.</td></tr>
+
+      <tr>
+	<th colspan="4" class="section">Histogram</th>
+	<td>Location in the file is specified in the OffsetHeader.</td>
+      </tr>
+
+      <tr><th>offset</th><th>size</th><th>type</th><th>name</th><th>remarks</th></tr>
+      <tr><td>  0</td><td> 4</td><td>float32   </td><td>max           </td><td>Center point of first bin.</td></tr>
+      <tr><td>  4</td><td> 4</td><td>float32   </td><td>min           </td><td>Center point of last bin.</td></tr>
+      <tr><td>  8</td><td>1024</td><td>uint32    </td><td>bin[256]      </td><td>Histogram.</td></tr>
+      <tr><td>1032</td><td colspan="3">&nbsp;</td><td>end.</td></tr>
+
+      <tr>
+	<th colspan="4" class="section">AlphaLup</th>
+	<td>Location in the file is specified in the OffsetHeader.</td>
+      </tr>
+      <tr><th>offset</th><th>size</th><th>type</th><th>name</th><th>remarks</th></tr>
+      <tr><td>0</td><td>varies</td><td>int64[]</td><td>&nbsp;</td>
+      <td>
+	As AlphaLup in version 2 and 3, except that entries are stored
+	using a mix of big- and little-endian as described above.
+      </td>
+      </tr>
+
+      <tr>
+	<th colspan="4" class="section">BrickLup</th>
+	<td>Location in the file is specified in the OffsetHeader.</td>
+      </tr>
+      <tr><th>offset</th><th>size</th><th>type</th><th>name</th><th>remarks</th></tr>
+      <tr><td>0</td><td>varies</td><td>int64[]</td><td>&nbsp;</td>
+      <td>
+	As BrickLup in version 2 and 3, except that entries are stored
+	using a mix of big- and little-endian as described above.
+      </td>
+      </tr>
+
+    </table>
+
+    <p>
+      The deprecated DMS format for coordtype is degrees, minutes,
+      seconds encoded in a decimal format, so e.g. 3&deg;12'59"
+      becomes 31259. Add one second of arc to that number and you get
+      3&deg;13'00" or 31300 (i.e. not consecutive numbers).
+    </p>
+
+    <h2>LOD generation </h2>
+    <p>
+      The Zgy library is responsible for generating the smaller,
+      subsampled data at LOD&gt;0. Spatially, each sample in LOD N
+      maps to 2x2x2=8 samples of LOD N-1. The algorithms used for
+      subsampling are non-trivial.
+    </p>
+
+    <p>
+      LOD level 1 generation discards 3 of the 4 vertical traces that
+      form the input. In the vertical direction a low pass filter with
+      length 10 is applied, before discarding every other sample of
+      its result.
+    </p>
+
+    <p>
+      LOD level 2 and above used weighted averaging of all 8 source
+      samples. Sample values that are common in the cube (as reported
+      by the histogram) are presumably less interesting, so they
+      receive less weight.
+    </p>
+
+    <p>
+      An unfortunate effect of these algorithms is that the LOD&gt;1
+      bricks cannot be generated until all the LOD=0 bricks have been
+      written, since the histogram of the entire file is needed to
+      produce LOD=2 and above. This is not an issue if the LOD bricks
+      are generated in a separate pass after all full resolution data
+      has been written.
+    </p>
+
+    <h2>Other rules</h2>
+    <p>
+      Application code is allowed to read from or write to the padding
+      area between the survey edge and the rest of the brick. This is
+      even encouraged because writing full bricks can be more efficient.
+      It is unspecified whether the padding samples written in this manner
+      are retained when the data is read back.
+    </p>
+
+    <h2>Inconsistency encountered in old files</h2>
+    <p>(Added 2020-12-15)</p>
+    <p>
+      This is a long explanation of something that is a fairly obscure case.
+    </p>
+    <p>
+      For int8 and int16 files the data range should always have min
+      &lt; max. The reason is that applications will then have less
+      corner cases to worry about. The rule is enforced when creating
+      new files from OpenZGY. For float files the accessor should
+      ignore the range. So it doesn't matter what it is set to in that
+      case.
+    </p>
+    <p>
+      If an older file is encountered with min &gt; max those
+      values should be assumed to be garbage and ignored.
+      not be possible. The unconverted integral storage values should be
+      returned if the application tries to read back data as
+      float. By default OpenZGY should hide the min and max values
+      stored on the file and instead return a range consistent
+      with having storage and float values being the same.
+    </p>
+    <p>
+      If an older file is encountered with min == max it is
+      ambiguous what the application intended. There is at least
+      one scenario where Petrel using the old ZGY accessor could
+      write such files when all samples were the same.
+    </p>
+    <ol style="list-style-type: lower-alpha">
+      <li value="1">
+	<p>
+	  This cube has all the samples set to the same value. Reading
+	  any sample as float returns that value. Reading raw storage
+	  values returns unspecified values but will probably return
+	  all zeros. The choice of storage values was made when the
+	  file was written. The old code in Petrel and ZGY could have,
+	  but doesn't, avoid the situation by widening the range to
+	  make it non-empty. TODO-Low: verify what ZgyPublic did.
+	</p>
+      </li>
+      <li value="2">
+	<p>
+	  This cube contains discrete values such as classification
+	  enums. Reading samples as float doesn't make sense and the
+	  result is unspecified but will probably return all zeros.
+	  Reading raw storage values returns useful data. The old code
+	  in Petrel might have avoided the situation by choosing an
+	  arbitrary range instead of e.g. leaving the range as (0,0).
+	  I don't know the current behaviour.
+	</p>
+      </li>
+    </ol>
+    <p>
+      So the behavior may need to differ depending on whether the data
+      is being read back as float or storage values. Or read back as
+      storage but converted by the application to float. This is
+      exactly the kind of ambiguity that I am trying to avoid. What
+      should OpenZGY do when reading these old files?
+    </p>
+    <ol style="list-style-type: decimal">
+      <li value="1">
+	<p>
+	  Mimic the old behaviour as closely as possible. This
+	  includes showing the min==max data range to the application.
+	  Clients will need to handle that case, and any test plan for
+	  the clients must remember to test this situation. This makes
+	  it more difficult to use OpenZGY.
+	</p>
+      </li>
+      <li value="2">
+	<p>
+	  Reset the coding range to a sane value.
+	</p>
+	<table>
+	  <tr>
+	    <th>From</th>
+	    <th>To</th>
+	  </tr>
+	  <tr>
+	    <td>(0, 0)</td>
+	    <td>(-128, +127) or (-1, +1)</td>
+	  </tr>
+	  <tr>
+	    <td>(+value, +value</td>
+	    <td>(0, +value*2)</td>
+	  </tr>
+	  <tr>
+	    <td>(-value, -value)</td>
+	    <td>(-value*2, 0).</td>
+	  </tr>
+	</table>
+	<p>
+	  Plus a small adjustment so "value" maps exactly to zero.
+	  Read will be handled differently depending on whether
+	  storage is requested (return actual data) or float is
+	  requested (return the constant value). The main caveat is
+	  what happens if the writer wanted to store a constant-cube
+	  but used something else than zeros as the raw value,
+	  <em>and</em> the application wants float values but chooses
+	  to do the integral to float conversion itself
+	</p>
+      </li>
+      <li value="3">
+	<p>
+	  As (2) but always choose to interpret as (a), assuming that
+	  applications writing discrete values actually did set the
+	  range to non-empty and we don't need to worry about that
+	  case. If the assumption was incorrect then files supposed to
+	  contain discrete values will appear to be empty. The
+	  difficulty of verifying the assumption and the risk of
+	  getting it wrong probably disqualifies this alternative.
+	  Also, in this case there is no way application can retrieve
+	  the actual data even if they do choose to implement special
+	  handling. Note that applications reading using OpenZGY are
+	  free to assume (a) and run the risk of losing data, while
+	  OpenZGY itself isn't.
+	</p>
+      </li>
+      <li value="4">
+	<p>
+	  TODO-Low: This should perhaps be the chosen behaviour.
+	  As (2) but always choose to interpret as (b). If the choice
+	  was wrong then applications might still work <em>if</em> the
+	  raw storage values were all written as zero and the adjusted
+	  coding range was set to an appropriate value.
+	</p>
+      </li>
+      <li value="5">
+	<p>
+	  Scan the entire file to see if all bricks contain the same
+	  constant value on storage. If yes, assume (a) and change
+	  that value to zero if in isn't already. If no, assume (b)
+	</p>
+      </li>
+    </ol>
+    <p>
+      In all cases it is unspecified what happens with the histogram.
+      I doubt anybody cares when reading old inconsistent files.
+    </p>
+    <p>
+      TODO-Low: Related issue: When creating a histogram for a new
+      all-constant file the histogram would look better if all the
+      samples end up in the center bin. This applies also to float
+      files. Otherwise the logic would be similar to (2).
+    </p>
+    <p>
+      Applications such as "zgycopy" will need special handling
+      because the OpenZGY library will refuse to set min==max in a
+      new file. The copy application must guess whether the writer had
+      intended (a) or (b) and the choice might differ from whet the
+      library chooses.
+    </p>
+    <ol style="list-style-type: lower-alpha">
+      <li value="1">
+	Store all constant zero for storage and constant value for
+	float as if copying the data as float
+      </li>
+      <li>
+	Store the same numbers in float and storage as if copying the
+	data as storage values.
+      </li>
+    </ol>
+    <p>
+      For the stand alone tools I choose (a). Applications that
+      perform a similar task must choose for themselves. When choosing
+      (a) the copied file will have all-zero storage values regardless
+      of what was originally stored. When choosing (b) reading float
+      values will now return the sane as storage instead of some
+      constant.
+    </p>
+    <p>
+      When "zgycopy" chooses (a) this case if fairly straight forward.
+      No bulk data should be read from the input. The application
+      simply needs to figure out an appropriate data range and then
+      issue a single call to writeconst(). OpenZGY always re-computes
+      the statistics and histogram so it doesn't matter if those are
+      inconsistent and the reader ignores that fact.
+    </p>
+    <p>
+      With choices (4) or (5) "zgycopy" might work unmodified but only
+      if some other assumptions as explained above are correct.
+    </p>
+    <p>
+      In the current OpenZGY implementation the min==max case is
+      treated the same as min&gt;max. It is recommended that zgycopy
+      and similar applications check for the special case. Other
+      applications that read ZGY might not care.
+    </p>
+    <img src="images/openzgy-fig1.png" alt="Figure showing physical layout" width="500" height="1000"/>
+
+    <!-- This version of fig1 looks better because it is vector graphics
+         which will scale correctly when rendered as html. It also keeps
+         everything in a single, e-mail friendly file. But it works less
+         well in an Azure preview.
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="500"
+   height="1000"
+   viewBox="0 0 500.00004 1000"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="openzgy-fig1.svg"
+   inkscape:export-filename="/home/paal/openzgy-fig1.png"
+   inkscape:export-xdpi="90"
+   inkscape:export-ydpi="90">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="1"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.70710678"
+     inkscape:cx="33.846075"
+     inkscape:cy="523.84654"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:snap-global="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="1200"
+     inkscape:window-x="-4"
+     inkscape:window-y="0"
+     inkscape:window-maximized="0"
+     inkscape:snap-bbox="true"
+     inkscape:bbox-nodes="true"
+     inkscape:object-nodes="true"
+     inkscape:snap-smooth-nodes="true"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     units="px">
+    <inkscape:grid
+       type="xygrid"
+       id="grid4401"
+       originx="-43.3"
+       originy="-37.000002" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-43.3,-15.362047)">
+    <g
+       id="g5718"
+       transform="translate(-19.75736,28.384777)">
+      <text
+         sodipodi:linespacing="125%"
+         id="text4391"
+         y="14.107367"
+         x="75.526917"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:25px;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L Bold'"
+           y="14.107367"
+           x="75.526917"
+           id="tspan4393"
+           sodipodi:role="line">Figure 1:</tspan><tspan
+           id="tspan5424"
+           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:25px;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L Bold'"
+           y="45.357368"
+           x="75.526917"
+           sodipodi:role="line">ZGY Uncompressed Format</tspan><tspan
+           id="tspan5426"
+           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:25px;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L Bold'"
+           y="76.607368"
+           x="75.526917"
+           sodipodi:role="line">version 2 and 3</tspan></text>
+      <g
+         transform="translate(90.674416,52.745161)"
+         id="g5283">
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="-14.4575"
+           y="106.36221"
+           id="text4329"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan4331"
+             x="-14.4575"
+             y="106.36221">VBS\0</tspan><tspan
+             sodipodi:role="line"
+             x="-14.4575"
+             y="128.23721"
+             id="tspan4333">+version</tspan></text>
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="322.5625"
+           y="138.3622"
+           id="text4335"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan4337"
+             x="322.5625"
+             y="138.3622">Unused in</tspan><tspan
+             sodipodi:role="line"
+             x="322.5625"
+             y="160.2372"
+             id="tspan4339">this version</tspan></text>
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="-15"
+           y="176.3622"
+           id="text4341"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan4343"
+             x="-15"
+             y="176.3622">Scalar</tspan><tspan
+             sodipodi:role="line"
+             x="-15"
+             y="198.2372"
+             id="tspan4345">metadata</tspan></text>
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="-14.86"
+           y="283.36221"
+           id="text4353"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan4355"
+             x="-14.86"
+             y="283.36221">Fixed size</tspan><tspan
+             sodipodi:role="line"
+             x="-14.86"
+             y="305.23721"
+             id="tspan4357">histogram</tspan></text>
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="323"
+           y="202.3622"
+           id="text4371"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan4373"
+             x="323"
+             y="202.3622">Logical extension</tspan><tspan
+             sodipodi:role="line"
+             x="323"
+             y="224.2372"
+             id="tspan4395">of InfoHeader.</tspan><tspan
+             sodipodi:role="line"
+             x="323"
+             y="246.1122"
+             id="tspan4397">Variable size,</tspan><tspan
+             sodipodi:role="line"
+             x="323"
+             y="267.98718"
+             id="tspan5237">actual size is</tspan><tspan
+             sodipodi:role="line"
+             x="323"
+             y="289.86218"
+             id="tspan4399">in InfoHeader,</tspan></text>
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="322.72"
+           y="425.36221"
+           id="text4375"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan4377"
+             x="322.72"
+             y="425.36221">One 64-bit offset</tspan><tspan
+             sodipodi:role="line"
+             x="322.72"
+             y="447.23721"
+             id="tspan4379">per brick. The</tspan><tspan
+             sodipodi:role="line"
+             x="322.72"
+             y="469.11221"
+             id="tspan4381">number of bricks</tspan><tspan
+             sodipodi:role="line"
+             x="322.72"
+             y="490.98721"
+             id="tspan4383">in each LUT and</tspan><tspan
+             sodipodi:role="line"
+             x="322.72"
+             y="512.86218"
+             id="tspan5251">the total number</tspan><tspan
+             sodipodi:role="line"
+             x="322.72"
+             y="534.73718"
+             id="tspan4385">of LUTs are</tspan><tspan
+             sodipodi:role="line"
+             x="322.72"
+             y="556.61218"
+             id="tspan4387">implied by the</tspan><tspan
+             sodipodi:role="line"
+             x="322.72"
+             y="578.48718"
+             id="tspan5257">cube size and</tspan><tspan
+             sodipodi:role="line"
+             x="322.72"
+             y="600.36218"
+             id="tspan5259">brick size stored</tspan><tspan
+             sodipodi:role="line"
+             x="322.72"
+             y="622.23718"
+             id="tspan4389">in InfoHeader.</tspan></text>
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="25.75"
+           y="535.36218"
+           id="text4359"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan4361"
+             x="25.75"
+             y="535.36218">LUT N</tspan><tspan
+             sodipodi:role="line"
+             x="25.75"
+             y="557.23718"
+             id="tspan4363">LUT N-1</tspan></text>
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="25.5"
+           y="634.36218"
+           id="text4365"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan4367"
+             x="25.5"
+             y="634.36218">LUT 0</tspan><tspan
+             sodipodi:role="line"
+             x="25.5"
+             y="656.23718"
+             id="tspan4369">(fullres)</tspan></text>
+        <g
+           id="g5174">
+          <g
+             transform="translate(29,5.4999992)"
+             id="g4432">
+            <text
+               xml:space="preserve"
+               style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+               x="117.27496"
+               y="109.1797"
+               id="text4297"
+               sodipodi:linespacing="125%"><tspan
+                 sodipodi:role="line"
+                 id="tspan4299"
+                 x="117.27496"
+                 y="109.1797">FileHeader</tspan></text>
+            <rect
+               style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+               id="rect4403-3"
+               width="128"
+               height="32"
+               x="99"
+               y="86.862206" />
+          </g>
+          <g
+             transform="translate(32,-8.410356e-6)"
+             id="g4437">
+            <text
+               xml:space="preserve"
+               style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+               x="105.38496"
+               y="146.67972"
+               id="text4301"
+               sodipodi:linespacing="125%"><tspan
+                 sodipodi:role="line"
+                 id="tspan4303"
+                 x="105.38496"
+                 y="146.67972">OffsetHeader</tspan></text>
+            <rect
+               style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+               id="rect4403-6"
+               width="128"
+               height="32"
+               x="96"
+               y="124.36221" />
+          </g>
+          <g
+             transform="translate(1,-30.051247)"
+             id="g4461">
+            <text
+               xml:space="preserve"
+               style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+               x="145.2177"
+               y="225.23096"
+               id="text4305"
+               sodipodi:linespacing="125%"><tspan
+                 sodipodi:role="line"
+                 id="tspan4307"
+                 x="145.2177"
+                 y="225.23096">InfoHeader</tspan></text>
+            <rect
+               style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+               id="rect4403-7"
+               width="129"
+               height="65.000008"
+               x="127"
+               y="186.41345" />
+          </g>
+          <g
+             transform="translate(32,6.848433e-6)"
+             id="g4481">
+            <text
+               xml:space="preserve"
+               style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+               x="118.03418"
+               y="241.0347"
+               id="text4309"
+               sodipodi:linespacing="125%"><tspan
+                 sodipodi:role="line"
+                 id="tspan4311"
+                 x="118.03418"
+                 y="241.0347">StringList</tspan></text>
+            <rect
+               style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+               id="rect4403-5"
+               width="128"
+               height="32"
+               x="96"
+               y="220.3622" />
+          </g>
+          <g
+             transform="translate(4.2462463,-32.000008)"
+             id="g4488">
+            <text
+               xml:space="preserve"
+               style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+               x="144.58029"
+               y="336.90347"
+               id="text4313"
+               sodipodi:linespacing="125%"><tspan
+                 sodipodi:role="line"
+                 id="tspan4315"
+                 x="144.58029"
+                 y="336.90347">Histogram</tspan></text>
+            <rect
+               style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+               id="rect4486"
+               width="128"
+               height="96"
+               x="123.75375"
+               y="284.36221" />
+          </g>
+          <g
+             transform="translate(32.502625,128.5)"
+             id="g4532">
+            <text
+               xml:space="preserve"
+               style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+               x="139.92175"
+               y="629.79108"
+               id="text4325"
+               sodipodi:linespacing="125%"><tspan
+                 sodipodi:role="line"
+                 id="tspan4327"
+                 x="139.92175"
+                 y="629.79108">Data</tspan></text>
+            <path
+               style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+               d="m 96,540.3622 128,0 0,160 -31,-24 -19,30 -12,-22 -30,11 -36,-27 z"
+               id="path4513"
+               inkscape:connector-curvature="0" />
+            <path
+               style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+               d="m 96,796.3622 128,0 0.5,-63.5 -31,-24 -19,30 -12,-22 -30,11 -36,-27 z"
+               id="path4513-6"
+               inkscape:connector-curvature="0"
+               sodipodi:nodetypes="ccccccccc" />
+            <path
+               style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:2, 1;stroke-dashoffset:0;stroke-opacity:1"
+               d="m 144,690.3622 0,33"
+               id="path4530"
+               inkscape:connector-curvature="0" />
+          </g>
+          <g
+             transform="translate(-128,-347.99998)"
+             id="g4947">
+            <rect
+               style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+               id="rect4493-2"
+               width="128"
+               height="160"
+               x="256"
+               y="856.36218" />
+            <g
+               id="g4838"
+               transform="translate(-170.37855,-4.0000424)">
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2"
+                 d="m 426.37855,860.86225 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-8"
+                 d="m 426.37855,868.81225 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:1, 2;stroke-dashoffset:0;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-9"
+                 d="m 426.37855,876.76224 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-7"
+                 d="m 426.37855,884.71224 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-3"
+                 d="m 426.37855,892.66224 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-6"
+                 d="m 426.37855,900.61224 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-1"
+                 d="m 426.37855,908.56223 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:1, 2;stroke-dashoffset:0;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-2"
+                 d="m 426.37855,916.51223 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-93"
+                 d="m 426.37855,924.46223 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-19"
+                 d="m 426.37855,932.41222 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-4"
+                 d="m 426.37855,940.36222 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-78"
+                 d="m 426.37855,948.31222 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-45"
+                 d="m 426.37855,956.26221 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-0"
+                 d="m 426.37855,964.21221 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-36"
+                 d="m 426.37855,972.16221 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-10"
+                 d="m 426.37855,980.1122 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-63"
+                 d="m 426.37855,988.0622 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-20"
+                 d="m 426.37855,996.0122 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-61"
+                 d="m 426.37855,1003.9622 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-5"
+                 d="m 426.37855,1011.9122 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-54"
+                 d="m 426.37855,1019.8622 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+            </g>
+            <rect
+               style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+               id="rect4945"
+               width="82.75"
+               height="23.75"
+               x="278.5"
+               y="923.61218" />
+            <text
+               xml:space="preserve"
+               style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+               x="281.83359"
+               y="941.04346"
+               id="text4321"
+               sodipodi:linespacing="125%"><tspan
+                 sodipodi:role="line"
+                 id="tspan4323"
+                 x="281.83359"
+                 y="941.04346">BrickLup</tspan></text>
+          </g>
+        </g>
+        <path
+           style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           d="m 122.61471,516.64026 c 0,0 -7.31228,-0.34527 -9.36471,2.10957 -2.09618,2.50716 -0.28302,10.69569 -1.81097,12.79134 -1.63581,2.24359 -5.55716,2.18335 -7.45045,3.72522 1.56402,1.37724 5.8283,1.47174 7.45045,3.72523 1.33826,1.85909 -0.24296,10.74376 1.81097,13.1206 2.07756,2.40419 9.36471,1.7803 9.36471,1.7803"
+           id="path4888-7"
+           inkscape:connector-curvature="0"
+           sodipodi:nodetypes="csscssc" />
+        <path
+           style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           d="m 119.83885,612.57175 c 0,0 -7.24456,-0.49355 -9.27798,3.01555 -2.07676,3.58389 -0.28039,15.28907 -1.79419,18.28472 -1.62066,3.20712 -5.50569,3.12101 -7.38145,5.32505 1.54953,1.96872 5.77432,2.1038 7.38145,5.32508 1.32586,2.65745 -0.24071,15.35777 1.79419,18.75537 2.05832,3.4367 9.27798,2.5448 9.27798,2.5448"
+           id="path4888-7-6"
+           inkscape:connector-curvature="0"
+           sodipodi:nodetypes="csscssc" />
+        <path
+           style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 87,527.61222 37.75,-15.25"
+           id="path4975"
+           inkscape:connector-curvature="0"
+           sodipodi:nodetypes="cc" />
+        <g
+           transform="translate(-128,-507.99998)"
+           id="g4977-5">
+          <text
+             sodipodi:linespacing="125%"
+             id="text4359-6"
+             y="866.36218"
+             x="151.75"
+             style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+             xml:space="preserve"><tspan
+               y="866.36218"
+               x="151.75"
+               id="tspan4361-9"
+               sodipodi:role="line">LUT N</tspan><tspan
+               id="tspan4363-3"
+               y="888.23718"
+               x="151.75"
+               sodipodi:role="line">LUT N-1</tspan></text>
+          <text
+             sodipodi:linespacing="125%"
+             id="text4365-7"
+             y="982.36218"
+             x="153.5"
+             style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+             xml:space="preserve"><tspan
+               y="982.36218"
+               x="153.5"
+               id="tspan4367-4"
+               sodipodi:role="line">LUT 0</tspan><tspan
+               id="tspan4369-5"
+               y="1004.2372"
+               x="153.5"
+               sodipodi:role="line">(fullres)</tspan></text>
+          <g
+             id="g4947-2">
+            <rect
+               style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+               id="rect4493-2-5"
+               width="128"
+               height="160"
+               x="256"
+               y="856.36218" />
+            <g
+               id="g4838-4"
+               transform="translate(-170.37855,-4.0000424)">
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-74"
+                 d="m 426.37855,860.86225 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-8-4"
+                 d="m 426.37855,868.81225 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:1, 2;stroke-dashoffset:0;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-9-3"
+                 d="m 426.37855,876.76224 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-7-0"
+                 d="m 426.37855,884.71224 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-3-7"
+                 d="m 426.37855,892.66224 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-6-8"
+                 d="m 426.37855,900.61224 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-1-6"
+                 d="m 426.37855,908.56223 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:1, 2;stroke-dashoffset:0;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-2-8"
+                 d="m 426.37855,916.51223 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-93-8"
+                 d="m 426.37855,924.46223 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-19-4"
+                 d="m 426.37855,932.41222 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-4-3"
+                 d="m 426.37855,940.36222 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-78-1"
+                 d="m 426.37855,948.31222 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-45-4"
+                 d="m 426.37855,956.26221 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-0-9"
+                 d="m 426.37855,964.21221 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-36-2"
+                 d="m 426.37855,972.16221 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-10-0"
+                 d="m 426.37855,980.1122 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-63-6"
+                 d="m 426.37855,988.0622 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-20-8"
+                 d="m 426.37855,996.0122 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-61-9"
+                 d="m 426.37855,1003.9622 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-5-2"
+                 d="m 426.37855,1011.9122 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+              <path
+                 inkscape:connector-curvature="0"
+                 id="path4560-75-2-54-6"
+                 d="m 426.37855,1019.8622 128,0"
+                 style="fill:none;fill-rule:evenodd;stroke:#999999;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+            </g>
+            <rect
+               style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+               id="rect4945-6"
+               width="82.75"
+               height="23.75"
+               x="278.5"
+               y="923.61218" />
+            <text
+               xml:space="preserve"
+               style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+               x="281.83359"
+               y="941.04346"
+               id="text4321-4"
+               sodipodi:linespacing="125%"><tspan
+                 sodipodi:role="line"
+                 id="tspan4323-9"
+                 x="281.83359"
+                 y="941.04346">AlphaLup</tspan></text>
+          </g>
+          <path
+             sodipodi:nodetypes="csscssc"
+             inkscape:connector-curvature="0"
+             id="path4888-7-5"
+             d="m 250.61471,864.64024 c 0,0 -7.31228,-0.34527 -9.36471,2.10957 -2.09618,2.50716 -0.28302,10.69569 -1.81097,12.79134 -1.63581,2.24359 -5.55716,2.18335 -7.45045,3.72522 1.56402,1.37724 5.8283,1.47174 7.45045,3.72523 1.33826,1.85909 -0.24296,10.74376 1.81097,13.1206 2.07756,2.40419 9.36471,1.7803 9.36471,1.7803"
+             style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+          <path
+             sodipodi:nodetypes="csscssc"
+             inkscape:connector-curvature="0"
+             id="path4888-7-6-0"
+             d="m 247.83885,960.57173 c 0,0 -7.24456,-0.49355 -9.27798,3.01555 -2.07676,3.58389 -0.28039,15.28907 -1.79419,18.28472 -1.62066,3.20712 -5.50569,3.12101 -7.38145,5.32505 1.54953,1.96872 5.77432,2.1038 7.38145,5.32508 1.32586,2.65745 -0.24071,15.35777 1.79419,18.75537 2.05832,3.4367 9.27798,2.5448 9.27798,2.5448"
+             style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+          <path
+             inkscape:connector-curvature="0"
+             id="path4975-4"
+             d="m 218,857.6122 34.75,2.75"
+             style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+        </g>
+        <path
+           style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 66,115.3622 c -5,0 46,-4 46,-4"
+           id="path5261"
+           inkscape:connector-curvature="0"
+           sodipodi:nodetypes="cc" />
+        <path
+           style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 60,179.3622 58,4"
+           id="path5263"
+           inkscape:connector-curvature="0"
+           sodipodi:nodetypes="cc" />
+        <path
+           style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 73,292.3622 41,-1"
+           id="path5265"
+           inkscape:connector-curvature="0"
+           sodipodi:nodetypes="cc" />
+        <path
+           style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 311,142.3622 -48,-1"
+           id="path5269"
+           inkscape:connector-curvature="0"
+           sodipodi:nodetypes="cc" />
+        <path
+           style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 312,236.3622 -48,-1"
+           id="path5271"
+           inkscape:connector-curvature="0"
+           sodipodi:nodetypes="cc" />
+        <path
+           style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 313,475.3622 -49,-49"
+           id="path5273"
+           inkscape:connector-curvature="0"
+           sodipodi:nodetypes="cc" />
+        <path
+           style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 312,536.3622 -44,49"
+           id="path5275"
+           inkscape:connector-curvature="0"
+           sodipodi:nodetypes="cc" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="322.33499"
+           y="754.36218"
+           id="text5277"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5279"
+             x="322.33499"
+             y="754.36218">Bulk data</tspan></text>
+        <path
+           style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 303,754.3622 -33,-1"
+           id="path5281"
+           inkscape:connector-curvature="0" />
+      </g>
+    </g>
+  </g>
+</svg>
+-->
+
+  </body>
+</html>

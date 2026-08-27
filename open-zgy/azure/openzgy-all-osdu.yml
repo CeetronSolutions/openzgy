@@ -1,0 +1,11 @@
+name: $(Build.BuildID)-openzgy-all-osdu
+
+trigger: none
+
+pool:
+  name: Paal-Kvamme-Test
+
+steps:
+- bash: |
+    echo "There is no loger a separate osdu-only build of OpenZGY."
+  displayName: 'Stub for removed pipeline'

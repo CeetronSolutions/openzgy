@@ -1,0 +1,38 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 4ed9a83..32b5d61 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -238,24 +238,9 @@ if(AZURE_CURL_PROVIDER_ENABLED)
+     find_library( XML2_LIBRARY xml2 )
+     find_library( LZMA_LIBRARY lzma )
+     find_library( Z_LIBRARY    z )
++    include(CMakeFindDependencyMacro)
++    find_dependency(LibXml2)
+       
+-    find_package( libxml2 CONFIG REQUIRED)
+-    set( LIBXML2_LIBRARY ${XML2_LIBRARY} CACHE FILEPATH "path to libxml2 library" )
+-
+-    find_package(LibXml2 CONFIG REQUIRED )
+-    
+-    if(LibXml2_FOUND AND NOT TARGET LibXml2::LibXml2)
+-      message( STATUS "manually constructing LibXml2::LibXml2")
+-
+-      add_library(LibXml2::LibXml2 UNKNOWN IMPORTED)
+-      set_target_properties(LibXml2::LibXml2 PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${LIBXML2_INCLUDE_DIRS}")
+-      set_target_properties(LibXml2::LibXml2 PROPERTIES INTERFACE_COMPILE_OPTIONS "${LIBXML2_DEFINITIONS}")
+-      set_property(TARGET LibXml2::LibXml2 APPEND PROPERTY IMPORTED_LOCATION "${LIBXML2_LIBRARY}" )
+-
+-      # the magic line that makes statically linked libxml2 with lzma and lz work is here...
+-      set_property(TARGET LibXml2::LibXml2 PROPERTY IMPORTED_LINK_INTERFACE_LIBRARIES "${LZMA_LIBRARY};${Z_LIBRARY}")
+-
+-    endif()
+   endif()
+ 
+   find_package(azure-core-cpp CONFIG REQUIRED )
+@@ -644,4 +629,4 @@ if(BUILD_BENCHMARKS)
+     COMMENT "Running Performance Benchmarks"
+     )
+ 
+-endif()
+\ No newline at end of file
++endif()

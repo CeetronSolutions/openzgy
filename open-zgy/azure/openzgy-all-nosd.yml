@@ -1,0 +1,114 @@
+name: $(Build.BuildID)-openzgy-all-nosd
+
+# Differences compared to openzgy-all.yml:
+#   - No option to publish universal package. Add later if useful.
+#   - tagtail is 'nosd', makeargs is 'HAVE_SD='
+#   - libsdapi.so doesn't get deployed.
+
+trigger: none
+
+pool:
+  name: Paal-Kvamme-Test
+
+parameters:
+
+#- name: PublishUniversal
+#  displayName: Publish universal packages
+#  type: boolean
+#  default: false
+
+- name: build_rocky8
+  type: boolean
+  default: true
+
+- name: build_focal
+  type: boolean
+  default: true
+
+- name: build_jammy
+  type: boolean
+  default: true
+
+- name: build_noble
+  type: boolean
+  default: true
+
+- name: build_clang
+  type: boolean
+  default: true
+
+variables:
+  - group: 'Salmon Variables'
+  - name: MakeArguments
+    value: 'HAVE_SD='
+  - name: TagSuffix
+    value: 'nosd'
+  - name: ExpectToDeploy
+    value: >
+      version.txt
+      openzgy-install.tgz
+      without-dependencies/[Oo]pen[Zz]gy[Bb]indings-.*-PYVERSION-linux_x86_64.whl
+      without-dependencies/[Oo]pen[Zz]gy[Bb]indings-.*.tar.gz
+      LINUXDISTRO-GCCVERSION/[Oo]pen[Zz]gy[Bb]indings-.*-PYVERSION-linux_x86_64.whl
+      LINUXDISTRO-GCCVERSION/[Oo]pen[Zz]gy[Bb]indings-.*.tar.gz
+      LINUXDISTRO-GCCVERSION/libopenzgy\\.so\\..*\\..*
+      LINUXDISTRO-GCCVERSION/libopenzgy-zfp\\.so\\..*\\..*
+      include/openzgy/api.h
+      include/openzgy/exception.h
+      include/openzgy/iocontext.h
+
+jobs:
+  - ${{ if parameters.build_rocky8 }}:
+    - template: templates/build-jobs.yml
+      parameters:
+        linuxdistro: 'rocky8'
+        pyversion:   'cp38-cp38'
+        gccversion:  'gcc85'
+        deployed:    '${{variables.ExpectToDeploy}}'
+        makeargs:    '${{variables.MakeArguments}}'
+        tagtail:     '${{variables.TagSuffix}}'
+        upublish:    False
+
+  - ${{ if parameters.build_focal }}:
+    - template: templates/build-jobs.yml
+      parameters:
+        linuxdistro: 'focal'
+        pyversion:   'cp38-cp38'
+        gccversion:  'gcc94'
+        deployed:    '${{variables.ExpectToDeploy}}'
+        makeargs:    '${{variables.MakeArguments}}'
+        tagtail:     '${{variables.TagSuffix}}'
+        upublish:    False
+
+  - ${{ if parameters.build_jammy }}:
+    - template: templates/build-jobs.yml
+      parameters:
+        linuxdistro: 'jammy'
+        pyversion:   'cp310-cp310'
+        gccversion:  'gcc114'
+        deployed:    '${{variables.ExpectToDeploy}}'
+        makeargs:    '${{variables.MakeArguments}}'
+        tagtail:     '${{variables.TagSuffix}}'
+        upublish:    False
+
+  - ${{ if parameters.build_noble }}:
+    - template: templates/build-jobs.yml
+      parameters:
+        linuxdistro: 'noble'
+        pyversion:   'cp312-cp312'
+        gccversion:  'gcc133'
+        deployed:    '${{variables.ExpectToDeploy}}'
+        makeargs:    '${{variables.MakeArguments}}'
+        tagtail:     '${{variables.TagSuffix}}'
+        upublish:    False
+
+  - ${{ if parameters.build_clang }}:
+    - template: templates/build-jobs.yml
+      parameters:
+        linuxdistro: 'clang'
+        pyversion:   'cp310-cp310'
+        gccversion:  'gcc114'
+        deployed:    '${{variables.ExpectToDeploy}}'
+        makeargs:    '${{variables.MakeArguments}}'
+        tagtail:     '${{variables.TagSuffix}}'
+        upublish:    False

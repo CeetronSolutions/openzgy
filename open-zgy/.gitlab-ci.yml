@@ -1,0 +1,510 @@
+include:
+  - template: Auto-DevOps.gitlab-ci.yml
+  - local: gitlab/templates.yml
+  
+stages:
+  - prepare
+  - build
+  - test
+  - review
+  - deploy  # dummy stage to follow the template guidelines
+  - dast
+  - staging
+  - canary
+  - production
+  - incremental rollout 10%
+  - incremental rollout 25%
+  - incremental rollout 50%
+  - incremental rollout 100%
+  - performance
+  - cleanup
+
+variables:
+    SHA_IMAGE_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA
+    VS_COMMUNITY_PATH: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community'
+    MSBUILD_PATH: '$VS_COMMUNITY_PATH\MSBuild\Current\Bin\msbuild.exe'
+    CMAKE_PATH: '$VS_COMMUNITY_PATH\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\'
+    CONFIGURATION: Release
+    PLATFORM: x64
+    DEPLOY_FOLDER: '/build/deploy/native/$PLATFORM/$CONFIGURATION/'
+    OPENZGY_TESTDATA: '$CI_PROJECT_DIR/build/testdata'
+    TEST_RUNNER: '$CI_PROJECT_DIR\build\deploy\native\$PLATFORM\$CONFIGURATION\OpenZGY.Test.exe'
+    SOLUTION_FILE_PATH: '$CI_PROJECT_DIR\native\windows\OpenZGY.sln'
+    
+    CONTAINER_SCANNING_DISABLED: "1"
+    AUTO_DEVOPS_EXPLICITLY_ENABLED: "1"
+    TEST_DISABLED: "1"
+    CODE_QUALITY_DISABLED: ""
+    BUILD_DISABLED: "1"
+
+
+build:
+  rules:    #introducing BUILD_DISABLED: overriding original rule to be able to ignore the original job
+    - if: '$BUILD_DISABLED'
+      when: never
+    
+build_artifact:
+  script: exit 0    #does not do anything, override to ignore original job
+  rules:
+    - if: '$BUILD_DISABLED'
+      when: never
+doc-container:
+  stage: prepare
+  image: docker:19.03
+  tags:
+  - docker-runner
+  script:
+  - mkdir -p seismic-service-bin private
+  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  - grep -v '^COPY' scripts/Dockerfile-doc | docker build --pull -t $SHA_IMAGE_TAG-doc
+    -f - .
+  - docker push $SHA_IMAGE_TAG-doc
+  only:
+  - master
+  - merge_requests
+  - kvamme62/citest
+  - kvamme62/cicd
+  - skorozsi/sast
+  
+
+# A ready-made image prepared by the seismic store team, is used for compilation.
+# The image contains all the necessary components for SDAPI compilation.
+# It makes building OpenZGY with SDAPI much faster and easier.
+#
+# Benefits:
+#  * SDAPI dependencies are frozen in the base image.
+#  * SDAPI itself gets built from the latest sources.
+#  * OpenZGY-only dependencies get the latest version available.
+#  * OpenZGY gets built from the latest sources.
+#
+# Neutral:
+#  * Cloning the SDAPI source is done inside the container, in .compile-job.
+#  * Cloning the OpenZGY source is done by gitlab and mounted inside the container.
+#
+# Drawbacks:
+#  * Adding support for a new platform is more complicated.
+#  * Patches to the base OS are not picked up automatically.
+#  * The OpenZGY code has less control over its environment.
+#  * Changes may need to be coordinated across tech centers.
+#  * Multiple-inheritance issues. E.g. Python is not needed by SDAPI or its
+#    dependencies, but is needed both by OpenZGY and Omega. The choice of
+#    Python version doesn't belong in the base image. But we might need to
+#    put it there.
+#
+# TODO
+#  Prepare ready-made images in our registry for all supported platforms.
+#  Compile the documentation based on the ready-made image.
+
+
+# Available cloud providers:
+# --azure-provider
+# --azure-curl-provider
+# --aws-provider
+# --anthos-provider
+# --ibm-provider
+# --gcp-provider --does not added yet
+
+
+# Ubuntu jammy compile
+jammy-compile-azure-curl:
+  extends: .jammy_compile_job
+  variables:
+    LINUXDISTRO: jammy
+    CLOUD_PROVIDERS: "--azure-curl-provider"
+
+.jammy-compile-aws:
+  extends: .jammy_compile_job
+  variables:
+    LINUXDISTRO: jammy
+    CLOUD_PROVIDERS: "--aws-provider"
+
+.jammy-compile-anthos:
+  extends: .jammy_compile_job
+  variables:
+    LINUXDISTRO: jammy
+    CLOUD_PROVIDERS: "--anthos-provider"
+
+.jammy-compile-ibm:
+  extends: .jammy_compile_job
+  variables:
+    LINUXDISTRO: jammy
+    CLOUD_PROVIDERS: "--ibm-provider"
+
+.jammy-compile-polycloud:
+  extends: .jammy_compile_job
+  variables:
+    LINUXDISTRO: jammy
+    CLOUD_PROVIDERS: "--azure-curl-provider --aws-provider --ibm-provider --anthos-provider"
+
+
+# Ubuntu jammy tests
+jammy-test-azure-curl:
+  extends: .test-jammy
+  dependencies:
+    - jammy-compile-azure-curl
+
+.jammy-test-aws:
+  extends: .test-jammy
+  dependencies:
+    - jammy-compile-aws
+
+.jammy-test-anthos:
+  extends: .test-jammy
+  dependencies:
+    - jammy-compile-anthos
+
+.jammy-test-ibm:
+  extends: .test-jammy
+  dependencies:
+    - jammy-compile-ibm
+
+.jammy-test-polycloud:
+  extends: .test-jammy
+  dependencies:
+    - jammy-compile-polycloud
+
+
+
+#Ubuntu jammy deploy
+jammy-deploy-azure-curl:
+  extends: .deploy_job
+  variables:
+    LINUXDISTRO: jammy
+  dependencies:
+    - jammy-compile-azure-curl
+
+.jammy-deploy-aws:
+  extends: .deploy_job
+  variables:
+    LINUXDISTRO: jammy
+  dependencies:
+    - jammy-compile-aws
+
+.jammy-deploy-anthos:
+  extends: .deploy_job
+  variables:
+    LINUXDISTRO: jammy
+  dependencies:
+    - jammy-compile-anthos
+
+.jammy-deploy-ibm:
+  extends: .deploy_job
+  variables:
+    LINUXDISTRO: jammy
+  dependencies:
+    - jammy-compile-ibm
+
+.jammy-deploy-polycloud:
+  extends: .deploy_job
+  variables:
+    LINUXDISTRO: jammy
+  dependencies:
+    - jammy-compile-polycloud
+
+# Rocky 8 compile
+rocky8-compile-azure-curl:
+  extends: .rocky8_compile_job
+  variables:
+    LINUXDISTRO: rocky8
+    CLOUD_PROVIDERS: "--azure-curl-provider"
+
+.rocky8-compile-aws:
+  extends: .rocky8_compile_job
+  variables:
+    LINUXDISTRO: rocky8
+    CLOUD_PROVIDERS: "--aws-provider"
+
+.rocky8-compile-anthos:
+  extends: .rocky8_compile_job
+  variables:
+    LINUXDISTRO: rocky8
+    CLOUD_PROVIDERS: "--anthos-provider"
+
+.rocky8-compile-ibm:
+  extends: .rocky8_compile_job
+  variables:
+    LINUXDISTRO: rocky8
+    CLOUD_PROVIDERS: "--ibm-provider"
+
+.rocky8-compile-polycloud:
+  extends: .rocky8_compile_job
+  variables:
+    LINUXDISTRO: rocky8
+    CLOUD_PROVIDERS: "--azure-curl-provider --aws-provider --ibm-provider --anthos-provider"
+
+
+# Rocky 8 tests
+rocky8-test-azure-curl:
+  extends: .test-rocky8
+  dependencies:
+    - rocky8-compile-azure-curl
+
+.rocky8-test-aws:
+  extends: .test-rocky8
+  dependencies:
+    - rocky8-compile-aws
+
+.rocky8-test-anthos:
+  extends: .test-rocky8
+  dependencies:
+    - rocky8-compile-anthos
+
+.rocky8-test-ibm:
+  extends: .test-rocky8
+  dependencies:
+    - rocky8-compile-ibm
+
+.rocky8-test-polycloud:
+  extends: .test-rocky8
+  dependencies:
+    - rocky8-compile-polycloud
+
+
+
+#Ubuntu rocky8 deploy
+rocky8-deploy-azure-curl:
+  extends: .deploy_job
+  variables:
+    LINUXDISTRO: rocky8
+  dependencies:
+    - rocky8-compile-azure-curl
+
+.rocky8-deploy-aws:
+  extends: .deploy_job
+  variables:
+    LINUXDISTRO: rocky8
+  dependencies:
+    - rocky8-compile-aws
+
+.rocky8-deploy-anthos:
+  extends: .deploy_job
+  variables:
+    LINUXDISTRO: rocky8
+  dependencies:
+    - rocky8-compile-anthos
+
+.rocky8-deploy-ibm:
+  extends: .deploy_job
+  variables:
+    LINUXDISTRO: rocky8
+  dependencies:
+    - rocky8-compile-ibm
+
+.rocky8-deploy-polycloud:
+  extends: .deploy_job
+  variables:
+    LINUXDISTRO: rocky8
+  dependencies:
+    - rocky8-compile-polycloud
+
+
+# Rocky 8 compiled for Omega with old string abi and other tweaks.
+omega8-compile-azure-curl:
+  extends: .omega8_compile_job
+  variables:
+    LINUXDISTRO: omega8
+    CLOUD_PROVIDERS: "--azure-curl-provider"
+
+.omega8-compile-aws:
+  extends: .omega8_compile_job
+  variables:
+    LINUXDISTRO: omega8
+    CLOUD_PROVIDERS: "--aws-provider"
+
+.omega8-compile-anthos:
+  extends: .omega8_compile_job
+  variables:
+    LINUXDISTRO: omega8
+    CLOUD_PROVIDERS: "--anthos-provider"
+
+.omega8-compile-ibm:
+  extends: .omega8_compile_job
+  variables:
+    LINUXDISTRO: omega8
+    CLOUD_PROVIDERS: "--ibm-provider"
+
+.omega8-compile-polycloud:
+  extends: .omega8_compile_job
+  variables:
+    LINUXDISTRO: omega8
+    CLOUD_PROVIDERS: "--azure-curl-provider --aws-provider --ibm-provider --anthos-provider"
+
+
+# Rocky 8 compiled for Omega: test
+omega8-test-azure-curl:
+  extends: .test-omega8
+  dependencies:
+    - omega8-compile-azure-curl
+
+.omega8-test-aws:
+  extends: .test-omega8
+  dependencies:
+    - omega8-compile-aws
+
+.omega8-test-anthos:
+  extends: .test-omega8
+  dependencies:
+    - omega8-compile-anthos
+
+.omega8-test-ibm:
+  extends: .test-omega8
+  dependencies:
+    - omega8-compile-ibm
+
+.omega8-test-polycloud:
+  extends: .test-omega8
+  dependencies:
+    - omega8-compile-polycloud
+
+
+# Rocky 8 compiled for Omega: deploy
+omega8-deploy-azure-curl:
+  extends: .deploy_job
+  variables:
+    LINUXDISTRO: omega8
+  dependencies:
+    - omega8-compile-azure-curl
+
+.omega8-deploy-aws:
+  extends: .deploy_job
+  variables:
+    LINUXDISTRO: omega8
+  dependencies:
+    - omega8-compile-aws
+
+.omega8-deploy-anthos:
+  extends: .deploy_job
+  variables:
+    LINUXDISTRO: omega8
+  dependencies:
+    - omega8-compile-anthos
+
+.omega8-deploy-ibm:
+  extends: .deploy_job
+  variables:
+    LINUXDISTRO: omega8
+  dependencies:
+    - omega8-compile-ibm
+
+.omega8-deploy-polycloud:
+  extends: .deploy_job
+  variables:
+    LINUXDISTRO: omega8
+  dependencies:
+    - omega8-compile-polycloud
+
+
+doc-compile:
+  stage: build
+  image: "$SHA_IMAGE_TAG-doc"
+  tags:
+  - docker-runner
+  artifacts:
+    name: OpenZGY-doc
+    expire_in: 1 hr
+    paths:
+    - build/deploy
+  script:
+  - make doxygen
+  only:
+  - master
+  - merge_requests
+  - kvamme62/citest
+  - kvamme62/cicd
+  - skorozsi/sast
+  
+
+
+windows-build-x64-release:
+  stage: build
+  when: manual
+  tags:
+    - windows
+  only:
+    - master
+    - merge_requests
+    - skorozsi/pipeline
+    - skorozsi/sast
+  script:
+    - |
+      $env:Path += ";$CMAKE_PATH"
+      $collectionOfArgs = @("$SOLUTION_FILE_PATH", "/p:Configuration=Release", "/p:Platform=x64")
+      & "$MSBUILD_PATH" $collectionOfArgs
+  artifacts:
+    name: 'openzgy-windows-x64-release'
+    paths:
+      - build/deploy/native/x64/Release/
+      - build/testdata
+  dependencies: []
+
+windows-build-x64-debug:
+  stage: build
+  when: manual
+  tags:
+    - windows
+  only:
+    - master
+    - merge_requests
+    - skorozsi/pipeline
+    - skorozsi/sast
+  script:
+    - |
+      $env:Path += ";$CMAKE_PATH"
+      $collectionOfArgs = @("$SOLUTION_FILE_PATH", "/p:Configuration=Debug", "/p:Platform=x64")
+      & "$MSBUILD_PATH" $collectionOfArgs
+  artifacts:
+    name: 'openzgy-windows-x64-debug'
+    paths:
+      - build/deploy/native/x64/Debug/
+  dependencies: []
+
+windows-test:
+  stage: test
+  when: manual
+  only:
+    - master
+    - merge_requests
+    - skorozsi/pipeline
+    - skorozsi/sast
+  tags:
+    - windows
+  script:
+    - |
+      & $TEST_RUNNER
+  dependencies:
+    - windows-build-x64-release
+    
+code_quality:
+  stage: test
+  image: docker:19.03.12
+  allow_failure: true
+  services:
+    - docker:19.03.12-dind
+  variables:
+    REPORT_FORMAT: json
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+    CODE_QUALITY_IMAGE: "registry.gitlab.com/gitlab-org/ci-cd/codequality:0.85.18-gitlab.1"
+  needs: []
+  script:
+    - docker info
+    - docker run 
+       --env CODECLIMATE_DEBUG=1 
+       --env CODECLIMATE_CODE="$PWD" 
+       --volume "$PWD":/code 
+       --volume /var/run/docker.sock:/var/run/docker.sock 
+       --volume /tmp/cc:/tmp/cc 
+       codeclimate/codeclimate:0.85.13 analyze -f html > code-quality-report.html
+    - cat code-quality-report.html
+  retry: 2
+  artifacts:
+    paths: [code-quality-report.html]
+    reports:
+      codequality: [code-quality-report.html]
+    expire_in: 1 week
+  dependencies: []
+  rules:
+    - if: '$CODE_QUALITY_DISABLED'
+      when: never
+    - if: '$CI_COMMIT_TAG || $CI_COMMIT_BRANCH'
+

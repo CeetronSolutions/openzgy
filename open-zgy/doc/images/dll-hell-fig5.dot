@@ -1,0 +1,42 @@
+digraph DependencyTree {
+
+node [
+  style=filled,
+  fillcolor=lightgray,
+  shape=rect
+]
+
+"CentOS 8\nSymbol clash\nAll must use the\nsame library" [color=white, fillcolor=white]
+"azure*.so*"
+"libcrypto.so.1.1"
+"libcrypto.so.3"
+"libcurl.so.4"
+"libopenvds.so.2"
+"libopenzgy.so.0.2"
+"libsdapi.so.3"
+"libssl.so.1.1"
+"libssl.so.3"
+"libzfp.so.0"
+"libzgytool.so.0.1"
+"azure*.so*" -> "azure*.so*"
+"azure*.so*" -> "libcrypto.so.3"
+"azure*.so*" -> "libcurl.so.4"
+"azure*.so*" -> "libssl.so.3"
+"libcurl.so.4" -> "libcrypto.so.3"
+"libcurl.so.4" -> "libssl.so.3"
+"libopenvds.so.2" -> "libcrypto.so.1.1"
+"libopenvds.so.2" -> "libcurl.so.4"
+"libopenvds.so.2" -> "libsdapi.so.3"
+"libopenvds.so.2" -> "libssl.so.1.1"
+"libopenzgy.so.0.2" -> "libsdapi.so.3"
+"libopenzgy.so.0.2" -> "libzfp.so.0"
+"libsdapi.so.3" -> "azure*.so*"
+"libsdapi.so.3" -> "libcrypto.so.3"
+"libsdapi.so.3" -> "libcurl.so.4"
+"libsdapi.so.3" -> "libssl.so.3"
+"libssl.so.3" -> "libcrypto.so.3"
+"libzgytool.so.0.1" -> "libopenvds.so.2"
+"libzgytool.so.0.1" -> "libopenzgy.so.0.2"
+"zgytool" -> "libopenzgy.so.0.2"
+"zgytool" -> "libzgytool.so.0.1"
+}

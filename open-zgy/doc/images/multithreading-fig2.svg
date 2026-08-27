@@ -1,0 +1,1814 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="1600"
+   height="1024"
+   viewBox="0 0 1600 1024"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="openzgy-multithread-fig1.svg"
+   inkscape:export-filename="/home/paal/openzgy-multithread-fig1.svg.png"
+   inkscape:export-xdpi="90"
+   inkscape:export-ydpi="90">
+  <defs
+     id="defs4">
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker10596"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         inkscape:connector-curvature="0"
+         id="path10598"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(-0.8,0,0,-0.8,-10,0)" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker5868"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lend"
+       inkscape:collect="always">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         id="path5870"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker5736"
+       style="overflow:visible"
+       inkscape:isstock="true"
+       inkscape:collect="always">
+      <path
+         inkscape:connector-curvature="0"
+         id="path5738"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(-0.8,0,0,-0.8,-10,0)" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker5610"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lend"
+       inkscape:collect="always">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         id="path5612"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker5202"
+       style="overflow:visible"
+       inkscape:isstock="true"
+       inkscape:collect="always">
+      <path
+         inkscape:connector-curvature="0"
+         id="path5204"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(-0.8,0,0,-0.8,-10,0)" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker5076"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lend"
+       inkscape:collect="always">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         id="path5078"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker10463"
+       style="overflow:visible"
+       inkscape:isstock="true"
+       inkscape:collect="always">
+      <path
+         inkscape:connector-curvature="0"
+         id="path10465"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(-0.8,0,0,-0.8,-10,0)" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker5770"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lend"
+       inkscape:collect="always">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         id="path5772"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker5688"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lend">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         id="path5690"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker5612"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lend">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         id="path5614"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker5542"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lend">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         id="path5544"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker5478"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lend">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         id="path5480"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker5420"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lend">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         id="path5422"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker5368"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lend">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         id="path5370"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker5322"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lend">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         id="path5324"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker5282"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lend">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         id="path5284"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker5248"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lend">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         id="path5250"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker5220"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lend">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         id="path5222"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker5198"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lend">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         id="path5200"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow1Lend"
+       style="overflow:visible"
+       inkscape:isstock="true"
+       inkscape:collect="always">
+      <path
+         id="path4925"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="1"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.5"
+     inkscape:cx="756.78896"
+     inkscape:cy="466.9323"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:snap-global="false"
+     inkscape:window-width="1589"
+     inkscape:window-height="1021"
+     inkscape:window-x="180"
+     inkscape:window-y="41"
+     inkscape:window-maximized="0"
+     showguides="true"
+     inkscape:guide-bbox="true"
+     inkscape:snap-bbox="true"
+     units="px">
+    <inkscape:grid
+       type="xygrid"
+       id="grid4140"
+       spacingx="180"
+       spacingy="100"
+       color="#ff3f6d"
+       opacity="0.1254902"
+       empcolor="#ff3f80"
+       empopacity="0.25098039"
+       enabled="true"
+       dotted="false"
+       originx="100"
+       empspacing="0" />
+    <inkscape:grid
+       type="xygrid"
+       id="grid6054"
+       enabled="false" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-28.362164)">
+    <g
+       id="g6145"
+       transform="translate(259,369.41024)">
+      <g
+         id="g5924-7"
+         transform="translate(181,300.08999)">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-0-2"
+           width="128"
+           height="64"
+           x="-17"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#00ff00;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-2-2"
+           width="123.2845"
+           height="59.138977"
+           x="-14.40625"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="-12.629999"
+           y="-237.26279"
+           id="text5864-6"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5866-1"
+             x="-12.629999"
+             y="-237.26279"
+             style="font-size:15px">Good idea</tspan></text>
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4167"
+         y="84.341393"
+         x="171.11092"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:12.5px"
+           y="84.341393"
+           x="171.11092"
+           id="tspan4169"
+           sodipodi:role="line">Multi threading in</tspan><tspan
+           id="tspan4171"
+           style="font-size:12.5px"
+           y="99.966393"
+           x="171.11092"
+           sodipodi:role="line">application on read</tspan></text>
+    </g>
+    <g
+       id="g6198"
+       transform="translate(254.03835,376.96447)">
+      <g
+         id="g5924-0"
+         transform="translate(68,392.08999)">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-0-6"
+           width="128"
+           height="64"
+           x="-17"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#00ff00;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-2-1"
+           width="123.2845"
+           height="59.138977"
+           x="-14.40625"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="-12.629999"
+           y="-237.26279"
+           id="text5864-5"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5866-9"
+             x="-12.629999"
+             y="-237.26279"
+             style="font-size:15px">Good idea</tspan></text>
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4173"
+         y="175.93758"
+         x="58.32233"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:12.5px"
+           y="175.93758"
+           x="58.32233"
+           id="tspan4175"
+           sodipodi:role="line">Multi threaded I/O</tspan><tspan
+           id="tspan4177"
+           style="font-size:12.5px"
+           y="191.56258"
+           x="58.32233"
+           sodipodi:role="line">read within a single</tspan><tspan
+           id="tspan4179"
+           style="font-size:12.5px"
+           y="207.18758"
+           x="58.32233"
+           sodipodi:role="line">application request</tspan></text>
+    </g>
+    <g
+       id="g6187"
+       transform="translate(254.01084,370.5)">
+      <g
+         id="g5924-4"
+         transform="translate(248,399.08999)">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-0-9"
+           width="128"
+           height="64"
+           x="-17"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#00ff00;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-2-0"
+           width="123.2845"
+           height="59.138977"
+           x="-14.40625"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="-12.629999"
+           y="-237.26279"
+           id="text5864-9"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5866-17"
+             x="-12.629999"
+             y="-237.26279"
+             style="font-size:15px">Good idea</tspan></text>
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4173-5"
+         y="184.25772"
+         x="239.81158"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:12.5px"
+           y="184.25772"
+           x="239.81158"
+           id="tspan4175-3"
+           sodipodi:role="line">Multi threaded</tspan><tspan
+           id="tspan4179-6"
+           style="font-size:12.5px"
+           y="199.88272"
+           x="239.81158"
+           sodipodi:role="line">decompress inside</tspan><tspan
+           id="tspan4211"
+           style="font-size:12.5px"
+           y="215.50772"
+           x="239.81158"
+           sodipodi:role="line">library</tspan></text>
+    </g>
+    <g
+       id="g6220"
+       transform="translate(255.01084,470.72069)">
+      <g
+         transform="translate(-196,498.74249)"
+         id="g5932-9">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-8-8"
+           width="128"
+           height="64"
+           x="426"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#ffcc00;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-97-4"
+           width="123.2845"
+           height="59.138977"
+           x="428.59375"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="430.32501"
+           y="-238.56778"
+           id="text5868-8"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5870-1"
+             x="430.32501"
+             y="-238.56778"
+             style="font-size:15px">Questionable</tspan></text>
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4173-5-2"
+         y="283.82895"
+         x="238.07741"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:12.5px"
+           y="283.82895"
+           x="238.07741"
+           id="tspan4175-3-7"
+           sodipodi:role="line">Multi threaded</tspan><tspan
+           id="tspan4179-6-0"
+           style="font-size:12.5px"
+           y="299.45395"
+           x="238.07741"
+           sodipodi:role="line">decompress inside</tspan><tspan
+           id="tspan4211-9"
+           style="font-size:12.5px"
+           y="315.07895"
+           x="238.07741"
+           sodipodi:role="line">a single brick</tspan></text>
+    </g>
+    <g
+       id="g6209"
+       transform="translate(230.01627,478.22069)">
+      <g
+         transform="translate(-129.5,491.08999)"
+         id="g5911-3">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-5-9"
+           width="128"
+           height="64"
+           x="204.5"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#ff0000;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-9-4"
+           width="123.2845"
+           height="59.138977"
+           x="207.09375"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="209.05"
+           y="-237.26279"
+           id="text5872-8"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5874-1"
+             x="209.05"
+             y="-237.26279"
+             style="font-size:15px">Bad idea</tspan></text>
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4173-1"
+         y="276.06409"
+         x="82.298096"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:12.5px"
+           y="276.06409"
+           x="82.298096"
+           id="tspan4175-8"
+           sodipodi:role="line">Multi threaded read</tspan><tspan
+           id="tspan4179-9"
+           style="font-size:12.5px"
+           y="291.68909"
+           x="82.298096"
+           sodipodi:role="line">implemented by</tspan><tspan
+           id="tspan4314"
+           style="font-size:12.5px"
+           y="307.31409"
+           x="82.298096"
+           sodipodi:role="line">SDAPI per request</tspan></text>
+    </g>
+    <g
+       id="g6155"
+       transform="translate(237,362.91024)">
+      <g
+         transform="translate(338.5,306.08999)"
+         id="g5911-38">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-5-56"
+           width="128"
+           height="64"
+           x="204.5"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#ff0000;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-9-1"
+           width="123.2845"
+           height="59.138977"
+           x="207.09375"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="209.05"
+           y="-237.26279"
+           id="text5872-1"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5874-5"
+             x="209.05"
+             y="-237.26279"
+             style="font-size:15px">Bad idea</tspan></text>
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4167-3"
+         y="90.639496"
+         x="550.409"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:12.5px"
+           y="90.639496"
+           x="550.409"
+           id="tspan4169-2"
+           sodipodi:role="line">Multi threading in</tspan><tspan
+           id="tspan4171-0"
+           style="font-size:12.5px"
+           y="106.2645"
+           x="550.409"
+           sodipodi:role="line">application on write</tspan></text>
+    </g>
+    <g
+       id="g6176"
+       transform="translate(398.0054,370.5)">
+      <g
+         id="g5924-71"
+         transform="translate(464,399.08999)">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-0-1"
+           width="128"
+           height="64"
+           x="-17"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#00ff00;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-2-5"
+           width="123.2845"
+           height="59.138977"
+           x="-14.40625"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="-12.629999"
+           y="-237.26279"
+           id="text5864-97"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5866-7"
+             x="-12.629999"
+             y="-237.26279"
+             style="font-size:15px">Good idea</tspan></text>
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4173-6"
+         y="184.18022"
+         x="455.12131"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:12.5px"
+           y="184.18022"
+           x="455.12131"
+           id="tspan4175-5"
+           sodipodi:role="line">Multi threaded I/O</tspan><tspan
+           id="tspan4177-6"
+           style="font-size:12.5px"
+           y="199.80522"
+           x="455.12131"
+           sodipodi:role="line">write within a single</tspan><tspan
+           id="tspan4179-93"
+           style="font-size:12.5px"
+           y="215.43022"
+           x="455.12131"
+           sodipodi:role="line">application request</tspan></text>
+    </g>
+    <g
+       id="g6165"
+       transform="translate(67.5,370.75)">
+      <g
+         id="g5924-6"
+         transform="translate(614,399.08999)">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-0-7"
+           width="128"
+           height="64"
+           x="-17"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#00ff00;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-2-3"
+           width="123.2845"
+           height="59.138977"
+           x="-14.40625"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="-12.629999"
+           y="-237.26279"
+           id="text5864-65"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5866-6"
+             x="-12.629999"
+             y="-237.26279"
+             style="font-size:15px">Good idea</tspan></text>
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4173-5-25"
+         y="183.8383"
+         x="604.96753"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:12.5px"
+           y="183.8383"
+           x="604.96753"
+           id="tspan4175-3-4"
+           sodipodi:role="line">Multi threaded</tspan><tspan
+           id="tspan4179-6-7"
+           style="font-size:12.5px"
+           y="199.4633"
+           x="604.96753"
+           sodipodi:role="line">compress inside</tspan><tspan
+           id="tspan4211-4"
+           style="font-size:12.5px"
+           y="215.0883"
+           x="604.96753"
+           sodipodi:role="line">library</tspan></text>
+    </g>
+    <g
+       id="g6231"
+       transform="translate(389.7554,464.97069)">
+      <g
+         transform="translate(29,504.74249)"
+         id="g5932-0">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-8-3"
+           width="128"
+           height="64"
+           x="426"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#ffcc00;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-97-0"
+           width="123.2845"
+           height="59.138977"
+           x="428.59375"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="430.32501"
+           y="-238.56778"
+           id="text5868-4"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5870-4"
+             x="430.32501"
+             y="-238.56778"
+             style="font-size:15px">Questionable</tspan></text>
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4173-1-8"
+         y="289.61002"
+         x="462.83362"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:12.5px"
+           y="289.61002"
+           x="462.83362"
+           id="tspan4175-8-4"
+           sodipodi:role="line">Multi threaded write</tspan><tspan
+           id="tspan4179-9-3"
+           style="font-size:12.5px"
+           y="305.23502"
+           x="462.83362"
+           sodipodi:role="line">implemented by</tspan><tspan
+           id="tspan4314-1"
+           style="font-size:12.5px"
+           y="320.86002"
+           x="462.83362"
+           sodipodi:role="line">SDAPI per request</tspan></text>
+    </g>
+    <g
+       id="g6242"
+       transform="translate(81,473.72069)">
+      <g
+         transform="translate(158,495.74249)"
+         id="g5932-4">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-8-4"
+           width="128"
+           height="64"
+           x="426"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#ffcc00;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-97-7"
+           width="123.2845"
+           height="59.138977"
+           x="428.59375"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="430.32501"
+           y="-238.56778"
+           id="text5868-6"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5870-3"
+             x="430.32501"
+             y="-238.56778"
+             style="font-size:15px">Questionable</tspan></text>
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4173-5-2-7"
+         y="280.40433"
+         x="591.91968"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:12.5px"
+           y="280.40433"
+           x="591.91968"
+           id="tspan4175-3-7-8"
+           sodipodi:role="line">Multi threaded</tspan><tspan
+           id="tspan4179-6-0-6"
+           style="font-size:12.5px"
+           y="296.02933"
+           x="591.91968"
+           sodipodi:role="line">compress inside</tspan><tspan
+           id="tspan4211-9-8"
+           style="font-size:12.5px"
+           y="311.65433"
+           x="591.91968"
+           sodipodi:role="line">a single brick</tspan></text>
+    </g>
+    <g
+       id="g6253"
+       transform="translate(238.83318,482.39965)">
+      <g
+         transform="translate(41.333631,587.07958)"
+         id="g5911-2">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-5-93"
+           width="128"
+           height="64"
+           x="204.5"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#ff0000;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-9-9"
+           width="123.2845"
+           height="59.138977"
+           x="207.09375"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="209.05"
+           y="-237.26279"
+           id="text5872-0"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5874-8"
+             x="209.05"
+             y="-237.26279"
+             style="font-size:15px">Bad idea</tspan></text>
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4173-5-2-9"
+         y="372.07471"
+         x="252.55434"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:12.5px"
+           y="372.07471"
+           x="252.55434"
+           id="tspan4175-3-7-2"
+           sodipodi:role="line">Decompress</tspan><tspan
+           id="tspan4211-9-4"
+           style="font-size:12.5px"
+           y="387.69971"
+           x="252.55434"
+           sodipodi:role="line">run on GPU</tspan></text>
+    </g>
+    <g
+       id="g6263"
+       transform="translate(50,486.38924)">
+      <g
+         transform="translate(410.5,583.08999)"
+         id="g5911-8">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-5-5"
+           width="128"
+           height="64"
+           x="204.5"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#ff0000;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-9-0"
+           width="123.2845"
+           height="59.138977"
+           x="207.09375"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="209.05"
+           y="-237.26279"
+           id="text5872-9"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5874-6"
+             x="209.05"
+             y="-237.26279"
+             style="font-size:15px">Bad idea</tspan></text>
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4173-5-2-9-1"
+         y="368.36761"
+         x="624.14014"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:12.5px"
+           y="368.36761"
+           x="624.14014"
+           id="tspan4175-3-7-2-7"
+           sodipodi:role="line">Compress</tspan><tspan
+           id="tspan4211-9-4-2"
+           style="font-size:12.5px"
+           y="383.99261"
+           x="624.14014"
+           sodipodi:role="line">run on GPU</tspan></text>
+    </g>
+    <flowRoot
+       xml:space="preserve"
+       id="flowRoot4732"
+       style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"><flowRegion
+         id="flowRegion4734"><rect
+           id="rect4736"
+           width="13"
+           height="31"
+           x="59"
+           y="436.36221" /></flowRegion><flowPara
+         id="flowPara4738" /></flowRoot>    <flowRoot
+       xml:space="preserve"
+       id="flowRoot4788"
+       style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"><flowRegion
+         id="flowRegion4790"><rect
+           id="rect4792"
+           width="585"
+           height="32"
+           x="107"
+           y="460.36221" /></flowRegion><flowPara
+         id="flowPara4794" /></flowRoot>    <flowRoot
+       xml:space="preserve"
+       id="flowRoot4796"
+       style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       transform="translate(296,376)"><flowRegion
+         id="flowRegion4798"><rect
+           id="rect4800"
+           width="235"
+           height="98.000008"
+           x="-130"
+           y="-21.637794" /></flowRegion><flowPara
+         id="flowPara4802"
+         style="font-size:11.25px">Application issues multiple reads (good) or writes (questionable) in parallel. OpenZGY must at least be thread safe (use locks where needed) but performance improvement is only achieved by letting I/O or compression or preferably both run in parallel.</flowPara></flowRoot>    <flowRoot
+       xml:space="preserve"
+       id="flowRoot4804"
+       style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       transform="translate(296,376)"><flowRegion
+         id="flowRegion4806"><rect
+           id="rect4808"
+           width="233"
+           height="156"
+           x="-252"
+           y="77.362206" /></flowRegion><flowPara
+         id="flowPara4810"
+         style="font-size:11.25px">It depends on the application whether multi threading should be done at this level (application needs code to parallelize requests) or inside OpenZGY (application needs to send large requests to get good performance). Possibly a mix of both methods may be used, but that might cause issues with number of threads. SOMEBODY FIND OUT WHAT PETREL PREFERS!</flowPara></flowRoot>    <flowRoot
+       xml:space="preserve"
+       id="flowRoot4812"
+       style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       transform="translate(311,313)"><flowRegion
+         id="flowRegion4814"><rect
+           id="rect4816"
+           width="261"
+           height="135"
+           x="483"
+           y="-35.637794" /></flowRegion><flowPara
+         id="flowPara4818"
+         style="font-size:11.25px">Only good for parallelizing compression, and that is easier to do at a lower level. May result in slower I/O on read if the bricks get scrambled on the file. I.e. the application needs to be very careful here. Even with that problem solved, OpenZGY will in any case need to buffer writes until it has enough for one segment. Which means that any multi-threading from application code might not have much effect</flowPara></flowRoot>    <flowRoot
+       xml:space="preserve"
+       id="flowRoot4828"
+       style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       transform="translate(845,681.89444)"><flowRegion
+         id="flowRegion4830"><rect
+           id="rect4832"
+           width="349"
+           height="101"
+           x="-355"
+           y="259.36221" /></flowRegion><flowPara
+         id="flowPara4834"
+         style="font-size:11.25px">No requirements for the application. Compression and decompression is speeded up by offloading this task to a GPU. This makes the entire application dependent on libraries (nvidia, opencl, whatever) and can have a huge impact on devops unless the application already uses the GPU. Also, last time I checked the best compression algorithm that ZFP offers is not supported on GPU. So we might lose some quality</flowPara></flowRoot>    <flowRoot
+       xml:space="preserve"
+       id="flowRoot4836"
+       style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"><flowRegion
+         id="flowRegion4838"><rect
+           id="rect4840"
+           width="144"
+           height="57"
+           x="148"
+           y="643.36218" /></flowRegion><flowPara
+         id="flowPara4842" /></flowRoot>    <flowRoot
+       xml:space="preserve"
+       id="flowRoot4858"
+       style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       transform="translate(392,372.89444)"><flowRegion
+         id="flowRegion4860"><rect
+           id="rect4862"
+           width="230"
+           height="136.99997"
+           x="-353"
+           y="409.36221" /></flowRegion><flowPara
+         id="flowPara4864"
+         style="font-size:11.25px">No requirements for the application. Compression and decompression is speeded up by parallelizing individual 64^3 bricks. This is fairly easy to implement. ZFP supports this internally. But testing suggests the threading overhead will be too large. And it won't play well with other ways of parallelizing compression.</flowPara></flowRoot>    <flowRoot
+       xml:space="preserve"
+       id="flowRoot4868"
+       style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       transform="translate(246.83249,511.89444)"><flowRegion
+         id="flowRegion4870"><rect
+           id="rect4872"
+           width="186"
+           height="80"
+           x="48"
+           y="337.36221" /></flowRegion><flowPara
+         id="flowPara4874"
+         style="font-size:11.25px">Not useful because SDAPI already allows reading part of  a brick in multiple threads. Having the calling layer do the parallelizing is more efficient.</flowPara></flowRoot>    <flowRoot
+       xml:space="preserve"
+       id="flowRoot4876"
+       style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       transform="translate(429,530.89444)"><flowRegion
+         id="flowRegion4878"><rect
+           id="rect4880"
+           width="163"
+           height="107"
+           x="441"
+           y="354.36221" /></flowRegion><flowPara
+         id="flowPara4882"
+         style="font-size:11.25px">SDAPI might use some GCS or Azure tricks to parallelize uploads to a single brick. That would be transparent to the caller. But, I can get similar results by writing smaller bricks..</flowPara></flowRoot>    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5688)"
+       d="m 299.1854,509.3622 c 4,-1 111,-25.99999 111,-25.99999"
+       id="path4884"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5612)"
+       d="m 351.93038,419.3622 c 0,7 57,39 57,39"
+       id="path4886"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5542)"
+       d="m 389.32158,843.25664 -21,-30"
+       id="path4888"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5478)"
+       d="m 272,822.25664 201,-43"
+       id="path4890"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5420)"
+       d="M 662,937.2566 587,910.25664"
+       id="path4892"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5368)"
+       d="m 921.42304,879.25664 -16,-62"
+       id="path4894"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5322)"
+       d="m 680,936.2566 30,-27.99996"
+       id="path4896"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5282)"
+       d="m 924,406.89073 -41,22"
+       id="path4898"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5248)"
+       d="m 254,839.25664 403,-58"
+       id="path4900"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <flowRoot
+       xml:space="preserve"
+       id="flowRoot4902"
+       style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       transform="translate(207,256)"><flowRegion
+         id="flowRegion4904"><rect
+           id="rect4906"
+           width="190"
+           height="62.000008"
+           x="322"
+           y="23.362206" /></flowRegion><flowPara
+         id="flowPara4908"
+         style="font-size:11.25px">Application needs to send large requests to get good performance. OpenZGY internally splits it into chunks and does multi-threading.</flowPara></flowRoot>    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5220)"
+       d="M 594,340.36221 409,525.3622"
+       id="path4910"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5198)"
+       d="M 605,347.36221 585,525.3622"
+       id="path4912"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
+       d="M 623,353.36221 751,519.3622"
+       id="path4914"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5770)"
+       d="m 652,345.36221 c -18,7 284,180.99999 284,180.99999"
+       id="path4916"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker10463)"
+       d="m 409,384.3622 362,75"
+       id="path10455"
+       inkscape:connector-curvature="0" />
+    <g
+       id="g4568"
+       transform="translate(1370.2087,-77.004311)">
+      <g
+         transform="translate(-260,1146.09)"
+         id="g5924-3">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-0-67"
+           width="128"
+           height="64"
+           x="-17"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#00ff00;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-2-53"
+           width="123.2845"
+           height="59.138977"
+           x="-14.40625"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="-12.629999"
+           y="-237.26279"
+           id="text5864-56"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5866-2"
+             x="-12.629999"
+             y="-237.26279"
+             style="font-size:15px">Good idea</tspan></text>
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4440"
+         y="930.19922"
+         x="-269.47665"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           id="tspan4552"
+           style="font-size:11.25px"
+           y="930.19922"
+           x="-269.47665"
+           sodipodi:role="line">Parallelized decimate</tspan><tspan
+           id="tspan4554"
+           style="font-size:11.25px"
+           y="944.26172"
+           x="-269.47665"
+           sodipodi:role="line">algorithms, at least</tspan><tspan
+           id="tspan4556"
+           style="font-size:11.25px"
+           y="958.32422"
+           x="-269.47665"
+           sodipodi:role="line">for weighted average.</tspan></text>
+    </g>
+    <g
+       id="g4579"
+       transform="translate(766.5908,-80.230971)">
+      <g
+         transform="translate(-772,949.74249)"
+         id="g5932-91">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-8-2"
+           width="128"
+           height="64"
+           x="426"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#ffcc00;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-97-70"
+           width="123.2845"
+           height="59.138977"
+           x="428.59375"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="430.32501"
+           y="-238.56778"
+           id="text5868-9"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5870-36"
+             x="430.32501"
+             y="-238.56778"
+             style="font-size:15px">Questionable</tspan></text>
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4486"
+         y="734.24084"
+         x="-338.14392"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:12.5px"
+           y="734.24084"
+           x="-338.14392"
+           id="tspan4488"
+           sodipodi:role="line">Overlapping</tspan><tspan
+           id="tspan4548"
+           style="font-size:12.5px"
+           y="749.86584"
+           x="-338.14392"
+           sodipodi:role="line">decompression and</tspan><tspan
+           id="tspan4550"
+           style="font-size:12.5px"
+           y="765.49084"
+           x="-338.14392"
+           sodipodi:role="line">I/O read</tspan></text>
+    </g>
+    <g
+       id="g4757"
+       transform="translate(17,86)">
+      <g
+         transform="translate(651,571.74249)"
+         id="g5932-8">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-8-0"
+           width="128"
+           height="64"
+           x="426"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#ffcc00;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-97-5"
+           width="123.2845"
+           height="59.138977"
+           x="428.59375"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="430.32501"
+           y="-238.56778"
+           id="text5868-66"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5870-40"
+             x="430.32501"
+             y="-238.56778"
+             style="font-size:15px">Questionable</tspan></text>
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4601"
+         y="357.74521"
+         x="1084.9688"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:12.5px"
+           y="357.74521"
+           x="1084.9688"
+           id="tspan4603"
+           sodipodi:role="line">High level multi</tspan><tspan
+           id="tspan4749"
+           style="font-size:12.5px"
+           y="373.37021"
+           x="1084.9688"
+           sodipodi:role="line">threading of</tspan><tspan
+           id="tspan4751"
+           style="font-size:12.5px"
+           y="388.99521"
+           x="1084.9688"
+           sodipodi:role="line">finalize</tspan></text>
+    </g>
+    <g
+       id="g4648"
+       transform="translate(1073.0376,139.17619)">
+      <g
+         transform="translate(-279,730.09)"
+         id="g5924-1">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-0-96"
+           width="128"
+           height="64"
+           x="-17"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#00ff00;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-2-9"
+           width="123.2845"
+           height="59.138977"
+           x="-14.40625"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="-12.629999"
+           y="-237.26279"
+           id="text5864-3"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5866-3"
+             x="-12.629999"
+             y="-237.26279"
+             style="font-size:15px">Good idea</tspan></text>
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4605"
+         y="515.61224"
+         x="-288.5"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:11.25px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:12.5px"
+           y="515.61224"
+           x="-288.5"
+           id="tspan4607"
+           sodipodi:role="line">Overlapping</tspan><tspan
+           style="font-size:12.5px"
+           id="tspan4609"
+           y="531.23724"
+           x="-288.5"
+           sodipodi:role="line">compression and</tspan><tspan
+           style="font-size:12.5px"
+           id="tspan4611"
+           y="546.86224"
+           x="-288.5"
+           sodipodi:role="line">I/O write</tspan></text>
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:11.25px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="1118"
+       y="452.36221"
+       id="text4659"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan4661"
+         x="1118"
+         y="452.36221" /></text>
+    <flowRoot
+       xml:space="preserve"
+       id="flowRoot4663"
+       style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:11.25px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       transform="translate(165,310.26772)"><flowRegion
+         id="flowRegion4665"><rect
+           id="rect4667"
+           width="262"
+           height="161"
+           x="1119"
+           y="190.09448" /></flowRegion><flowPara
+         id="flowPara4669">The Finalize stage (generating low resolution bricks) can be viewed as a separate application doing read/write on the ZGY file. As such it can benefit from all the &quot;Good idea&quot; boxes. Parallelizing at the higher level might not be useful though. It won't apply to writes (flagged as a bad idea). Also the finalize code is more efficient the more memory it is allowed to use. With memory being a finite resource this means that each thread will have less memory to work with.</flowPara></flowRoot>    <flowRoot
+       xml:space="preserve"
+       id="flowRoot4671"
+       style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:11.25px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       transform="translate(52,-220.73228)"><flowRegion
+         id="flowRegion4673"><rect
+           id="rect4675"
+           width="433"
+           height="168"
+           x="1072"
+           y="467.09448" /></flowRegion><flowPara
+         id="flowPara4677">Probably the best approach here is to use today's single threaded code that fills a large buffer before writing out the buffer to a single object. Except that when it is time for the actual write the code changes its mind about the segment size making it e.g.1/8th of  what it used to be and then writing those 8 segments in parallel. These writer threads can be detached from the rest of the logic meaning that lod reading and computing may continue while writes are pending. Exception: If there is application does misaligned access and that triggers a read/modify/write and that requires data from a pending write then a lock will cause the main thread to wait for the pending write to complete. This is a non-typical scenario so the only issue here is that it might be difficult to test. Caveat: All of this assumes that SDAPI is thread safe on writes. <flowSpan
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L Bold'"
+   id="flowSpan4689">TODO-High</flowSpan>: This needs to be verified.</flowPara></flowRoot>    <flowRoot
+       xml:space="preserve"
+       id="flowRoot4679"
+       style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:11.25px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       transform="translate(-102,-605.73228)"><flowRegion
+         id="flowRegion4681"><rect
+           id="rect4683"
+           width="362"
+           height="107"
+           x="1151"
+           y="720.09448" /></flowRegion><flowPara
+         id="flowPara4685">Another (but questionable) approach is to keep the segment size unchanged but to allow more than one open segment. This would be more flexible as the number of writer threads could vary dynamically. And a single writer thread that happens to take a very long time (e.g. due to a retry) won't end up holding up the rest. But, the read/modify/write logic and related locking might end up really complex just to get some probably small performance gain.</flowPara></flowRoot>    <g
+       id="g4768"
+       transform="translate(-50.954058,-71.218777)">
+      <g
+         transform="translate(1093,841.09)"
+         id="g5924-04">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-0-62"
+           width="128"
+           height="64"
+           x="-17"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#00ff00;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-2-6"
+           width="123.2845"
+           height="59.138977"
+           x="-14.40625"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="-12.629999"
+           y="-237.26279"
+           id="text5864-7"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5866-5"
+             x="-12.629999"
+             y="-237.26279"
+             style="font-size:15px">Good idea</tspan></text>
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4691"
+         y="626.20966"
+         x="1084.5632"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:11.25px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:12.5px"
+           y="626.20966"
+           x="1084.5632"
+           id="tspan4693"
+           sodipodi:role="line">Finalize to leverage</tspan><tspan
+           id="tspan4753"
+           style="font-size:12.5px"
+           y="641.83466"
+           x="1084.5632"
+           sodipodi:role="line">internal</tspan><tspan
+           id="tspan4755"
+           style="font-size:12.5px"
+           y="657.45966"
+           x="1084.5632"
+           sodipodi:role="line">multi-threading</tspan></text>
+    </g>
+    <g
+       id="g4824"
+       transform="translate(-257,8)">
+      <g
+         transform="translate(856,861.74249)"
+         id="g5932-6">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-8-9"
+           width="128"
+           height="64"
+           x="426"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#ffcc00;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-97-8"
+           width="123.2845"
+           height="59.138977"
+           x="428.59375"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="430.32501"
+           y="-238.56778"
+           id="text5868-7"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5870-2"
+             x="430.32501"
+             y="-238.56778"
+             style="font-size:15px">Questionable</tspan></text>
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4779"
+         y="646.96515"
+         x="1289.4521"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:11.25px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:12.5px"
+           y="646.96515"
+           x="1289.4521"
+           id="tspan4781"
+           sodipodi:role="line">Micro-optimize</tspan><tspan
+           style="font-size:12.5px"
+           id="tspan4783"
+           y="662.59015"
+           x="1289.4521"
+           sodipodi:role="line">the Finalize</tspan></text>
+    </g>
+    <flowRoot
+       xml:space="preserve"
+       id="flowRoot4789"
+       style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:11.25px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       transform="translate(-261,413.26772)"><flowRegion
+         id="flowRegion4791"><rect
+           id="rect4793"
+           width="322"
+           height="97"
+           x="1440"
+           y="310.09448" /></flowRegion><flowPara
+         id="flowPara4795">There are a few places in the finalize code where additional concurrency is possible. Especially where 4 brick-columns are combined into one. This would always be just 2x or 4x parallelization. And given that there will be multi threading also at the layer above, this ides might not have merit.</flowPara></flowRoot>    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5076)"
+       d="m 1108,332.36221 -138,194"
+       id="path5068"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5202)"
+       d="m 1223,714.36221 -59,-36"
+       id="path5194"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5610)"
+       d="m 1262,567.36221 -90,8"
+       id="path5602"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5736)"
+       d="m 1267,550.36221 -77,-52"
+       id="path5728"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5868)"
+       d="m 1088,242.36221 -138,281"
+       id="path5860"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <g
+       id="g12154">
+      <g
+         transform="translate(176.71068,384.05915)"
+         id="g5924">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-0"
+           width="128"
+           height="64"
+           x="-17"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#00ff00;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-2"
+           width="123.2845"
+           height="59.138977"
+           x="-14.40625"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="-12.629999"
+           y="-237.26279"
+           id="text5864"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5866"
+             x="-12.629999"
+             y="-237.26279"
+             style="font-size:15px">Good idea</tspan></text>
+      </g>
+      <g
+         transform="translate(-97.24376,384.71164)"
+         id="g5932">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-8"
+           width="128"
+           height="64"
+           x="426"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#ffcc00;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-97"
+           width="123.2845"
+           height="59.138977"
+           x="428.59375"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="430.32501"
+           y="-238.56778"
+           id="text5868"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5870"
+             x="430.32501"
+             y="-238.56778"
+             style="font-size:15px">Questionable</tspan></text>
+      </g>
+      <g
+         transform="translate(293.30182,384.05915)"
+         id="g5911">
+        <rect
+           style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3336-5"
+           width="128"
+           height="64"
+           x="204.5"
+           y="-232.13779" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#ff0000;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           id="rect3338-9"
+           width="123.2845"
+           height="59.138977"
+           x="207.09375"
+           y="-229.57529" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           x="209.05"
+           y="-237.26279"
+           id="text5872"
+           sodipodi:linespacing="125%"><tspan
+             sodipodi:role="line"
+             id="tspan5874"
+             x="209.05"
+             y="-237.26279"
+             style="font-size:15px">Bad idea</tspan></text>
+      </g>
+      <text
+         sodipodi:linespacing="125%"
+         id="text8342"
+         y="183.00636"
+         x="58"
+         style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:11.25px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:25px"
+           y="183.00636"
+           x="58"
+           id="tspan8344"
+           sodipodi:role="line">Legend:</tspan></text>
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:11.25px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="235"
+       y="73.362213"
+       id="text8346"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan8348"
+         x="235"
+         y="73.362213"
+         style="font-size:40px">Concurrency opportunities in OpenZGY</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:11.25px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="1245"
+       y="857.36218"
+       id="text10576"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan10578"
+         x="1245"
+         y="857.36218" /></text>
+    <flowRoot
+       xml:space="preserve"
+       id="flowRoot10580"
+       style="font-style:normal;font-variant:normal;font-weight:500;font-stretch:normal;font-size:11.25px;line-height:125%;font-family:'Century Schoolbook L';-inkscape-font-specification:'Century Schoolbook L, Medium';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       transform="translate(21,57.362164)"><flowRegion
+         id="flowRegion10582"><rect
+           id="rect10584"
+           width="149"
+           height="72"
+           x="1264"
+           y="822" /></flowRegion><flowPara
+         id="flowPara10586">Weighted average is by far the most expensive algorithm, even more so than the low pass filter.</flowPara></flowRoot>    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker10596)"
+       d="m 1270,908.36216 -38,-36"
+       id="path10588"
+       inkscape:connector-curvature="0" />
+  </g>
+</svg>

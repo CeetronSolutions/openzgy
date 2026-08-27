@@ -1,0 +1,55 @@
+parameters:
+  linuxdistro: 'centos8'
+  pyversion: 'Unset-PYVERSION'
+  gccversion: 'Unset-GCCVERSION'
+  deployed: .
+  tagtail: 'default'
+  upublish: False
+
+steps:
+- bash: |
+    set -e
+    cd "$(Build.ArtifactStagingDirectory)"
+    find * -type f ! -name files.txt -print | sort -o files.txt
+    for tarball in *.tgz
+    do
+      if [ -r "${tarball}" ]
+      then
+        tar tf $tarball | sort | sed -e 's;^\./;;' -e "s;^;${tarball}#;" >> files.txt
+      fi
+    done
+    #cat files.txt
+    echo === Check that expected deployed files exist
+    result=0
+    for i in ${{parameters.deployed}}
+    do
+      i=$(echo "$i" | sed -e 's/PYVERSION/${{parameters.pyversion}}/' -e 's/GCCVERSION/${{parameters.gccversion}}/' -e 's/LINUXDISTRO/${{parameters.linuxdistro}}/')
+      if egrep -q -e "$i" files.txt
+      then
+        echo "Ok: $i"
+      else
+        echo "MISSING: $i"
+        result=42
+      fi
+    done
+    exit ${result}
+  displayName: 'Check that artifacts exist'
+  condition: succeededOrFailed()
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathToPublish: $(Build.ArtifactStagingDirectory)
+    artifactName: OpenZGY-${{parameters.linuxdistro}}
+
+- task: UniversalPackages@0
+  inputs:
+    command: 'publish'
+    publishDirectory: $(Build.ArtifactStagingDirectory)
+    feedsToUsePublish: 'internal'
+    vstsFeedPublish: 'openzgy'
+    vstsFeedPackagePublish: '$(x_openzgy_produce_pkgname)'
+    versionOption: 'patch'
+    packagePublishDescription: 'OpenZGY build using cached SDAPI for ${{parameters.linuxdistro}} (${{parameters.tagtail}})'
+  condition:
+    and(succeeded(), ${{parameters.upublish}})
+  displayName: 'Universal Package (default)'

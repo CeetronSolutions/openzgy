@@ -1,0 +1,47 @@
+name: 'OpenZGY-Veracode'
+
+trigger: none
+schedules:
+- cron: "0 0 * * Fri"
+  displayName: Weekly midnight check
+  batch: true  
+  branches:
+    include:
+    - master
+
+steps:
+  - checkout: git://Colors/openzgy
+  - script: |  
+      ls '$(Build.SourcesDirectory)'
+    displayName: 'list sources'
+   
+  - bash: 'zip -rv OpenZGY.zip . -x "external/" ".git/"'
+    displayName: 'Zip Sources'
+
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: specific
+      project: 'Colors'
+      pipeline: 'OpenZGY Windows'  # 10319
+      preferTriggeringPipeline: false 
+      runVersion: 'latestFromBranch'
+      runBranch: 'refs/heads/master' 
+      path: '$(Build.SourcesDirectory)/bin' 
+    displayName: 'Taking the latest Windows build'
+
+  - script: |  
+      tree '$(Build.SourcesDirectory)' 
+    displayName: 'List Downloaded Artifacts'
+
+  - task: Veracode@3
+    displayName: 'Veracode upload and scan binaries'
+    inputs:
+      AnalysisService: 'Veracode'
+      veracodeAppProfile: 'DELFI Seismic Interpretation'
+      version: 'openZGY-cpp#$(Build.BuildId)-commit#$(Build.SourceVersion)'
+      filepath: '$(Build.SourcesDirectory)/bin/OpenZGY-Windows/OpenZGY-Debug.zip'
+      sandboxName: 'OpenZGY-CPP'
+      createSandBox: false
+      failTheBuildIfVeracodeScanDidNotInitiate: true
+      failBuildOnPolicyFail: false
+      importResults: false
